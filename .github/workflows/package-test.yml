@@ -19,38 +19,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  package:
-    name: Package (${{ matrix.os }})
-    if: |
-      github.event_name == 'workflow_dispatch' && (
-        github.event.inputs.target == 'all' ||
-        (github.event.inputs.target == 'windows' && matrix.target == 'win') ||
-        (github.event.inputs.target == 'macos' && matrix.target == 'mac') ||
-        (github.event.inputs.target == 'linux' && matrix.target == 'linux')
-      )
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: win
-            artifactName: flowai-test-windows
-            artifactPath: |
-              dist/**/*.exe
-              dist/**/latest*.yml
-          - os: macos-latest
-            target: mac
-            artifactName: flowai-test-macos
-            artifactPath: |
-              dist/**/*.dmg
-              dist/**/*.zip
-          - os: ubuntu-latest
-            target: linux
-            artifactName: flowai-test-linux
-            artifactPath: |
-              dist/**/*.AppImage
-              dist/**/*.deb
+  package-windows:
+    name: Package Windows
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'windows')
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
@@ -71,11 +43,83 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: pnpm package -- --${{ matrix.target }}
+        run: pnpm package -- --win
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifactName }}
-          path: ${{ matrix.artifactPath }}
+          name: flowai-test-windows
+          path: |
+            dist/**/*.exe
+            dist/**/latest*.yml
+          if-no-files-found: error
+
+  package-macos:
+    name: Package macOS
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'macos')
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm package -- --mac
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowai-test-macos
+          path: |
+            dist/**/*.dmg
+            dist/**/*.zip
+          if-no-files-found: error
+
+  package-linux:
+    name: Package Linux
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'linux')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm package -- --linux
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowai-test-linux
+          path: |
+            dist/**/*.AppImage
+            dist/**/*.deb
           if-no-files-found: error
