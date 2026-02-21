@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatMessage } from '../common/types';
-import { Button } from './components/ui/button';
+import { ChatComposer } from './components/chat/chat-composer';
+import { ChatMessageList } from './components/chat/chat-message-list';
 import { Card } from './components/ui/card';
-import { Textarea } from './components/ui/textarea';
 import { toErrorMessage } from './lib/errors';
 
 export function ChatApp(): React.JSX.Element {
@@ -77,51 +77,21 @@ export function ChatApp(): React.JSX.Element {
           <p className="text-xs text-muted-foreground">Tray Chat</p>
         </div>
 
-        <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
-          {messages.length === 0 ? (
-            <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-              Start typing to chat.
-            </div>
-          ) : null}
-
-          {messages.map((message, index) => (
-            <div
-              key={`${message.role}-${index}`}
-              className={`max-w-[92%] rounded-md border px-3 py-2 text-sm leading-relaxed ${
-                message.role === 'user'
-                  ? 'ml-auto bg-muted'
-                  : 'mr-auto bg-background'
-              }`}
-            >
-              {message.content}
-            </div>
-          ))}
-
-          {isSending ? (
-            <div className="mr-auto flex max-w-[92%] items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.2s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.1s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-primary" />
-            </div>
-          ) : null}
-        </div>
+        <ChatMessageList
+          messages={messages}
+          isSending={isSending}
+          containerRef={messagesContainerRef}
+        />
 
         <form onSubmit={onSubmit} className="space-y-2 border-t p-3">
-          <Textarea
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            onKeyDown={onPromptKeyDown}
-            placeholder="Ask anything..."
-            className="min-h-[68px]"
+          <ChatComposer
+            prompt={prompt}
+            status={status}
+            canSend={canSend}
+            isSending={isSending}
+            onPromptChange={setPrompt}
+            onPromptKeyDown={onPromptKeyDown}
           />
-          <div className="flex items-end justify-between gap-2">
-            <p className="max-h-16 min-h-4 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
-              {status}
-            </p>
-            <Button type="submit" size="sm" disabled={!canSend}>
-              {isSending ? 'Sending...' : 'Send'}
-            </Button>
-          </div>
         </form>
       </Card>
     </div>

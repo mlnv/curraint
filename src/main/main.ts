@@ -1,12 +1,8 @@
 import {
   app,
-  BrowserWindow,
-  Menu,
-  type MenuItemConstructorOptions,
-  Tray
+  BrowserWindow
 } from 'electron';
 import type { EndpointSettings } from '../common/types';
-import { createTrayIcon } from './trayIcon';
 import { configureAppRuntime } from './runtime';
 import {
   createChatWindow,
@@ -15,6 +11,7 @@ import {
 } from './windows';
 import { registerIpcHandlers } from './ipcHandlers';
 import { loadSettings, saveSettings } from './settingsStore';
+import { TrayManager } from './trayManager';
 
 configureAppRuntime();
 
@@ -23,13 +20,14 @@ if (!hasSingleInstanceLock) {
   app.quit();
 }
 
-let tray: Tray | null = null;
 let chatWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let settings: EndpointSettings;
 let isQuitting = false;
-let hasUnreadAssistantMessage = false;
-let unreadAssistantCount = 0;
+const trayManager = new TrayManager({
+  onToggleChat: () => toggleChatWindow(),
+  onOpenSettings: () => showSettingsWindow()
+});
 
 function isWindowUsable(window: BrowserWindow | null): window is BrowserWindow {
   return window !== null && !window.isDestroyed();
@@ -47,39 +45,6 @@ function isChatViewedByUser(): boolean {
   );
 }
 
-function refreshTrayIcon(): void {
-  if (!tray) {
-    return;
-  }
-
-  tray.setImage(createTrayIcon(hasUnreadAssistantMessage));
-  if (unreadAssistantCount > 0) {
-    tray.setToolTip(`FlowAI (${unreadAssistantCount} new)`);
-  } else {
-    tray.setToolTip('FlowAI');
-  }
-}
-
-function setUnreadAssistantMessage(value: boolean): void {
-  if (hasUnreadAssistantMessage === value) {
-    refreshTrayIcon();
-    return;
-  }
-
-  hasUnreadAssistantMessage = value;
-  refreshTrayIcon();
-}
-
-function clearUnreadAssistantMessages(): void {
-  unreadAssistantCount = 0;
-  setUnreadAssistantMessage(false);
-}
-
-function incrementUnreadAssistantMessages(): void {
-  unreadAssistantCount += 1;
-  setUnreadAssistantMessage(true);
-}
-
 function toggleChatWindow(): void {
   if (!isWindowUsable(chatWindow)) {
     return;
@@ -90,13 +55,14 @@ function toggleChatWindow(): void {
     return;
   }
 
+  const tray = trayManager.getTray();
   if (tray) {
     positionChatWindowNearTray(tray, chatWindow);
   }
 
   chatWindow.show();
   chatWindow.focus();
-  clearUnreadAssistantMessages();
+  trayManager.clearUnreadMessages();
 }
 
 function showSettingsWindow(): void {
@@ -108,25 +74,6 @@ function showSettingsWindow(): void {
   settingsWindow.focus();
 }
 
-function createTray(): void {
-  const icon = createTrayIcon(hasUnreadAssistantMessage);
-
-  tray = new Tray(icon);
-  tray.setToolTip('FlowAI');
-
-  const template: MenuItemConstructorOptions[] = [
-    { label: 'Open Chat', click: () => toggleChatWindow() },
-    { label: 'Settings', click: () => showSettingsWindow() },
-    { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() }
-  ];
-
-  const contextMenu = Menu.buildFromTemplate(template);
-
-  tray.setContextMenu(contextMenu);
-  tray.on('click', () => toggleChatWindow());
-}
-
 app.whenReady().then(() => {
   settings = loadSettings();
   settingsWindow = createSettingsWindow(() => isQuitting);
@@ -135,9 +82,9 @@ app.whenReady().then(() => {
     isSettingsFocused: () => isWindowFocused(settingsWindow)
   });
   chatWindow.on('focus', () => {
-    clearUnreadAssistantMessages();
+    trayManager.clearUnreadMessages();
   });
-  createTray();
+  trayManager.create();
 
   registerIpcHandlers({
     getSettings: () => settings,
@@ -147,7 +94,7 @@ app.whenReady().then(() => {
     },
     onAssistantMessage: () => {
       if (!isChatViewedByUser()) {
-        incrementUnreadAssistantMessages();
+        trayManager.markUnreadMessage();
       }
     }
   });
@@ -159,18 +106,18 @@ app.on('second-instance', () => {
   }
 
   if (isWindowUsable(chatWindow)) {
+    const tray = trayManager.getTray();
     if (tray) {
       positionChatWindowNearTray(tray, chatWindow);
     }
 
     chatWindow.show();
     chatWindow.focus();
-    clearUnreadAssistantMessages();
+    trayManager.clearUnreadMessages();
   }
 });
 
 app.on('before-quit', () => {
   isQuitting = true;
-  tray?.destroy();
-  tray = null;
+  trayManager.destroy();
 });

@@ -75,3 +75,18 @@ Build targets:
 - macOS: DMG
 - Windows: NSIS
 - Linux: AppImage + DEB
+
+Platform-specific examples:
+
+```bash
+# Windows installer (.exe via NSIS)
+pnpm package -- --win
+
+# macOS disk image (.dmg)
+pnpm package -- --mac
+```
+
+Notes:
+
+- Build `.exe` on Windows for best compatibility.
+- Build `.dmg` on macOS for best compatibility and signing/notarization workflows.
