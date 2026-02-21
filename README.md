@@ -90,3 +90,25 @@ Notes:
 
 - Build `.exe` on Windows for best compatibility.
 - Build `.dmg` on macOS for best compatibility and signing/notarization workflows.
+
+## GitHub Actions pipelines
+
+- `CI` (`.github/workflows/ci.yml`)
+	- Runs on push/PR to `main`
+	- Installs deps, runs `pnpm build`, runs `pnpm test`
+
+- `Package and Release` (`.github/workflows/package-release.yml`)
+	- Runs manually (`workflow_dispatch`) or on version tags (`v*`)
+	- Builds installers/packages on each OS:
+		- Windows: `.exe`
+		- macOS: `.dmg` / `.zip`
+		- Linux: `.AppImage` / `.deb`
+	- Uploads build artifacts
+	- On tag builds, creates a GitHub Release and attaches all artifacts
+
+- `Package Test Artifacts` (`.github/workflows/package-test.yml`)
+	- Runs manually (`workflow_dispatch`)
+	- Input: `target` (`all`, `windows`, `macos`, `linux`)
+	- Builds Windows/macOS/Linux packages
+	- Uploads artifacts only (no GitHub Release)
+	- Useful for validating packaging before creating a tagged release

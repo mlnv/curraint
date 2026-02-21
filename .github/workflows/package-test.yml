@@ -1,0 +1,79 @@
+name: Package Test Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target platform to package"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - windows
+          - macos
+          - linux
+
+concurrency:
+  group: package-test-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Package (${{ matrix.os }})
+    if: |
+      github.event.inputs.target == 'all' ||
+      (github.event.inputs.target == 'windows' && matrix.target == 'win') ||
+      (github.event.inputs.target == 'macos' && matrix.target == 'mac') ||
+      (github.event.inputs.target == 'linux' && matrix.target == 'linux')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            artifactName: flowai-test-windows
+            artifactPath: |
+              dist/**/*.exe
+              dist/**/latest*.yml
+          - os: macos-latest
+            target: mac
+            artifactName: flowai-test-macos
+            artifactPath: |
+              dist/**/*.dmg
+              dist/**/*.zip
+          - os: ubuntu-latest
+            target: linux
+            artifactName: flowai-test-linux
+            artifactPath: |
+              dist/**/*.AppImage
+              dist/**/*.deb
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm package -- --${{ matrix.target }}
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifactName }}
+          path: ${{ matrix.artifactPath }}
+          if-no-files-found: error
