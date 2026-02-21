@@ -15,7 +15,9 @@ export function normalizeSettings(
     apiKey: (input.apiKey ?? DEFAULT_SETTINGS.apiKey).trim(),
     baseUrl: (input.baseUrl ?? DEFAULT_SETTINGS.baseUrl).trim(),
     model: (input.model ?? DEFAULT_SETTINGS.model).trim(),
-    systemPrompt: (input.systemPrompt ?? DEFAULT_SETTINGS.systemPrompt).trim()
+    systemPrompt: (input.systemPrompt ?? DEFAULT_SETTINGS.systemPrompt).trim(),
+    enableThinkTagFolding:
+      input.enableThinkTagFolding ?? DEFAULT_SETTINGS.enableThinkTagFolding
   };
 }
 

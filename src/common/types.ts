@@ -6,6 +6,7 @@ export type EndpointSettings = {
   baseUrl: string;
   model: string;
   systemPrompt: string;
+  enableThinkTagFolding: boolean;
 };
 
 export type ChatMessage = {

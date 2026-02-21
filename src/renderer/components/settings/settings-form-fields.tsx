@@ -81,6 +81,15 @@ export function SettingsFormFields({
           className="min-h-[96px]"
         />
       </div>
+
+      <label className="flex items-center gap-2 rounded-md border p-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={form.enableThinkTagFolding}
+          onChange={(event) => onFieldChange('enableThinkTagFolding', event.target.checked)}
+        />
+        Hide and collapse &lt;think&gt; / &lt;reasoning&gt; blocks in AI responses
+      </label>
     </>
   );
 }

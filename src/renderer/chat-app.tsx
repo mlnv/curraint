@@ -7,6 +7,7 @@ import { toErrorMessage } from './lib/errors';
 
 export function ChatApp(): React.JSX.Element {
   const [conversation, setConversation] = useState<ChatMessage[]>([]);
+  const [enableThinkTagFolding, setEnableThinkTagFolding] = useState(true);
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -17,6 +18,17 @@ export function ChatApp(): React.JSX.Element {
     () => conversation.filter((message) => message.role !== 'system'),
     [conversation]
   );
+
+  useEffect(() => {
+    window.flowai
+      .getSettings()
+      .then((settings) => {
+        setEnableThinkTagFolding(settings.enableThinkTagFolding);
+      })
+      .catch(() => {
+        setEnableThinkTagFolding(true);
+      });
+  }, []);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -80,6 +92,7 @@ export function ChatApp(): React.JSX.Element {
         <ChatMessageList
           messages={messages}
           isSending={isSending}
+          enableThinkTagFolding={enableThinkTagFolding}
           containerRef={messagesContainerRef}
         />
 

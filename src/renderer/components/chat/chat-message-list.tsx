@@ -1,14 +1,79 @@
+import { useState } from 'react';
 import type { ChatMessage } from '../../../common/types';
+import { hasThinkTag, parseThinkTags } from '../../../common/thinkTags';
+import { Button } from '../ui/button';
 
 type Props = {
   messages: ChatMessage[];
   isSending: boolean;
+  enableThinkTagFolding: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
 };
+
+type AssistantMessageProps = {
+  content: string;
+  enableThinkTagFolding: boolean;
+};
+
+type ThinkBlockProps = {
+  content: string;
+};
+
+function ThinkBlock({ content }: ThinkBlockProps): React.JSX.Element {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="rounded-md border border-dashed bg-muted/40 p-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
+        {isOpen ? 'Hide reasoning details' : 'Show reasoning details'}
+      </Button>
+      {isOpen ? (
+        <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
+          {content}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AssistantMessageContent({
+  content,
+  enableThinkTagFolding
+}: AssistantMessageProps): React.JSX.Element {
+  if (!enableThinkTagFolding || !hasThinkTag(content)) {
+    return <span className="whitespace-pre-wrap">{content}</span>;
+  }
+
+  const segments = parseThinkTags(content).filter(
+    (segment) => segment.content.length > 0
+  );
+
+  return (
+    <div className="space-y-2">
+      {segments.map((segment, index) => {
+        if (segment.type === 'text') {
+          return (
+            <p key={`text-${index}`} className="whitespace-pre-wrap">
+              {segment.content}
+            </p>
+          );
+        }
+
+        return <ThinkBlock key={`think-${index}`} content={segment.content} />;
+      })}
+    </div>
+  );
+}
 
 export function ChatMessageList({
   messages,
   isSending,
+  enableThinkTagFolding,
   containerRef
 }: Props): React.JSX.Element {
   return (
@@ -26,7 +91,14 @@ export function ChatMessageList({
             message.role === 'user' ? 'ml-auto bg-muted' : 'mr-auto bg-background'
           }`}
         >
-          {message.content}
+          {message.role === 'assistant' ? (
+            <AssistantMessageContent
+              content={message.content}
+              enableThinkTagFolding={enableThinkTagFolding}
+            />
+          ) : (
+            <span className="whitespace-pre-wrap">{message.content}</span>
+          )}
         </div>
       ))}
 

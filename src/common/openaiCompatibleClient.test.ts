@@ -7,7 +7,8 @@ const validSettings: EndpointSettings = {
   apiKey: 'test-key',
   baseUrl: 'https://api.example.com',
   model: 'test-model',
-  systemPrompt: ''
+  systemPrompt: '',
+  enableThinkTagFolding: true
 };
 
 afterEach(() => {

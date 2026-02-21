@@ -16,7 +16,8 @@ describe('normalizeSettings', () => {
       apiKey: 'key',
       baseUrl: 'https://api.example.com/v1',
       model: 'my-model',
-      systemPrompt: 'helper'
+      systemPrompt: 'helper',
+      enableThinkTagFolding: true
     });
   });
 

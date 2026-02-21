@@ -13,7 +13,8 @@ const EMPTY_FORM: FormState = {
   apiKey: '',
   baseUrl: '',
   model: '',
-  systemPrompt: ''
+  systemPrompt: '',
+  enableThinkTagFolding: true
 };
 
 export function SettingsApp(): React.JSX.Element {
@@ -60,7 +61,8 @@ export function SettingsApp(): React.JSX.Element {
         apiKey: form.apiKey.trim(),
         baseUrl: form.baseUrl.trim(),
         model: form.model.trim(),
-        systemPrompt: form.systemPrompt.trim()
+        systemPrompt: form.systemPrompt.trim(),
+        enableThinkTagFolding: form.enableThinkTagFolding
       });
       setStatus('Saved');
       window.close();
@@ -81,7 +83,8 @@ export function SettingsApp(): React.JSX.Element {
         apiKey: form.apiKey.trim(),
         baseUrl: form.baseUrl.trim(),
         model: form.model.trim(),
-        systemPrompt: form.systemPrompt.trim()
+        systemPrompt: form.systemPrompt.trim(),
+        enableThinkTagFolding: form.enableThinkTagFolding
       });
 
       setStatus(message);
