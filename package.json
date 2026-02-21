@@ -13,7 +13,7 @@
     "start": "electron dist/main/main.js",
     "dev": "pnpm build && pnpm start",
     "cli": "node dist/cli/index.js",
-    "package": "pnpm build && electron-builder",
+    "package": "pnpm build && electron-builder --publish never",
     "test": "vitest run",
     "test:watch": "vitest"
   },
