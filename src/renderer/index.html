@@ -4,18 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowAI Chat</title>
-    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="container">
-      <header class="header">FlowAI</header>
-      <section id="messages" class="messages"></section>
-      <form id="chat-form" class="composer">
-        <textarea id="prompt" placeholder="Type a message..." required></textarea>
-        <button type="submit">Send</button>
-      </form>
-      <p id="status" class="status"></p>
-    </main>
-    <script type="module" src="./chat.ts"></script>
+    <div id="app"></div>
+    <script type="module" src="./chat-main.tsx"></script>
   </body>
 </html>

@@ -7,10 +7,20 @@ import {
   Tray,
   nativeImage
 } from 'electron';
+import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import type { ChatMessage, EndpointSettings } from '../common/types';
 import { chatCompletion } from '../common/openaiCompatibleClient';
 import { loadSettings, saveSettings } from './settingsStore';
+
+const sessionDataPath = join(app.getPath('temp'), 'flowai-session-data');
+if (!existsSync(sessionDataPath)) {
+  mkdirSync(sessionDataPath, { recursive: true });
+}
+app.setPath('sessionData', sessionDataPath);
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+app.commandLine.appendSwitch('disable-http-cache');
 
 let tray: Tray | null = null;
 let chatWindow: BrowserWindow | null = null;

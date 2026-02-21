@@ -4,32 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowAI Settings</title>
-    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="container settings-container">
-      <header class="header">Settings</header>
-      <form id="settings-form" class="settings-form">
-        <label>
-          API Key
-          <input id="apiKey" type="password" required />
-        </label>
-        <label>
-          API Base URL
-          <input id="baseUrl" type="url" required />
-        </label>
-        <label>
-          Model
-          <input id="model" type="text" required />
-        </label>
-        <label>
-          System Prompt
-          <textarea id="systemPrompt" rows="4"></textarea>
-        </label>
-        <button type="submit">Save</button>
-      </form>
-      <p id="status" class="status"></p>
-    </main>
-    <script type="module" src="./settings.ts"></script>
+    <div id="app"></div>
+    <script type="module" src="./settings-main.tsx"></script>
   </body>
 </html>
