@@ -51,6 +51,24 @@ export function ChatApp(): React.JSX.Element {
     }
   };
 
+  const onPromptKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>
+  ): void => {
+    if (event.key !== 'Enter' || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    if (!canSend) {
+      return;
+    }
+
+    const form = event.currentTarget.form;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+
   return (
     <div className="h-screen bg-background p-3 text-foreground">
       <Card className="flex h-full flex-col overflow-hidden">
@@ -92,6 +110,7 @@ export function ChatApp(): React.JSX.Element {
           <Textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
+            onKeyDown={onPromptKeyDown}
             placeholder="Ask anything..."
             className="min-h-[68px]"
           />
