@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import type { ChatMessage } from '../../../common/types';
-import { hasThinkTag, parseThinkTags } from '../../../common/thinkTags';
+import {
+  getUnclosedReasoningTagStart,
+  hasThinkTag,
+  parseThinkTags,
+  stripLeadingReasoningTag
+} from '../../../common/thinkTags';
 import { Button } from '../ui/button';
 
 type Props = {
@@ -17,9 +22,10 @@ type AssistantMessageProps = {
 
 type ThinkBlockProps = {
   content: string;
+  isStreaming?: boolean;
 };
 
-function ThinkBlock({ content }: ThinkBlockProps): React.JSX.Element {
+function ThinkBlock({ content, isStreaming = false }: ThinkBlockProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -32,6 +38,9 @@ function ThinkBlock({ content }: ThinkBlockProps): React.JSX.Element {
       >
         {isOpen ? 'Hide reasoning details' : 'Show reasoning details'}
       </Button>
+      {isStreaming ? (
+        <p className="mt-1 text-xs text-muted-foreground">Reasoning is still streaming…</p>
+      ) : null}
       {isOpen ? (
         <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
           {content}
@@ -45,11 +54,32 @@ function AssistantMessageContent({
   content,
   enableThinkTagFolding
 }: AssistantMessageProps): React.JSX.Element {
-  if (!enableThinkTagFolding || !hasThinkTag(content)) {
+  if (!enableThinkTagFolding) {
     return <span className="whitespace-pre-wrap">{content}</span>;
   }
 
-  const segments = parseThinkTags(content).filter(
+  const unclosedTagStart = getUnclosedReasoningTagStart(content);
+  const visibleContent = unclosedTagStart >= 0 ? content.slice(0, unclosedTagStart) : content;
+  const streamingReasoningContent =
+    unclosedTagStart >= 0
+      ? stripLeadingReasoningTag(content.slice(unclosedTagStart))
+      : null;
+
+  if (!hasThinkTag(visibleContent)) {
+    return (
+      <div className="space-y-2">
+        <span className="whitespace-pre-wrap">{visibleContent}</span>
+        {streamingReasoningContent !== null ? (
+          <ThinkBlock
+            content={streamingReasoningContent}
+            isStreaming
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  const segments = parseThinkTags(visibleContent).filter(
     (segment) => segment.content.length > 0
   );
 
@@ -66,6 +96,12 @@ function AssistantMessageContent({
 
         return <ThinkBlock key={`think-${index}`} content={segment.content} />;
       })}
+      {streamingReasoningContent !== null ? (
+        <ThinkBlock
+          content={streamingReasoningContent}
+          isStreaming
+        />
+      ) : null}
     </div>
   );
 }

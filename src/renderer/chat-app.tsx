@@ -47,16 +47,36 @@ export function ChatApp(): React.JSX.Element {
     }
 
     const nextConversation = [...conversation, { role: 'user' as const, content }];
-    setConversation(nextConversation);
+    const assistantIndex = nextConversation.length;
+    setConversation([
+      ...nextConversation,
+      { role: 'assistant' as const, content: '' }
+    ]);
     setPrompt('');
     setStatus('Thinking...');
     setIsSending(true);
 
     try {
-      const reply = await window.flowai.chat(nextConversation);
-      setConversation((prev) => [...prev, { role: 'assistant', content: reply }]);
+      const reply = await window.flowai.chatStream(nextConversation, (delta) => {
+        setConversation((prev) =>
+          prev.map((message, index) =>
+            index === assistantIndex && message.role === 'assistant'
+              ? { ...message, content: message.content + delta }
+              : message
+          )
+        );
+      });
+
+      setConversation((prev) =>
+        prev.map((message, index) =>
+          index === assistantIndex && message.role === 'assistant'
+            ? { ...message, content: reply }
+            : message
+        )
+      );
       setStatus('');
     } catch (error) {
+      setConversation((prev) => prev.filter((_, index) => index !== assistantIndex));
       setStatus(toErrorMessage(error));
     } finally {
       setIsSending(false);

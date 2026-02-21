@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { chatCompletion, testConnection } from './openaiCompatibleClient';
+import {
+  chatCompletion,
+  chatCompletionStream,
+  testConnection
+} from './openaiCompatibleClient';
 import type { EndpointSettings } from './types';
 
 const validSettings: EndpointSettings = {
@@ -149,5 +153,59 @@ describe('testConnection', () => {
     await expect(testConnection(validSettings)).rejects.toThrow(
       'Connection test failed (503): Server unavailable'
     );
+  });
+});
+
+describe('chatCompletionStream', () => {
+  it('streams delta chunks and returns final response', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode('data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n')
+        );
+        controller.enqueue(
+          encoder.encode('data: {"choices":[{"delta":{"content":"lo"}}]}\n\n')
+        );
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      }
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(stream, { status: 200 })
+    );
+
+    const deltas: string[] = [];
+    const result = await chatCompletionStream(
+      validSettings,
+      [{ role: 'user', content: 'Hi' }],
+      {
+        onDelta: (delta) => deltas.push(delta)
+      }
+    );
+
+    expect(deltas).toEqual(['Hel', 'lo']);
+    expect(result).toEqual({ message: 'Hello' });
+  });
+
+  it('throws on empty streaming payload', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      }
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(stream, { status: 200 })
+    );
+
+    await expect(
+      chatCompletionStream(validSettings, [{ role: 'user', content: 'Hi' }], {
+        onDelta: () => undefined
+      })
+    ).rejects.toThrow('Endpoint returned an empty streaming response.');
   });
 });

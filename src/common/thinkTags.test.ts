@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { hasThinkTag, parseThinkTags } from './thinkTags';
+import {
+  getUnclosedReasoningTagStart,
+  hasThinkTag,
+  parseThinkTags,
+  stripLeadingReasoningTag
+} from './thinkTags';
 
 describe('parseThinkTags', () => {
   it('returns plain text segment when no think tags exist', () => {
@@ -94,5 +99,38 @@ describe('hasThinkTag', () => {
   it('detects escaped tag blocks', () => {
     expect(hasThinkTag('x&lt;think&gt;y&lt;/think&gt;z')).toBe(true);
     expect(hasThinkTag('x&lt;reasoning&gt;y&lt;/reasoning&gt;z')).toBe(true);
+  });
+});
+
+describe('getUnclosedReasoningTagStart', () => {
+  it('returns -1 when all tags are closed', () => {
+    expect(getUnclosedReasoningTagStart('A<think>x</think>B')).toBe(-1);
+    expect(getUnclosedReasoningTagStart('A<reasoning>x</reasoning>B')).toBe(-1);
+  });
+
+  it('returns start index for unclosed raw tag', () => {
+    const content = 'Prefix <think>partial';
+    expect(getUnclosedReasoningTagStart(content)).toBe(content.indexOf('<think>'));
+  });
+
+  it('returns start index for unclosed escaped tag', () => {
+    const content = 'Prefix &lt;reasoning&gt;partial';
+    expect(getUnclosedReasoningTagStart(content)).toBe(
+      content.indexOf('&lt;reasoning&gt;')
+    );
+  });
+});
+
+describe('stripLeadingReasoningTag', () => {
+  it('removes raw opening think tag', () => {
+    expect(stripLeadingReasoningTag('<think>abc')).toBe('abc');
+  });
+
+  it('removes raw opening reasoning tag', () => {
+    expect(stripLeadingReasoningTag('<reasoning>abc')).toBe('abc');
+  });
+
+  it('removes escaped opening tag', () => {
+    expect(stripLeadingReasoningTag('&lt;think&gt;abc')).toBe('abc');
   });
 });
