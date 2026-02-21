@@ -93,8 +93,10 @@ export function SettingsApp(): React.JSX.Element {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <p className="truncate pr-3 text-xs text-muted-foreground">{status}</p>
+          <div className="flex items-end justify-between gap-2">
+            <p className="max-h-16 min-h-4 flex-1 overflow-y-auto whitespace-pre-wrap break-words pr-1 text-xs leading-relaxed text-muted-foreground">
+              {status}
+            </p>
             <Button type="submit" size="sm">
               Save
             </Button>

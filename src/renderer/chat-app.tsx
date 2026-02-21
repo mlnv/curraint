@@ -80,8 +80,10 @@ export function ChatApp(): React.JSX.Element {
             placeholder="Ask anything..."
             className="min-h-[68px]"
           />
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-xs text-muted-foreground">{status}</p>
+          <div className="flex items-end justify-between gap-2">
+            <p className="max-h-16 min-h-4 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
+              {status}
+            </p>
             <Button type="submit" size="sm" disabled={!canSend}>
               {isSending ? 'Sending...' : 'Send'}
             </Button>
