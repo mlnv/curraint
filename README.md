@@ -107,8 +107,14 @@ pnpm cli
 
 Behavior notes:
 
+- Uses the same shared chat-session core as desktop chat (streaming, stop, edit/regenerate flow).
 - Uses the same shared context-safety composition logic as desktop chat.
 - Works with OpenAI-compatible endpoints configured via environment variables.
+- CLI commands:
+	- `/help` – show available commands
+	- `/history` – print conversation history
+	- `/edit <number>` – edit a previous user message and regenerate from that point
+	- `Ctrl+C` while streaming – stop current response
 
 ## Testing
 
@@ -191,6 +197,7 @@ Notes:
 Key modules:
 
 - `src/common/contextSafety.ts` – context-window truncation + summary policy
+- `src/common/chatSessionCore.ts` – shared submit/edit/stream/stop chat orchestration
 - `src/common/settings.ts` – settings normalization + conversation composition orchestration
 - `src/renderer/lib/use-chat-session.ts` – chat session orchestration for renderer
 
