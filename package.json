@@ -18,6 +18,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
@@ -29,6 +30,7 @@
     "cross-env": "^7.0.3",
     "electron": "^40.6.0",
     "electron-builder": "^25.1.8",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
