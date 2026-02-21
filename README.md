@@ -2,7 +2,7 @@
 
 FlowAI is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
 
-It supports OpenAI-compatible chat completion APIs, including local inference via LM Studio.
+It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards.
 
 ## Why FlowAI
 
@@ -11,6 +11,8 @@ It supports OpenAI-compatible chat completion APIs, including local inference vi
 - Optional local-model workflow through LM Studio
 - Provider-aware settings (OpenAI, LM Studio, Custom)
 - CLI mode for scripting and terminal-based usage
+- Streaming-first UX with stop/cancel controls
+- Context safety with truncation + summary fallback
 
 ## Features
 
@@ -19,6 +21,13 @@ It supports OpenAI-compatible chat completion APIs, including local inference vi
 - Unread message indicator in tray icon + tooltip count
 - Enter to send, Shift+Enter for newline
 - OpenAI-compatible `/chat/completions` integration
+- Streaming responses with graceful non-stream fallback
+- Stop current response while preserving partial output
+- Edit user messages and regenerate from that point in history
+- Markdown rendering for assistant responses (tables, code, lists, headings)
+- Copy buttons for code blocks in responses
+- Configurable context safety limits (`max messages`, `max characters`)
+- Automatic history truncation with compact summary of removed context
 - Packaging support via `electron-builder`
 
 ## Tech stack
@@ -69,6 +78,8 @@ Configure:
 - API Base URL
 - Model
 - System Prompt
+- Reasoning block handling (`<think>` / `<reasoning>` show-hide)
+- Context safety limits in Advanced section
 
 Use **Test Connection** to validate endpoint access before saving.
 
@@ -94,6 +105,11 @@ Run:
 pnpm cli
 ```
 
+Behavior notes:
+
+- Uses the same shared context-safety composition logic as desktop chat.
+- Works with OpenAI-compatible endpoints configured via environment variables.
+
 ## Testing
 
 Run unit tests:
@@ -106,6 +122,14 @@ Watch mode:
 
 ```bash
 pnpm test:watch
+```
+
+Build specific targets:
+
+```bash
+pnpm build:renderer
+pnpm build:main
+pnpm build:cli
 ```
 
 ## Packaging and releases
@@ -161,8 +185,14 @@ Notes:
 
 - `src/main` – Electron main process (tray, windows, IPC orchestration)
 - `src/renderer` – React UI (chat/settings)
-- `src/common` – shared types, provider config, API client, settings helpers
+- `src/common` – shared types, provider config, API client, settings and context safety
 - `src/cli` – terminal chat client
+
+Key modules:
+
+- `src/common/contextSafety.ts` – context-window truncation + summary policy
+- `src/common/settings.ts` – settings normalization + conversation composition orchestration
+- `src/renderer/lib/use-chat-session.ts` – chat session orchestration for renderer
 
 ## Contributing
 

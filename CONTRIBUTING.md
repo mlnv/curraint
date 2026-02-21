@@ -26,6 +26,14 @@ Run the app locally:
 pnpm start
 ```
 
+Optional focused commands:
+
+```bash
+pnpm build:renderer
+pnpm build:main
+pnpm build:cli
+```
+
 ## Branches and commits
 
 - Create feature/fix branches from `main`.
@@ -43,6 +51,14 @@ pnpm start
 - Keep modules single-purpose (SRP).
 - Reuse shared helpers from `src/common` when possible.
 - Avoid duplicating constants/strings across renderer/main/CLI.
+- Keep orchestration separate from policy and rendering concerns.
+
+### Shared domain modules
+
+- Keep context policy in `src/common/contextSafety.ts`.
+- Keep settings normalization/composition in `src/common/settings.ts`.
+- Keep API transport behavior in `src/common/openaiCompatibleClient.ts`.
+- Add/update tests for any behavior change in these modules.
 
 ### Electron
 
@@ -55,6 +71,8 @@ pnpm start
 - Keep container components focused on state + orchestration.
 - Extract repeated UI blocks into presentational components.
 - Keep status/error messages user-friendly and actionable.
+- Prefer hooks for orchestration logic (for example `src/renderer/lib/use-chat-session.ts`).
+- Keep markdown/reasoning rendering logic modular and reusable.
 
 ## Testing expectations
 
@@ -75,12 +93,19 @@ For UI/main-process changes:
 pnpm build
 ```
 
+For workflow/config changes:
+
+- Ensure docs stay aligned with current `.github/workflows/*.yml` behavior.
+- Do not reintroduce conflicting pnpm version pinning in workflows.
+
 ## Pull request checklist
 
 - [ ] Code compiles (`pnpm build`)
 - [ ] Tests pass (`pnpm test`)
 - [ ] PR scope is focused and documented
 - [ ] README/docs updated if behavior changed
+- [ ] New settings fields include defaults + normalization + UI wiring
+- [ ] Shared logic changes include/adjust unit tests
 
 ## Reporting issues
 
@@ -92,8 +117,20 @@ When opening an issue, include:
 - Expected vs actual behavior
 - Logs/errors (if any)
 
+For chat regressions, also include:
+
+- Provider and model used
+- Whether streaming was enabled/supported
+- Whether reasoning tags (`<think>` / `<reasoning>`) appeared
+
 ## Security notes
 
 - Do not commit secrets (API keys, tokens, certificates).
 - Use local env vars or private secrets in CI/CD settings.
 - For sensitive disclosures, contact maintainers privately instead of opening a public issue.
+
+## CI workflow notes
+
+- `CI` workflow is manual (`workflow_dispatch`).
+- `Package Test Artifacts` is manual and artifact-only.
+- `Package and Release` runs manually and on `v*` tags for release publishing.
