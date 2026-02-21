@@ -6,6 +6,7 @@ export const IPC_CHANNELS = {
   chatSend: 'chat:send',
   chatStream: 'chat:stream',
   chatStreamChunk: 'chat:stream:chunk',
+  chatCancel: 'chat:cancel',
   testConnection: 'settings:testConnection'
 } as const;
 
@@ -27,5 +28,6 @@ export type FlowAiApi = {
     messages: ChatMessage[],
     onDelta: (delta: string) => void
   ) => Promise<string>;
+  cancelChatStream: () => Promise<void>;
   testConnection: (settings: EndpointSettings) => Promise<string>;
 };

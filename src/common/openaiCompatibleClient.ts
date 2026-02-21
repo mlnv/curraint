@@ -59,6 +59,10 @@ type StreamCallbacks = {
   onDelta: (delta: string) => void;
 };
 
+type StreamOptions = {
+  signal?: AbortSignal;
+};
+
 function extractDelta(json: CompletionResponse): string {
   return (
     json.choices?.[0]?.delta?.content ??
@@ -201,7 +205,8 @@ export async function chatCompletion(
 export async function chatCompletionStream(
   settings: EndpointSettings,
   messages: ChatMessage[],
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  options: StreamOptions = {}
 ): Promise<ChatResult> {
   const normalizedBaseUrl = validateSettingsForRequest(settings);
   const url = `${normalizedBaseUrl}/chat/completions`;
@@ -209,6 +214,7 @@ export async function chatCompletionStream(
   const response = await fetch(url, {
     method: 'POST',
     headers: createAuthHeaders(settings),
+    signal: options.signal,
     body: JSON.stringify({
       model: settings.model.trim(),
       messages,

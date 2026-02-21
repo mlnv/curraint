@@ -40,6 +40,8 @@ function isChatStreamPayload(payload: unknown): payload is ChatStreamPayload {
 }
 
 export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
+  const activeStreamControllers = new Map<string, AbortController>();
+
   ipcMain.handle(IPC_CHANNELS.getSettings, () => settingsAccess.getSettings());
 
   ipcMain.handle(IPC_CHANNELS.saveSettings, (_event, next: EndpointSettings) => {
@@ -67,22 +69,36 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     const settings = settingsAccess.getSettings();
     const composed = composeConversation(settings, payload.messages);
     let hasStreamedChunk = false;
+    let streamedMessage = '';
+    const controller = new AbortController();
+    activeStreamControllers.set(payload.requestId, controller);
 
     try {
       const result = await chatCompletionStream(settings, composed, {
         onDelta: (delta) => {
           hasStreamedChunk = true;
+          streamedMessage += delta;
           const chunkPayload: ChatStreamChunkPayload = {
             requestId: payload.requestId,
             delta
           };
           event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
         }
+      }, {
+        signal: controller.signal
       });
 
       settingsAccess.onAssistantMessage?.();
       return result.message;
     } catch (error) {
+      const isAbortError =
+        (error instanceof DOMException && error.name === 'AbortError') ||
+        (error instanceof Error && error.name === 'AbortError');
+
+      if (isAbortError) {
+        return streamedMessage;
+      }
+
       if (hasStreamedChunk) {
         throw error;
       }
@@ -90,7 +106,23 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
       const fallback = await chatCompletion(settings, composed);
       settingsAccess.onAssistantMessage?.();
       return fallback.message;
+    } finally {
+      activeStreamControllers.delete(payload.requestId);
     }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatCancel, async (_event, requestId: unknown) => {
+    if (typeof requestId !== 'string') {
+      return;
+    }
+
+    const controller = activeStreamControllers.get(requestId);
+    if (!controller) {
+      return;
+    }
+
+    controller.abort();
+    activeStreamControllers.delete(requestId);
   });
 
   ipcMain.handle(

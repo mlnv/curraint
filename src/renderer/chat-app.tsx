@@ -13,6 +13,7 @@ export function ChatApp(): React.JSX.Element {
   const [isSending, setIsSending] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const isCancellingRef = useRef(false);
 
   const canSend = useMemo(() => !isSending && prompt.trim().length > 0, [isSending, prompt]);
   const messages = useMemo(
@@ -67,6 +68,7 @@ export function ChatApp(): React.JSX.Element {
     setPrompt('');
     setStatus('Thinking...');
     setIsSending(true);
+    isCancellingRef.current = false;
 
     try {
       const reply = await window.flowai.chatStream(nextConversation, (delta) => {
@@ -79,20 +81,54 @@ export function ChatApp(): React.JSX.Element {
         );
       });
 
-      setConversation((prev) =>
-        prev.map((message, index) =>
+      setConversation((prev) => {
+        const assistant = prev[assistantIndex];
+        if (
+          isCancellingRef.current &&
+          assistant?.role === 'assistant' &&
+          reply.trim().length === 0
+        ) {
+          return prev.filter((_, index) => index !== assistantIndex);
+        }
+
+        return prev.map((message, index) =>
           index === assistantIndex && message.role === 'assistant'
             ? { ...message, content: reply }
             : message
-        )
-      );
-      setStatus('');
+        );
+      });
+
+      setStatus(isCancellingRef.current ? 'Response stopped' : '');
     } catch (error) {
-      setConversation((prev) => prev.filter((_, index) => index !== assistantIndex));
-      setStatus(toErrorMessage(error));
+      if (isCancellingRef.current) {
+        setConversation((prev) => {
+          const assistant = prev[assistantIndex];
+          if (assistant?.role === 'assistant' && assistant.content.trim().length === 0) {
+            return prev.filter((_, index) => index !== assistantIndex);
+          }
+
+          return prev;
+        });
+        setStatus('Response stopped');
+      } else {
+        setConversation((prev) => prev.filter((_, index) => index !== assistantIndex));
+        setStatus(toErrorMessage(error));
+      }
     } finally {
       setIsSending(false);
+      isCancellingRef.current = false;
     }
+  };
+
+  const onStopResponse = (): void => {
+    if (!isSending) {
+      return;
+    }
+
+    isCancellingRef.current = true;
+    setIsSending(false);
+    setStatus('Stopping response...');
+    void window.flowai.cancelChatStream();
   };
 
   const onPromptKeyDown = (
@@ -135,6 +171,7 @@ export function ChatApp(): React.JSX.Element {
             status={status}
             canSend={canSend}
             isSending={isSending}
+            onStop={onStopResponse}
             onPromptChange={setPrompt}
             onPromptKeyDown={onPromptKeyDown}
           />
