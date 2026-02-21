@@ -17,7 +17,9 @@ describe('normalizeSettings', () => {
       baseUrl: 'https://api.example.com/v1',
       model: 'my-model',
       systemPrompt: 'helper',
-      enableThinkTagFolding: true
+      enableThinkTagFolding: true,
+      contextMaxMessages: 40,
+      contextMaxCharacters: 24000
     });
   });
 
@@ -36,6 +38,16 @@ describe('normalizeSettings', () => {
     });
 
     expect(result.provider).toBe('openai');
+  });
+
+  it('normalizes context limits into allowed bounds', () => {
+    const result = normalizeSettings({
+      contextMaxMessages: 9999,
+      contextMaxCharacters: 100
+    });
+
+    expect(result.contextMaxMessages).toBe(120);
+    expect(result.contextMaxCharacters).toBe(4000);
   });
 });
 
@@ -59,5 +71,39 @@ describe('composeConversation', () => {
     const result = composeConversation(settings, messages);
 
     expect(result).toEqual(messages);
+  });
+
+  it('truncates long history and adds summary system message', () => {
+    const settings = { ...DEFAULT_SETTINGS, systemPrompt: 'System message' };
+    const messages = Array.from({ length: 55 }, (_, index) => ({
+      role: (index % 2 === 0 ? 'user' : 'assistant') as const,
+      content: `Message ${index + 1}`
+    }));
+
+    const result = composeConversation(settings, messages);
+
+    expect(result[0]).toEqual({ role: 'system', content: 'System message' });
+    expect(result[1]?.role).toBe('system');
+    expect(result[1]?.content).toContain(
+      'Earlier conversation was truncated to stay within model context limits.'
+    );
+    expect(result[result.length - 1]).toEqual({
+      role: 'user',
+      content: 'Message 55'
+    });
+  });
+
+  it('adds truncation summary even without explicit system prompt', () => {
+    const settings = { ...DEFAULT_SETTINGS, systemPrompt: '' };
+    const longMessage = 'x'.repeat(2000);
+    const messages = Array.from({ length: 20 }, (_, index) => ({
+      role: (index % 2 === 0 ? 'user' : 'assistant') as const,
+      content: `${index}-${longMessage}`
+    }));
+
+    const result = composeConversation(settings, messages);
+
+    expect(result[0]?.role).toBe('system');
+    expect(result[0]?.content).toContain('Summary of truncated messages:');
   });
 });

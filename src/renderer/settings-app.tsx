@@ -14,7 +14,9 @@ const EMPTY_FORM: FormState = {
   baseUrl: '',
   model: '',
   systemPrompt: '',
-  enableThinkTagFolding: true
+  enableThinkTagFolding: true,
+  contextMaxMessages: 40,
+  contextMaxCharacters: 24000
 };
 
 export function SettingsApp(): React.JSX.Element {
@@ -62,7 +64,9 @@ export function SettingsApp(): React.JSX.Element {
         baseUrl: form.baseUrl.trim(),
         model: form.model.trim(),
         systemPrompt: form.systemPrompt.trim(),
-        enableThinkTagFolding: form.enableThinkTagFolding
+        enableThinkTagFolding: form.enableThinkTagFolding,
+        contextMaxMessages: form.contextMaxMessages,
+        contextMaxCharacters: form.contextMaxCharacters
       });
       setStatus('Saved');
       window.close();
@@ -84,7 +88,9 @@ export function SettingsApp(): React.JSX.Element {
         baseUrl: form.baseUrl.trim(),
         model: form.model.trim(),
         systemPrompt: form.systemPrompt.trim(),
-        enableThinkTagFolding: form.enableThinkTagFolding
+        enableThinkTagFolding: form.enableThinkTagFolding,
+        contextMaxMessages: form.contextMaxMessages,
+        contextMaxCharacters: form.contextMaxCharacters
       });
 
       setStatus(message);

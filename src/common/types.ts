@@ -7,6 +7,8 @@ export type EndpointSettings = {
   model: string;
   systemPrompt: string;
   enableThinkTagFolding: boolean;
+  contextMaxMessages: number;
+  contextMaxCharacters: number;
 };
 
 export type ChatMessage = {

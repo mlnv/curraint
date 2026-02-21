@@ -12,7 +12,9 @@ const validSettings: EndpointSettings = {
   baseUrl: 'https://api.example.com',
   model: 'test-model',
   systemPrompt: '',
-  enableThinkTagFolding: true
+  enableThinkTagFolding: true,
+  contextMaxMessages: 40,
+  contextMaxCharacters: 24000
 };
 
 afterEach(() => {

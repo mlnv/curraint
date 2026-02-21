@@ -1,4 +1,9 @@
 import { DEFAULT_SETTINGS } from './defaults';
+import {
+  CONTEXT_SAFETY_LIMIT_BOUNDS,
+  normalizeContextLimit,
+  truncateConversationForContext
+} from './contextSafety';
 import { isProviderId } from './providers';
 import type { ChatMessage, EndpointSettings } from './types';
 
@@ -17,7 +22,19 @@ export function normalizeSettings(
     model: (input.model ?? DEFAULT_SETTINGS.model).trim(),
     systemPrompt: (input.systemPrompt ?? DEFAULT_SETTINGS.systemPrompt).trim(),
     enableThinkTagFolding:
-      input.enableThinkTagFolding ?? DEFAULT_SETTINGS.enableThinkTagFolding
+      input.enableThinkTagFolding ?? DEFAULT_SETTINGS.enableThinkTagFolding,
+    contextMaxMessages: normalizeContextLimit(
+      input.contextMaxMessages,
+      DEFAULT_SETTINGS.contextMaxMessages,
+      CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages,
+      CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages
+    ),
+    contextMaxCharacters: normalizeContextLimit(
+      input.contextMaxCharacters,
+      DEFAULT_SETTINGS.contextMaxCharacters,
+      CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters,
+      CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters
+    )
   };
 }
 
@@ -25,9 +42,20 @@ export function composeConversation(
   settings: EndpointSettings,
   messages: ChatMessage[]
 ): ChatMessage[] {
-  if (!settings.systemPrompt) {
-    return messages;
+  const { keptMessages, summary } = truncateConversationForContext(messages, {
+    maxMessages: settings.contextMaxMessages,
+    maxCharacters: settings.contextMaxCharacters
+  });
+  const composed: ChatMessage[] = [];
+
+  if (settings.systemPrompt) {
+    composed.push({ role: 'system', content: settings.systemPrompt });
   }
 
-  return [{ role: 'system', content: settings.systemPrompt }, ...messages];
+  if (summary) {
+    composed.push({ role: 'system', content: summary });
+  }
+
+  composed.push(...keptMessages);
+  return composed;
 }

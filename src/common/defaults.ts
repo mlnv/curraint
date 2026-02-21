@@ -6,5 +6,7 @@ export const DEFAULT_SETTINGS: EndpointSettings = {
   baseUrl: 'https://api.openai.com/v1',
   model: 'gpt-4o-mini',
   systemPrompt: 'You are a helpful assistant.',
-  enableThinkTagFolding: true
+  enableThinkTagFolding: true,
+  contextMaxMessages: 40,
+  contextMaxCharacters: 24000
 };

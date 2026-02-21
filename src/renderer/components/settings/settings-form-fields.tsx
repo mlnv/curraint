@@ -90,6 +90,46 @@ export function SettingsFormFields({
         />
         Hide and collapse &lt;think&gt; / &lt;reasoning&gt; blocks in AI responses
       </label>
+
+      <details className="rounded-md border p-2">
+        <summary className="cursor-pointer text-xs text-muted-foreground">
+          Advanced context safety
+        </summary>
+        <div className="mt-2 space-y-2">
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Max messages kept</label>
+            <Input
+              type="number"
+              min={4}
+              max={120}
+              value={form.contextMaxMessages}
+              onChange={(event) =>
+                onFieldChange('contextMaxMessages', Number(event.target.value))
+              }
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Max characters kept</label>
+            <Input
+              type="number"
+              min={4000}
+              max={200000}
+              step={1000}
+              value={form.contextMaxCharacters}
+              onChange={(event) =>
+                onFieldChange('contextMaxCharacters', Number(event.target.value))
+              }
+              required
+            />
+          </div>
+
+          <p className="text-[11px] text-muted-foreground">
+            Older messages are summarized when these limits are exceeded.
+          </p>
+        </div>
+      </details>
     </>
   );
 }
