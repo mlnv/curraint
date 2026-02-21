@@ -65,6 +65,7 @@ export function SettingsApp(): React.JSX.Element {
         systemPrompt: form.systemPrompt.trim()
       });
       setStatus('Saved');
+      window.close();
     } catch (error) {
       setStatus(toErrorMessage(error, 'Failed to save settings'));
     } finally {

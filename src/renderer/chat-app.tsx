@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatMessage } from '../common/types';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
@@ -10,12 +10,22 @@ export function ChatApp(): React.JSX.Element {
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   const canSend = useMemo(() => !isSending && prompt.trim().length > 0, [isSending, prompt]);
   const messages = useMemo(
     () => conversation.filter((message) => message.role !== 'system'),
     [conversation]
   );
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollTop = container.scrollHeight;
+  }, [messages, isSending]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -49,7 +59,7 @@ export function ChatApp(): React.JSX.Element {
           <p className="text-xs text-muted-foreground">Tray Chat</p>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
           {messages.length === 0 ? (
             <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
               Start typing to chat.
@@ -68,6 +78,14 @@ export function ChatApp(): React.JSX.Element {
               {message.content}
             </div>
           ))}
+
+          {isSending ? (
+            <div className="mr-auto flex max-w-[92%] items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.2s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.1s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-primary" />
+            </div>
+          ) : null}
         </div>
 
         <form onSubmit={onSubmit} className="space-y-2 border-t p-3">

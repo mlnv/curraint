@@ -24,8 +24,16 @@ let settingsWindow: BrowserWindow | null = null;
 let settings: EndpointSettings;
 let isQuitting = false;
 
+function isWindowUsable(window: BrowserWindow | null): window is BrowserWindow {
+  return window !== null && !window.isDestroyed();
+}
+
+function isWindowFocused(window: BrowserWindow | null): boolean {
+  return isWindowUsable(window) ? window.isFocused() : false;
+}
+
 function toggleChatWindow(): void {
-  if (!chatWindow) {
+  if (!isWindowUsable(chatWindow)) {
     return;
   }
 
@@ -43,7 +51,7 @@ function toggleChatWindow(): void {
 }
 
 function showSettingsWindow(): void {
-  if (!settingsWindow) {
+  if (!isWindowUsable(settingsWindow)) {
     return;
   }
 
@@ -75,7 +83,7 @@ app.whenReady().then(() => {
   settingsWindow = createSettingsWindow(() => isQuitting);
   chatWindow = createChatWindow({
     isQuitting: () => isQuitting,
-    isSettingsFocused: () => Boolean(settingsWindow?.isFocused())
+    isSettingsFocused: () => isWindowFocused(settingsWindow)
   });
   createTray();
 
