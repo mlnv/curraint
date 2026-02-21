@@ -22,10 +22,12 @@ jobs:
   package:
     name: Package (${{ matrix.os }})
     if: |
-      github.event.inputs.target == 'all' ||
-      (github.event.inputs.target == 'windows' && matrix.target == 'win') ||
-      (github.event.inputs.target == 'macos' && matrix.target == 'mac') ||
-      (github.event.inputs.target == 'linux' && matrix.target == 'linux')
+      github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.target == 'all' ||
+        (github.event.inputs.target == 'windows' && matrix.target == 'win') ||
+        (github.event.inputs.target == 'macos' && matrix.target == 'mac') ||
+        (github.event.inputs.target == 'linux' && matrix.target == 'linux')
+      )
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
