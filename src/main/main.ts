@@ -18,6 +18,11 @@ import { loadSettings, saveSettings } from './settingsStore';
 
 configureAppRuntime();
 
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
+
 let tray: Tray | null = null;
 let chatWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -146,6 +151,22 @@ app.whenReady().then(() => {
       }
     }
   });
+});
+
+app.on('second-instance', () => {
+  if (!hasSingleInstanceLock) {
+    return;
+  }
+
+  if (isWindowUsable(chatWindow)) {
+    if (tray) {
+      positionChatWindowNearTray(tray, chatWindow);
+    }
+
+    chatWindow.show();
+    chatWindow.focus();
+    clearUnreadAssistantMessages();
+  }
 });
 
 app.on('before-quit', () => {
