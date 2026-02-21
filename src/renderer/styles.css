@@ -1,0 +1,102 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, Segoe UI, Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #0f1115;
+  color: #e8e9ea;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #2b2f3a;
+  border-radius: 8px;
+  padding: 10px;
+  background: #161922;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message {
+  padding: 8px;
+  border-radius: 6px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.message.user {
+  background: #22314f;
+}
+
+.message.assistant {
+  background: #1f3a2f;
+}
+
+.composer {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+textarea,
+input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #2f3442;
+  border-radius: 6px;
+  background: #11141b;
+  color: #e8e9ea;
+  padding: 8px;
+}
+
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 9px 12px;
+  background: #5a7cff;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status {
+  min-height: 18px;
+  font-size: 12px;
+  color: #b7bdca;
+}
+
+.settings-container {
+  gap: 10px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}

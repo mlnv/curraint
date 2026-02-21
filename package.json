@@ -1,0 +1,52 @@
+{
+  "name": "flowai",
+  "version": "0.1.0",
+  "description": "Tray-first AI chat app for desktop and CLI using OpenAI-compatible chat completion endpoints.",
+  "main": "dist/main/main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm build:renderer && pnpm build:main && pnpm build:cli",
+    "build:renderer": "vite build",
+    "build:main": "tsup src/main/main.ts src/main/preload.ts --format cjs --out-dir dist/main --external electron",
+    "build:cli": "tsup src/cli/index.ts --platform node --format cjs --out-dir dist/cli",
+    "start": "electron dist/main/main.js",
+    "dev": "pnpm build && pnpm start",
+    "cli": "node dist/cli/index.js",
+    "package": "pnpm build && electron-builder"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^40.6.0",
+    "electron-builder": "^25.1.8",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0"
+  },
+  "build": {
+    "appId": "com.flowai.app",
+    "productName": "FlowAI",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  },
+  "packageManager": "pnpm@10.29.1+sha512.48dae233635a645768a3028d19545cacc1688639eeb1f3734e42d6d6b971afbf22aa1ac9af52a173d9c3a20c15857cfa400f19994d79a2f626fcc73fccda9bbc"
+}
