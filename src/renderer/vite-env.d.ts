@@ -1,12 +1,6 @@
 /// <reference types="vite/client" />
 
-import type { ChatMessage, EndpointSettings } from '../common/types';
-
-type FlowAiApi = {
-  getSettings: () => Promise<EndpointSettings>;
-  saveSettings: (settings: EndpointSettings) => Promise<EndpointSettings>;
-  chat: (messages: ChatMessage[]) => Promise<string>;
-};
+import type { FlowAiApi } from '../common/ipc';
 
 declare global {
   interface Window {

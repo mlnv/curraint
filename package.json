@@ -13,7 +13,9 @@
     "start": "electron dist/main/main.js",
     "dev": "pnpm build && pnpm start",
     "cli": "node dist/cli/index.js",
-    "package": "pnpm build && electron-builder"
+    "package": "pnpm build && electron-builder",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/react": "^19.0.12",
@@ -34,7 +36,8 @@
     "tailwindcss": "^3.4.17",
     "tsup": "^8.4.0",
     "typescript": "^5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^2.1.8"
   },
   "build": {
     "appId": "com.flowai.app",

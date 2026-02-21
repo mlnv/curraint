@@ -3,20 +3,19 @@ import type { ChatMessage } from '../common/types';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
 import { Textarea } from './components/ui/textarea';
-
-type UiMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-};
+import { toErrorMessage } from './lib/errors';
 
 export function ChatApp(): React.JSX.Element {
-  const [history, setHistory] = useState<ChatMessage[]>([]);
-  const [messages, setMessages] = useState<UiMessage[]>([]);
+  const [conversation, setConversation] = useState<ChatMessage[]>([]);
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   const canSend = useMemo(() => !isSending && prompt.trim().length > 0, [isSending, prompt]);
+  const messages = useMemo(
+    () => conversation.filter((message) => message.role !== 'system'),
+    [conversation]
+  );
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -25,20 +24,18 @@ export function ChatApp(): React.JSX.Element {
       return;
     }
 
-    const nextHistory = [...history, { role: 'user' as const, content }];
-    setHistory(nextHistory);
-    setMessages((prev) => [...prev, { role: 'user', content }]);
+    const nextConversation = [...conversation, { role: 'user' as const, content }];
+    setConversation(nextConversation);
     setPrompt('');
     setStatus('Thinking...');
     setIsSending(true);
 
     try {
-      const reply = await window.flowai.chat(nextHistory);
-      setHistory((prev) => [...prev, { role: 'assistant', content: reply }]);
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+      const reply = await window.flowai.chat(nextConversation);
+      setConversation((prev) => [...prev, { role: 'assistant', content: reply }]);
       setStatus('');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Unknown error');
+      setStatus(toErrorMessage(error));
     } finally {
       setIsSending(false);
     }

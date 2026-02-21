@@ -4,17 +4,25 @@ import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
 import { Input } from './components/ui/input';
 import { Textarea } from './components/ui/textarea';
+import { toErrorMessage } from './lib/errors';
 
 type FormState = EndpointSettings;
 
+const EMPTY_FORM: FormState = {
+  apiKey: '',
+  baseUrl: '',
+  model: '',
+  systemPrompt: ''
+};
+
 export function SettingsApp(): React.JSX.Element {
-  const [form, setForm] = useState<FormState>({
-    apiKey: '',
-    baseUrl: '',
-    model: '',
-    systemPrompt: ''
-  });
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [status, setStatus] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const updateField = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   useEffect(() => {
     window.flowai
@@ -23,13 +31,14 @@ export function SettingsApp(): React.JSX.Element {
         setForm(settings);
       })
       .catch((error: unknown) => {
-        setStatus(error instanceof Error ? error.message : 'Failed to load settings');
+        setStatus(toErrorMessage(error, 'Failed to load settings'));
       });
   }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     setStatus('Saving...');
+    setIsSaving(true);
 
     try {
       await window.flowai.saveSettings({
@@ -40,7 +49,9 @@ export function SettingsApp(): React.JSX.Element {
       });
       setStatus('Saved');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Failed to save settings');
+      setStatus(toErrorMessage(error, 'Failed to save settings'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -58,7 +69,7 @@ export function SettingsApp(): React.JSX.Element {
             <Input
               type="password"
               value={form.apiKey}
-              onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))}
+              onChange={(event) => updateField('apiKey', event.target.value)}
               required
             />
           </div>
@@ -68,7 +79,7 @@ export function SettingsApp(): React.JSX.Element {
             <Input
               type="url"
               value={form.baseUrl}
-              onChange={(event) => setForm((prev) => ({ ...prev, baseUrl: event.target.value }))}
+              onChange={(event) => updateField('baseUrl', event.target.value)}
               required
             />
           </div>
@@ -77,7 +88,7 @@ export function SettingsApp(): React.JSX.Element {
             <label className="text-xs text-muted-foreground">Model</label>
             <Input
               value={form.model}
-              onChange={(event) => setForm((prev) => ({ ...prev, model: event.target.value }))}
+              onChange={(event) => updateField('model', event.target.value)}
               required
             />
           </div>
@@ -86,9 +97,7 @@ export function SettingsApp(): React.JSX.Element {
             <label className="text-xs text-muted-foreground">System Prompt</label>
             <Textarea
               value={form.systemPrompt}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, systemPrompt: event.target.value }))
-              }
+              onChange={(event) => updateField('systemPrompt', event.target.value)}
               className="min-h-[96px]"
             />
           </div>
@@ -97,8 +106,8 @@ export function SettingsApp(): React.JSX.Element {
             <p className="max-h-16 min-h-4 flex-1 overflow-y-auto whitespace-pre-wrap break-words pr-1 text-xs leading-relaxed text-muted-foreground">
               {status}
             </p>
-            <Button type="submit" size="sm">
-              Save
+            <Button type="submit" size="sm" disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>

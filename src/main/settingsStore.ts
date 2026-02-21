@@ -2,6 +2,7 @@ import { app } from 'electron';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { DEFAULT_SETTINGS } from '../common/defaults';
+import { normalizeSettings } from '../common/settings';
 import type { EndpointSettings } from '../common/types';
 
 function settingsPath(): string {
@@ -11,22 +12,20 @@ function settingsPath(): string {
 export function loadSettings(): EndpointSettings {
   const filePath = settingsPath();
   if (!existsSync(filePath)) {
-    return DEFAULT_SETTINGS;
+    return normalizeSettings(DEFAULT_SETTINGS);
   }
 
   try {
     const raw = readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw) as Partial<EndpointSettings>;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed
-    };
+    return normalizeSettings(parsed);
   } catch {
-    return DEFAULT_SETTINGS;
+    return normalizeSettings(DEFAULT_SETTINGS);
   }
 }
 
 export function saveSettings(next: EndpointSettings): EndpointSettings {
+  const normalized = normalizeSettings(next);
   const filePath = settingsPath();
   const dir = dirname(filePath);
 
@@ -34,6 +33,6 @@ export function saveSettings(next: EndpointSettings): EndpointSettings {
     mkdirSync(dir, { recursive: true });
   }
 
-  writeFileSync(filePath, JSON.stringify(next, null, 2), 'utf8');
-  return next;
+  writeFileSync(filePath, JSON.stringify(normalized, null, 2), 'utf8');
+  return normalized;
 }
