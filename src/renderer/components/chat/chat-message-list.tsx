@@ -10,6 +10,7 @@ import {
 } from '../../../common/thinkTags';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { copyTextToClipboard } from '../../lib/clipboard';
 
 type Props = {
   messages: ChatMessage[];
@@ -33,6 +34,43 @@ type ThinkBlockProps = {
 type MarkdownContentProps = {
   content: string;
 };
+
+type CodeRendererProps = {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+function MarkdownCodeBlock({ className, children }: CodeRendererProps): React.JSX.Element {
+  const [copied, setCopied] = useState(false);
+  const codeText = String(children ?? '').replace(/\n$/, '');
+  const isBlock = (className?.includes('language-') ?? false) || codeText.includes('\n');
+
+  if (!isBlock) {
+    return <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>;
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="absolute right-2 top-2 h-7 px-2 text-[11px]"
+        onClick={() => {
+          void copyTextToClipboard(codeText).then((ok) => {
+            setCopied(ok);
+            window.setTimeout(() => setCopied(false), 1200);
+          });
+        }}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </Button>
+      <pre className="overflow-x-auto rounded bg-muted p-2 pr-20 text-xs">
+        <code className={className}>{children}</code>
+      </pre>
+    </div>
+  );
+}
 
 function MarkdownContent({ content }: MarkdownContentProps): React.JSX.Element {
   return (
@@ -60,22 +98,12 @@ function MarkdownContent({ content }: MarkdownContentProps): React.JSX.Element {
           thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
           th: ({ children }) => <th className="border px-2 py-1 text-left">{children}</th>,
           td: ({ children }) => <td className="border px-2 py-1 align-top">{children}</td>,
-          code: ({ children, className }) => {
-            const isBlock = Boolean(className?.includes('language-'));
-
-            if (isBlock) {
-              return (
-                <code className="block overflow-x-auto rounded bg-muted px-2 py-1 text-xs">
-                  {children}
-                </code>
-              );
-            }
-
-            return <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>;
-          },
-          pre: ({ children }) => (
-            <pre className="overflow-x-auto rounded bg-muted p-2 text-xs">{children}</pre>
+          code: ({ children, className }) => (
+            <MarkdownCodeBlock className={className}>
+              {children}
+            </MarkdownCodeBlock>
           ),
+          pre: ({ children }) => <>{children}</>,
           a: ({ children, href }) => (
             <a
               href={href}

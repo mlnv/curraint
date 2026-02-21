@@ -3,7 +3,9 @@ import type { ChatMessage } from '../common/types';
 import { ChatComposer } from './components/chat/chat-composer';
 import { ChatMessageList } from './components/chat/chat-message-list';
 import { Card } from './components/ui/card';
+import { Button } from './components/ui/button';
 import { toErrorMessage } from './lib/errors';
+import { copyTextToClipboard } from './lib/clipboard';
 
 export function ChatApp(): React.JSX.Element {
   const [conversation, setConversation] = useState<ChatMessage[]>([]);
@@ -13,6 +15,7 @@ export function ChatApp(): React.JSX.Element {
   const [isSending, setIsSending] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [isLastAnswerCopied, setIsLastAnswerCopied] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const isCancellingRef = useRef(false);
 
@@ -21,6 +24,16 @@ export function ChatApp(): React.JSX.Element {
     () => conversation.filter((message) => message.role !== 'system'),
     [conversation]
   );
+  const lastAssistantMessage = useMemo(() => {
+    for (let index = conversation.length - 1; index >= 0; index -= 1) {
+      const message = conversation[index];
+      if (message.role === 'assistant' && message.content.trim().length > 0) {
+        return message.content;
+      }
+    }
+
+    return '';
+  }, [conversation]);
 
   useEffect(() => {
     window.flowai
@@ -168,6 +181,21 @@ export function ChatApp(): React.JSX.Element {
     });
   };
 
+  const onCopyLastAnswer = (): void => {
+    if (!lastAssistantMessage) {
+      return;
+    }
+
+    void copyTextToClipboard(lastAssistantMessage).then((ok) => {
+      if (!ok) {
+        return;
+      }
+
+      setIsLastAnswerCopied(true);
+      window.setTimeout(() => setIsLastAnswerCopied(false), 1200);
+    });
+  };
+
   const onPromptKeyDown = (
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ): void => {
@@ -189,9 +217,20 @@ export function ChatApp(): React.JSX.Element {
   return (
     <div className="h-screen bg-background p-3 text-foreground">
       <Card className="flex h-full flex-col overflow-hidden">
-        <div className="border-b px-4 py-3">
-          <p className="text-sm font-medium">FlowAI</p>
-          <p className="text-xs text-muted-foreground">Tray Chat</p>
+        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+          <div>
+            <p className="text-sm font-medium">FlowAI</p>
+            <p className="text-xs text-muted-foreground">Tray Chat</p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onCopyLastAnswer}
+            disabled={!lastAssistantMessage}
+          >
+            {isLastAnswerCopied ? 'Copied' : 'Copy last answer'}
+          </Button>
         </div>
 
         <ChatMessageList
