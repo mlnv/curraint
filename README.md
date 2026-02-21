@@ -1,10 +1,10 @@
-# FlowAI
+# CurrAInt
 
-FlowAI is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
+CurrAInt is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
 
 It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards.
 
-## Why FlowAI
+## Why CurrAInt
 
 - Fast tray-first workflow for quick prompts
 - Cross-platform desktop support (Windows, macOS, Linux)
@@ -93,11 +93,11 @@ Use **Test Connection** to validate endpoint access before saving.
 
 Environment variables:
 
-- `FLOWAI_PROVIDER` (optional: `openai`, `lmstudio`, `custom`; default `openai`)
-- `FLOWAI_API_KEY` (required for `openai`, optional for `lmstudio` and `custom`)
-- `FLOWAI_BASE_URL` (optional, default `https://api.openai.com/v1`)
-- `FLOWAI_MODEL` (optional, default `gpt-4o-mini`)
-- `FLOWAI_SYSTEM_PROMPT` (optional)
+- `CURRAINT_PROVIDER` (optional: `openai`, `lmstudio`, `custom`; default `openai`)
+- `CURRAINT_API_KEY` (required for `openai`, optional for `lmstudio` and `custom`)
+- `CURRAINT_BASE_URL` (optional, default `https://api.openai.com/v1`)
+- `CURRAINT_MODEL` (optional, default `gpt-4o-mini`)
+- `CURRAINT_SYSTEM_PROMPT` (optional)
 
 Run:
 

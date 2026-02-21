@@ -27,7 +27,7 @@ export function ChatApp(): React.JSX.Element {
   );
 
   useEffect(() => {
-    window.flowai
+    window.curraint
       .getSettings()
       .then((settings) => {
         setEnableThinkTagFolding(settings.enableThinkTagFolding);
@@ -84,7 +84,7 @@ export function ChatApp(): React.JSX.Element {
     <div className="h-screen bg-background p-3 text-foreground">
       <Card className="flex h-full flex-col overflow-hidden">
         <div className="border-b px-4 py-3">
-          <p className="text-sm font-medium">FlowAI</p>
+          <p className="text-sm font-medium">CurrAInt</p>
           <p className="text-xs text-muted-foreground">Tray Chat</p>
         </div>
 

@@ -37,7 +37,7 @@ jobs:
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flowai-windows
+          name: curraint-windows
           path: |
             dist/**/*.exe
             dist/**/latest*.yml
@@ -69,7 +69,7 @@ jobs:
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flowai-macos
+          name: curraint-macos
           path: |
             dist/**/*.dmg
             dist/**/*.zip
@@ -101,7 +101,7 @@ jobs:
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flowai-linux
+          name: curraint-linux
           path: |
             dist/**/*.AppImage
             dist/**/*.deb

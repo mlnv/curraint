@@ -1,6 +1,6 @@
-# Contributing to FlowAI
+# Contributing to CurrAInt
 
-Thanks for contributing to FlowAI.
+Thanks for contributing to CurrAInt.
 
 ## Development setup
 

@@ -1,9 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS, type FlowAiApi } from '../common/ipc';
+import { IPC_CHANNELS, type CurrAIntApi } from '../common/ipc';
 
 let activeStreamRequestId: string | null = null;
 
-const api: FlowAiApi = {
+const api: CurrAIntApi = {
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.getSettings),
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
   chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
@@ -46,10 +46,10 @@ const api: FlowAiApi = {
     ipcRenderer.invoke(IPC_CHANNELS.testConnection, settings)
 };
 
-contextBridge.exposeInMainWorld('flowai', api);
+contextBridge.exposeInMainWorld('curraint', api);
 
 declare global {
   interface Window {
-    flowai: FlowAiApi;
+    curraint: CurrAIntApi;
   }
 }

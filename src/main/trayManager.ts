@@ -58,6 +58,6 @@ export class TrayManager {
 
     const hasUnread = this.unreadCount > 0;
     this.tray.setImage(createTrayIcon(hasUnread));
-    this.tray.setToolTip(hasUnread ? `FlowAI (${this.unreadCount} new)` : 'FlowAI');
+    this.tray.setToolTip(hasUnread ? `CurrAInt (${this.unreadCount} new)` : 'CurrAInt');
   }
 }

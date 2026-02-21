@@ -9,7 +9,7 @@ const cancelChatStreamMock = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   cancelChatStreamMock.mockResolvedValue(undefined);
-  (window as unknown as { flowai: unknown }).flowai = {
+  (window as unknown as { curraint: unknown }).curraint = {
     chatStream: chatStreamMock,
     cancelChatStream: cancelChatStreamMock
   };

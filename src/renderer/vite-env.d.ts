@@ -1,10 +1,10 @@
 /// <reference types="vite/client" />
 
-import type { FlowAiApi } from '../common/ipc';
+import type { CurrAIntApi } from '../common/ipc';
 
 declare global {
   interface Window {
-    flowai: FlowAiApi;
+    curraint: CurrAIntApi;
   }
 }
 

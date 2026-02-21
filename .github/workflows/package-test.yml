@@ -46,7 +46,7 @@ jobs:
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flowai-test-windows
+          name: curraint-test-windows
           path: |
             dist/**/*.exe
             dist/**/latest*.yml
@@ -79,7 +79,7 @@ jobs:
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flowai-test-macos
+          name: curraint-test-macos
           path: |
             dist/**/*.dmg
             dist/**/*.zip
@@ -112,7 +112,7 @@ jobs:
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flowai-test-linux
+          name: curraint-test-linux
           path: |
             dist/**/*.AppImage
             dist/**/*.deb

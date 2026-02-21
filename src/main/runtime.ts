@@ -3,7 +3,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 export function configureAppRuntime(): void {
-  const sessionDataPath = join(app.getPath('temp'), 'flowai-session-data');
+  const sessionDataPath = join(app.getPath('temp'), 'curraint-session-data');
 
   if (!existsSync(sessionDataPath)) {
     mkdirSync(sessionDataPath, { recursive: true });

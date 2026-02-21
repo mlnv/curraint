@@ -1,5 +1,5 @@
 {
-  "name": "flowai",
+  "name": "curraint",
   "version": "0.1.0",
   "description": "Tray-first AI chat app for desktop and CLI using OpenAI-compatible chat completion endpoints.",
   "main": "dist/main/main.js",
@@ -42,8 +42,8 @@
     "vitest": "^2.1.8"
   },
   "build": {
-    "appId": "com.flowai.app",
-    "productName": "FlowAI",
+    "appId": "com.curraint.app",
+    "productName": "CurrAInt",
     "files": [
       "dist/**/*",
       "package.json"

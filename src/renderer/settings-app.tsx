@@ -42,7 +42,7 @@ export function SettingsApp(): React.JSX.Element {
   };
 
   useEffect(() => {
-    window.flowai
+    window.curraint
       .getSettings()
       .then((settings) => {
         setForm(settings);
@@ -58,7 +58,7 @@ export function SettingsApp(): React.JSX.Element {
     setIsSaving(true);
 
     try {
-      await window.flowai.saveSettings({
+      await window.curraint.saveSettings({
         provider: form.provider,
         apiKey: form.apiKey.trim(),
         baseUrl: form.baseUrl.trim(),
@@ -82,7 +82,7 @@ export function SettingsApp(): React.JSX.Element {
     setIsTesting(true);
 
     try {
-      const message = await window.flowai.testConnection({
+      const message = await window.curraint.testConnection({
         provider: form.provider,
         apiKey: form.apiKey.trim(),
         baseUrl: form.baseUrl.trim(),

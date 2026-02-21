@@ -10,16 +10,16 @@ import {
 } from '../common/openaiCompatibleClient';
 
 function envSettings(): EndpointSettings {
-  const providerCandidate = process.env.FLOWAI_PROVIDER;
+  const providerCandidate = process.env.CURRAINT_PROVIDER;
 
   return normalizeSettings({
     provider: providerCandidate && isProviderId(providerCandidate)
       ? providerCandidate
       : undefined,
-    apiKey: process.env.FLOWAI_API_KEY,
-    baseUrl: process.env.FLOWAI_BASE_URL,
-    model: process.env.FLOWAI_MODEL,
-    systemPrompt: process.env.FLOWAI_SYSTEM_PROMPT
+    apiKey: process.env.CURRAINT_API_KEY,
+    baseUrl: process.env.CURRAINT_BASE_URL,
+    model: process.env.CURRAINT_MODEL,
+    systemPrompt: process.env.CURRAINT_SYSTEM_PROMPT
   });
 }
 
@@ -27,7 +27,7 @@ async function run(): Promise<number> {
   const settings = envSettings();
 
   if (requiresApiKeyForProvider(settings.provider) && !settings.apiKey) {
-    output.write('Missing FLOWAI_API_KEY.\n');
+    output.write('Missing CURRAINT_API_KEY.\n');
     return 1;
   }
 
@@ -88,7 +88,7 @@ async function run(): Promise<number> {
     }
   });
 
-  output.write('FlowAI CLI chat. Type "exit" to quit. Use /help for commands.\n');
+  output.write('CurrAInt CLI chat. Type "exit" to quit. Use /help for commands.\n');
 
   process.on('SIGINT', () => {
     if (session.getState().isSending) {

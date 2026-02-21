@@ -18,8 +18,8 @@ export type UseChatSessionResult = {
 export function useChatSession(): UseChatSessionResult {
   const sessionRef = useRef(
     createChatSessionCore({
-      streamChat: (messages, onDelta) => window.flowai.chatStream(messages, onDelta),
-      cancelChatStream: () => window.flowai.cancelChatStream()
+      streamChat: (messages, onDelta) => window.curraint.chatStream(messages, onDelta),
+      cancelChatStream: () => window.curraint.cancelChatStream()
     })
   );
   const [conversation, setConversation] = useState<ChatMessage[]>(
