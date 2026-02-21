@@ -32,7 +32,7 @@ export function ChatComposer({
           {status}
         </p>
         <Button type="submit" size="sm" disabled={!canSend}>
-          {isSending ? 'Sending...' : 'Send'}
+          {isSending ? 'Waiting for response...' : 'Send'}
         </Button>
       </div>
     </>
