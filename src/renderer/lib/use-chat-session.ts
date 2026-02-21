@@ -9,7 +9,6 @@ export type UseChatSessionResult = {
   isSending: boolean;
   isStopping: boolean;
   canSend: boolean;
-  lastAssistantMessage: string;
   setPrompt: (value: string) => void;
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => void;
@@ -25,17 +24,6 @@ export function useChatSession(): UseChatSessionResult {
   const isCancellingRef = useRef(false);
 
   const canSend = useMemo(() => !isSending && prompt.trim().length > 0, [isSending, prompt]);
-
-  const lastAssistantMessage = useMemo(() => {
-    for (let index = conversation.length - 1; index >= 0; index -= 1) {
-      const message = conversation[index];
-      if (message.role === 'assistant' && message.content.trim().length > 0) {
-        return message.content;
-      }
-    }
-
-    return '';
-  }, [conversation]);
 
   const resendFromConversation = async (nextConversation: ChatMessage[]): Promise<void> => {
     const assistantIndex = nextConversation.length;
@@ -155,7 +143,6 @@ export function useChatSession(): UseChatSessionResult {
     isSending,
     isStopping,
     canSend,
-    lastAssistantMessage,
     setPrompt,
     submitPrompt,
     editUserMessage,

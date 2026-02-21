@@ -2,8 +2,6 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatComposer } from './components/chat/chat-composer';
 import { ChatMessageList } from './components/chat/chat-message-list';
 import { Card } from './components/ui/card';
-import { Button } from './components/ui/button';
-import { copyTextToClipboard } from './lib/clipboard';
 import { useChatSession } from './lib/use-chat-session';
 
 export function ChatApp(): React.JSX.Element {
@@ -14,7 +12,6 @@ export function ChatApp(): React.JSX.Element {
     isSending,
     isStopping,
     canSend,
-    lastAssistantMessage,
     setPrompt,
     submitPrompt,
     editUserMessage,
@@ -22,7 +19,6 @@ export function ChatApp(): React.JSX.Element {
   } = useChatSession();
   const [enableThinkTagFolding, setEnableThinkTagFolding] = useState(true);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [isLastAnswerCopied, setIsLastAnswerCopied] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   const messages = useMemo(
@@ -66,21 +62,6 @@ export function ChatApp(): React.JSX.Element {
     await submitPrompt(prompt);
   };
 
-  const onCopyLastAnswer = (): void => {
-    if (!lastAssistantMessage) {
-      return;
-    }
-
-    void copyTextToClipboard(lastAssistantMessage).then((ok) => {
-      if (!ok) {
-        return;
-      }
-
-      setIsLastAnswerCopied(true);
-      window.setTimeout(() => setIsLastAnswerCopied(false), 1200);
-    });
-  };
-
   const onPromptKeyDown = (
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ): void => {
@@ -102,20 +83,9 @@ export function ChatApp(): React.JSX.Element {
   return (
     <div className="h-screen bg-background p-3 text-foreground">
       <Card className="flex h-full flex-col overflow-hidden">
-        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-          <div>
-            <p className="text-sm font-medium">FlowAI</p>
-            <p className="text-xs text-muted-foreground">Tray Chat</p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onCopyLastAnswer}
-            disabled={!lastAssistantMessage}
-          >
-            {isLastAnswerCopied ? 'Copied' : 'Copy last answer'}
-          </Button>
+        <div className="border-b px-4 py-3">
+          <p className="text-sm font-medium">FlowAI</p>
+          <p className="text-xs text-muted-foreground">Tray Chat</p>
         </div>
 
         <ChatMessageList
