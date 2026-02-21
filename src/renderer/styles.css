@@ -26,3 +26,31 @@ body,
 #app {
   @apply m-0 h-full bg-background text-foreground antialiased;
 }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) hsl(var(--background));
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--background));
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border));
+}
+
+*::-webkit-scrollbar-corner {
+  background: hsl(var(--background));
+}
