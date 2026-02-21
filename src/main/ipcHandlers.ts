@@ -10,6 +10,7 @@ import type { ChatMessage, EndpointSettings } from '../common/types';
 type SettingsAccess = {
   getSettings: () => EndpointSettings;
   saveSettings: (next: EndpointSettings) => EndpointSettings;
+  onAssistantMessage?: () => void;
 };
 
 function isChatMessageArray(messages: unknown): messages is ChatMessage[] {
@@ -44,6 +45,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     const composed = composeConversation(settings, messages);
 
     const result = await chatCompletion(settings, composed);
+    settingsAccess.onAssistantMessage?.();
     return result.message;
   });
 
