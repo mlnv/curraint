@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage } from '../../../common/types';
 import {
   getUnclosedReasoningTagStart,
@@ -25,6 +27,70 @@ type ThinkBlockProps = {
   isStreaming?: boolean;
 };
 
+type MarkdownContentProps = {
+  content: string;
+};
+
+function MarkdownContent({ content }: MarkdownContentProps): React.JSX.Element {
+  return (
+    <div className="space-y-2 break-words">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ children }) => <h1 className="text-lg font-semibold">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-base font-semibold">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-semibold">{children}</h3>,
+          p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
+          ul: ({ children }) => <ul className="ml-5 list-disc space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="ml-5 list-decimal space-y-1">{children}</ol>,
+          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-2 pl-3 text-muted-foreground">
+              {children}
+            </blockquote>
+          ),
+          table: ({ children }) => (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-xs">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
+          th: ({ children }) => <th className="border px-2 py-1 text-left">{children}</th>,
+          td: ({ children }) => <td className="border px-2 py-1 align-top">{children}</td>,
+          code: ({ children, className }) => {
+            const isBlock = Boolean(className?.includes('language-'));
+
+            if (isBlock) {
+              return (
+                <code className="block overflow-x-auto rounded bg-muted px-2 py-1 text-xs">
+                  {children}
+                </code>
+              );
+            }
+
+            return <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>;
+          },
+          pre: ({ children }) => (
+            <pre className="overflow-x-auto rounded bg-muted p-2 text-xs">{children}</pre>
+          ),
+          a: ({ children, href }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              {children}
+            </a>
+          )
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
 function ThinkBlock({ content, isStreaming = false }: ThinkBlockProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -42,9 +108,9 @@ function ThinkBlock({ content, isStreaming = false }: ThinkBlockProps): React.JS
         <p className="mt-1 text-xs text-muted-foreground">Reasoning is still streaming…</p>
       ) : null}
       {isOpen ? (
-        <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
-          {content}
-        </p>
+        <div className="mt-2 text-xs text-muted-foreground">
+          <MarkdownContent content={content} />
+        </div>
       ) : null}
     </div>
   );
@@ -55,7 +121,7 @@ function AssistantMessageContent({
   enableThinkTagFolding
 }: AssistantMessageProps): React.JSX.Element {
   if (!enableThinkTagFolding) {
-    return <span className="whitespace-pre-wrap">{content}</span>;
+    return <MarkdownContent content={content} />;
   }
 
   const unclosedTagStart = getUnclosedReasoningTagStart(content);
@@ -68,7 +134,7 @@ function AssistantMessageContent({
   if (!hasThinkTag(visibleContent)) {
     return (
       <div className="space-y-2">
-        <span className="whitespace-pre-wrap">{visibleContent}</span>
+        <MarkdownContent content={visibleContent} />
         {streamingReasoningContent !== null ? (
           <ThinkBlock
             content={streamingReasoningContent}
@@ -88,9 +154,7 @@ function AssistantMessageContent({
       {segments.map((segment, index) => {
         if (segment.type === 'text') {
           return (
-            <p key={`text-${index}`} className="whitespace-pre-wrap">
-              {segment.content}
-            </p>
+            <MarkdownContent key={`text-${index}`} content={segment.content} />
           );
         }
 
