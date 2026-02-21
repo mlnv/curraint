@@ -15,6 +15,7 @@ type Props = {
   isSending: boolean;
   enableThinkTagFolding: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  onContainerScroll?: () => void;
 };
 
 type AssistantMessageProps = {
@@ -174,10 +175,15 @@ export function ChatMessageList({
   messages,
   isSending,
   enableThinkTagFolding,
-  containerRef
+  containerRef,
+  onContainerScroll
 }: Props): React.JSX.Element {
   return (
-    <div ref={containerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
+    <div
+      ref={containerRef}
+      onScroll={onContainerScroll}
+      className="flex-1 space-y-3 overflow-y-auto p-3"
+    >
       {messages.length === 0 ? (
         <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
           Start typing to chat.

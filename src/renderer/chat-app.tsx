@@ -11,6 +11,7 @@ export function ChatApp(): React.JSX.Element {
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   const canSend = useMemo(() => !isSending && prompt.trim().length > 0, [isSending, prompt]);
@@ -32,12 +33,23 @@ export function ChatApp(): React.JSX.Element {
 
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container) {
+    if (!container || !shouldAutoScroll) {
       return;
     }
 
     container.scrollTop = container.scrollHeight;
-  }, [messages, isSending]);
+  }, [messages, isSending, shouldAutoScroll]);
+
+  const onMessagesScroll = (): void => {
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShouldAutoScroll(distanceFromBottom <= 48);
+  };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -114,6 +126,7 @@ export function ChatApp(): React.JSX.Element {
           isSending={isSending}
           enableThinkTagFolding={enableThinkTagFolding}
           containerRef={messagesContainerRef}
+          onContainerScroll={onMessagesScroll}
         />
 
         <form onSubmit={onSubmit} className="space-y-2 border-t p-3">
