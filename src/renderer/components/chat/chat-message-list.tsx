@@ -9,6 +9,7 @@ import {
   stripLeadingReasoningTag
 } from '../../../common/thinkTags';
 import { Button } from '../ui/button';
+import { Textarea } from '../ui/textarea';
 
 type Props = {
   messages: ChatMessage[];
@@ -16,6 +17,7 @@ type Props = {
   enableThinkTagFolding: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
   onContainerScroll?: () => void;
+  onEditUserMessage?: (index: number, content: string) => void;
 };
 
 type AssistantMessageProps = {
@@ -176,8 +178,31 @@ export function ChatMessageList({
   isSending,
   enableThinkTagFolding,
   containerRef,
-  onContainerScroll
+  onContainerScroll,
+  onEditUserMessage
 }: Props): React.JSX.Element {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+
+  const startEdit = (index: number, content: string): void => {
+    setEditingIndex(index);
+    setEditingContent(content);
+  };
+
+  const cancelEdit = (): void => {
+    setEditingIndex(null);
+    setEditingContent('');
+  };
+
+  const saveEdit = (index: number): void => {
+    if (!onEditUserMessage) {
+      return;
+    }
+
+    onEditUserMessage(index, editingContent);
+    cancelEdit();
+  };
+
   return (
     <div
       ref={containerRef}
@@ -202,8 +227,48 @@ export function ChatMessageList({
               content={message.content}
               enableThinkTagFolding={enableThinkTagFolding}
             />
+          ) : editingIndex === index ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editingContent}
+                onChange={(event) => setEditingContent(event.target.value)}
+                className="min-h-[80px]"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={cancelEdit}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => saveEdit(index)}
+                  disabled={editingContent.trim().length === 0 || isSending}
+                >
+                  Save & resend
+                </Button>
+              </div>
+            </div>
           ) : (
-            <span className="whitespace-pre-wrap">{message.content}</span>
+            <div className="space-y-2">
+              <span className="whitespace-pre-wrap">{message.content}</span>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startEdit(index, message.content)}
+                  disabled={isSending}
+                >
+                  Edit
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       ))}

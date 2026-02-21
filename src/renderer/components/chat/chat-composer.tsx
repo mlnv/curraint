@@ -6,6 +6,7 @@ type Props = {
   status: string;
   canSend: boolean;
   isSending: boolean;
+  isStopping: boolean;
   onStop: () => void;
   onPromptChange: (value: string) => void;
   onPromptKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -16,6 +17,7 @@ export function ChatComposer({
   status,
   canSend,
   isSending,
+  isStopping,
   onStop,
   onPromptChange,
   onPromptKeyDown
@@ -34,8 +36,14 @@ export function ChatComposer({
           {status}
         </p>
         {isSending ? (
-          <Button type="button" size="sm" variant="outline" onClick={onStop}>
-            Stop response
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onStop}
+            disabled={isStopping}
+          >
+            {isStopping ? 'Stopping...' : 'Stop response'}
           </Button>
         ) : (
           <Button type="submit" size="sm" disabled={!canSend}>

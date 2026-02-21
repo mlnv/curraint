@@ -11,6 +11,7 @@ export function ChatApp(): React.JSX.Element {
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const isCancellingRef = useRef(false);
@@ -52,22 +53,15 @@ export function ChatApp(): React.JSX.Element {
     setShouldAutoScroll(distanceFromBottom <= 48);
   };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-    const content = prompt.trim();
-    if (!content || isSending) {
-      return;
-    }
-
-    const nextConversation = [...conversation, { role: 'user' as const, content }];
+  const resendFromConversation = async (nextConversation: ChatMessage[]): Promise<void> => {
     const assistantIndex = nextConversation.length;
     setConversation([
       ...nextConversation,
       { role: 'assistant' as const, content: '' }
     ]);
-    setPrompt('');
     setStatus('Thinking...');
     setIsSending(true);
+    setIsStopping(false);
     isCancellingRef.current = false;
 
     try {
@@ -116,19 +110,62 @@ export function ChatApp(): React.JSX.Element {
       }
     } finally {
       setIsSending(false);
+      setIsStopping(false);
       isCancellingRef.current = false;
     }
   };
 
+  const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    const content = prompt.trim();
+    if (!content || isSending) {
+      return;
+    }
+
+    const nextConversation = [...conversation, { role: 'user' as const, content }];
+    setPrompt('');
+    await resendFromConversation(nextConversation);
+  };
+
+  const onEditUserMessage = (index: number, editedContent: string): void => {
+    if (isSending) {
+      return;
+    }
+
+    const trimmedContent = editedContent.trim();
+    if (!trimmedContent) {
+      return;
+    }
+
+    const target = conversation[index];
+    if (!target || target.role !== 'user') {
+      return;
+    }
+
+    if (target.content === trimmedContent) {
+      return;
+    }
+
+    const nextConversation = conversation
+      .slice(0, index + 1)
+      .map((message, messageIndex) =>
+        messageIndex === index ? { ...message, content: trimmedContent } : message
+      );
+
+    void resendFromConversation(nextConversation);
+  };
+
   const onStopResponse = (): void => {
-    if (!isSending) {
+    if (!isSending || isStopping) {
       return;
     }
 
     isCancellingRef.current = true;
-    setIsSending(false);
+    setIsStopping(true);
     setStatus('Stopping response...');
-    void window.flowai.cancelChatStream();
+    void window.flowai.cancelChatStream().catch(() => {
+      setStatus('Failed to stop response');
+    });
   };
 
   const onPromptKeyDown = (
@@ -163,6 +200,7 @@ export function ChatApp(): React.JSX.Element {
           enableThinkTagFolding={enableThinkTagFolding}
           containerRef={messagesContainerRef}
           onContainerScroll={onMessagesScroll}
+          onEditUserMessage={onEditUserMessage}
         />
 
         <form onSubmit={onSubmit} className="space-y-2 border-t p-3">
@@ -171,6 +209,7 @@ export function ChatApp(): React.JSX.Element {
             status={status}
             canSend={canSend}
             isSending={isSending}
+            isStopping={isStopping}
             onStop={onStopResponse}
             onPromptChange={setPrompt}
             onPromptKeyDown={onPromptKeyDown}
