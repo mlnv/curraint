@@ -1,11 +1,17 @@
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { composeConversation, normalizeSettings } from '../common/settings';
+import { isProviderId, requiresApiKeyForProvider } from '../common/providers';
 import type { ChatMessage, EndpointSettings } from '../common/types';
 import { chatCompletion } from '../common/openaiCompatibleClient';
 
 function envSettings(): EndpointSettings {
+  const providerCandidate = process.env.FLOWAI_PROVIDER;
+
   return normalizeSettings({
+    provider: providerCandidate && isProviderId(providerCandidate)
+      ? providerCandidate
+      : undefined,
     apiKey: process.env.FLOWAI_API_KEY,
     baseUrl: process.env.FLOWAI_BASE_URL,
     model: process.env.FLOWAI_MODEL,
@@ -16,7 +22,7 @@ function envSettings(): EndpointSettings {
 async function run(): Promise<number> {
   const settings = envSettings();
 
-  if (!settings.apiKey) {
+  if (requiresApiKeyForProvider(settings.provider) && !settings.apiKey) {
     output.write('Missing FLOWAI_API_KEY.\n');
     return 1;
   }

@@ -4,7 +4,9 @@ import { IPC_CHANNELS, type FlowAiApi } from '../common/ipc';
 const api: FlowAiApi = {
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.getSettings),
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
-  chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages)
+  chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
+  testConnection: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.testConnection, settings)
 };
 
 contextBridge.exposeInMainWorld('flowai', api);

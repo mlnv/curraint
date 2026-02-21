@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { getProviderConfig, PROVIDER_OPTIONS } from '../common/providers';
 import type { EndpointSettings } from '../common/types';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
@@ -9,6 +10,7 @@ import { toErrorMessage } from './lib/errors';
 type FormState = EndpointSettings;
 
 const EMPTY_FORM: FormState = {
+  provider: 'openai',
   apiKey: '',
   baseUrl: '',
   model: '',
@@ -19,9 +21,23 @@ export function SettingsApp(): React.JSX.Element {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const providerConfig = getProviderConfig(form.provider);
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateProvider = (provider: FormState['provider']): void => {
+    const nextConfig = getProviderConfig(provider);
+
+    setForm((prev) => ({
+      ...prev,
+      provider,
+      baseUrl: nextConfig.defaultBaseUrl,
+      model: nextConfig.defaultModel,
+      apiKey: nextConfig.requiresApiKey ? prev.apiKey : ''
+    }));
   };
 
   useEffect(() => {
@@ -42,6 +58,7 @@ export function SettingsApp(): React.JSX.Element {
 
     try {
       await window.flowai.saveSettings({
+        provider: form.provider,
         apiKey: form.apiKey.trim(),
         baseUrl: form.baseUrl.trim(),
         model: form.model.trim(),
@@ -55,6 +72,27 @@ export function SettingsApp(): React.JSX.Element {
     }
   };
 
+  const onTestConnection = async (): Promise<void> => {
+    setStatus('Testing connection...');
+    setIsTesting(true);
+
+    try {
+      const message = await window.flowai.testConnection({
+        provider: form.provider,
+        apiKey: form.apiKey.trim(),
+        baseUrl: form.baseUrl.trim(),
+        model: form.model.trim(),
+        systemPrompt: form.systemPrompt.trim()
+      });
+
+      setStatus(message);
+    } catch (error) {
+      setStatus(toErrorMessage(error, 'Connection test failed'));
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   return (
     <div className="h-screen bg-background p-3 text-foreground">
       <Card className="h-full p-4">
@@ -65,12 +103,33 @@ export function SettingsApp(): React.JSX.Element {
 
         <form onSubmit={onSubmit} className="space-y-3">
           <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Provider</label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={form.provider}
+              onChange={(event) => updateProvider(event.target.value as FormState['provider'])}
+            >
+              {PROVIDER_OPTIONS.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              {form.provider === 'lmstudio'
+                ? 'LM Studio default: http://127.0.0.1:1234/v1'
+                : 'Use Custom for any OpenAI-compatible endpoint.'}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">API Key</label>
             <Input
               type="password"
               value={form.apiKey}
               onChange={(event) => updateField('apiKey', event.target.value)}
-              required
+              required={providerConfig.requiresApiKey}
+              placeholder={providerConfig.requiresApiKey ? '' : 'Optional for this provider'}
             />
           </div>
 
@@ -106,9 +165,22 @@ export function SettingsApp(): React.JSX.Element {
             <p className="max-h-16 min-h-4 flex-1 overflow-y-auto whitespace-pre-wrap break-words pr-1 text-xs leading-relaxed text-muted-foreground">
               {status}
             </p>
-            <Button type="submit" size="sm" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isSaving || isTesting}
+                onClick={() => {
+                  void onTestConnection();
+                }}
+              >
+                {isTesting ? 'Testing...' : 'Test Connection'}
+              </Button>
+              <Button type="submit" size="sm" disabled={isSaving || isTesting}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
           </div>
         </form>
       </Card>

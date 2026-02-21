@@ -12,6 +12,7 @@ describe('normalizeSettings', () => {
     });
 
     expect(result).toEqual({
+      provider: 'openai',
       apiKey: 'key',
       baseUrl: 'https://api.example.com/v1',
       model: 'my-model',
@@ -26,6 +27,14 @@ describe('normalizeSettings', () => {
       ...DEFAULT_SETTINGS,
       apiKey: 'abc'
     });
+  });
+
+  it('falls back to openai provider for invalid provider values', () => {
+    const result = normalizeSettings({
+      provider: 'invalid-provider' as never
+    });
+
+    expect(result.provider).toBe('openai');
   });
 });
 

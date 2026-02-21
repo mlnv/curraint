@@ -1,7 +1,10 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../common/ipc';
-import { chatCompletion } from '../common/openaiCompatibleClient';
-import { composeConversation } from '../common/settings';
+import {
+  chatCompletion,
+  testConnection
+} from '../common/openaiCompatibleClient';
+import { composeConversation, normalizeSettings } from '../common/settings';
 import type { ChatMessage, EndpointSettings } from '../common/types';
 
 type SettingsAccess = {
@@ -43,4 +46,12 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     const result = await chatCompletion(settings, composed);
     return result.message;
   });
+
+  ipcMain.handle(
+    IPC_CHANNELS.testConnection,
+    async (_event, payload: EndpointSettings) => {
+      const settings = normalizeSettings(payload);
+      return testConnection(settings);
+    }
+  );
 }

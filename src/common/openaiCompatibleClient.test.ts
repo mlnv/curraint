@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { chatCompletion } from './openaiCompatibleClient';
+import { chatCompletion, testConnection } from './openaiCompatibleClient';
 import type { EndpointSettings } from './types';
 
 const validSettings: EndpointSettings = {
+  provider: 'openai',
   apiKey: 'test-key',
   baseUrl: 'https://api.example.com',
   model: 'test-model',
@@ -100,5 +101,52 @@ describe('chatCompletion', () => {
     await expect(
       chatCompletion(validSettings, [{ role: 'user', content: 'Hi' }])
     ).resolves.toEqual({ message: 'Answer' });
+  });
+
+  it('allows LM Studio without API key and omits authorization header', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: 'Local Answer' } }] }),
+          { status: 200 }
+        )
+      );
+
+    await chatCompletion(
+      {
+        ...validSettings,
+        provider: 'lmstudio',
+        apiKey: '',
+        baseUrl: 'http://127.0.0.1:1234/v1'
+      },
+      [{ role: 'user', content: 'Hi' }]
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = requestInit?.headers as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+  });
+});
+
+describe('testConnection', () => {
+  it('returns success message for healthy endpoint', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: [] }), { status: 200 })
+    );
+
+    await expect(testConnection(validSettings)).resolves.toBe('Connection successful.');
+  });
+
+  it('surfaces status and message on failed endpoint', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: 'Server unavailable' } }), {
+        status: 503
+      })
+    );
+
+    await expect(testConnection(validSettings)).rejects.toThrow(
+      'Connection test failed (503): Server unavailable'
+    );
   });
 });

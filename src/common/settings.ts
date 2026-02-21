@@ -1,10 +1,17 @@
 import { DEFAULT_SETTINGS } from './defaults';
+import { isProviderId } from './providers';
 import type { ChatMessage, EndpointSettings } from './types';
 
 export function normalizeSettings(
   input: Partial<EndpointSettings> | EndpointSettings
 ): EndpointSettings {
+  const providerCandidate = input.provider ?? DEFAULT_SETTINGS.provider;
+  const provider = isProviderId(providerCandidate)
+    ? providerCandidate
+    : DEFAULT_SETTINGS.provider;
+
   return {
+    provider,
     apiKey: (input.apiKey ?? DEFAULT_SETTINGS.apiKey).trim(),
     baseUrl: (input.baseUrl ?? DEFAULT_SETTINGS.baseUrl).trim(),
     model: (input.model ?? DEFAULT_SETTINGS.model).trim(),

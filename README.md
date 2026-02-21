@@ -36,16 +36,24 @@ pnpm start
 
 Use the Settings window to configure:
 
+- Provider (`OpenAI`, `LM Studio`, `Custom OpenAI-compatible`)
 - API Key
 - API Base URL (any OpenAI-compatible endpoint)
 - Model
 - System Prompt
 
+LM Studio quick setup:
+
+- Select provider: `LM Studio (Local)`
+- Base URL defaults to `http://127.0.0.1:1234/v1`
+- API key is optional
+
 ## Run CLI
 
 Set environment variables:
 
-- `FLOWAI_API_KEY` (required)
+- `FLOWAI_PROVIDER` (optional: `openai`, `lmstudio`, `custom`; default `openai`)
+- `FLOWAI_API_KEY` (required for `openai`, optional for `lmstudio` and `custom`)
 - `FLOWAI_BASE_URL` (optional, default `https://api.openai.com/v1`)
 - `FLOWAI_MODEL` (optional, default `gpt-4o-mini`)
 - `FLOWAI_SYSTEM_PROMPT` (optional)
