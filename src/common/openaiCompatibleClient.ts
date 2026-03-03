@@ -1,5 +1,6 @@
 import { requiresApiKeyForProvider } from './providers';
 import type { ChatMessage, ChatResult, EndpointSettings } from './types';
+import { debugLog } from './debugLog';
 
 type CompletionResponse = {
   choices?: Array<{
@@ -42,6 +43,15 @@ function createAuthHeaders(settings: EndpointSettings): Record<string, string> {
   }
 
   return headers;
+}
+
+function debugHeaders(headers: Record<string, string>): Record<string, string> {
+  if (!headers.Authorization) {
+    return headers;
+  }
+  const key = headers.Authorization.replace(/^Bearer\s+/, '');
+  const masked = key.length > 4 ? `Bearer ***...${key.slice(-4)}` : 'Bearer ***';
+  return { ...headers, Authorization: masked };
 }
 
 async function readErrorDetail(response: Response): Promise<string> {
@@ -155,12 +165,23 @@ function validateSettingsForRequest(settings: EndpointSettings): string {
 
 export async function testConnection(settings: EndpointSettings): Promise<string> {
   const normalizedBaseUrl = validateSettingsForRequest(settings);
-  const url = `${normalizedBaseUrl}/models`;
+  const url = `${normalizedBaseUrl}/chat/completions`;
+  const headers = createAuthHeaders(settings);
+  const requestBody = {
+    model: settings.model.trim(),
+    messages: [{ role: 'user', content: 'ping' }],
+    max_tokens: 1
+  };
+
+  debugLog('API', `POST ${url} (test connection)`, { headers: debugHeaders(headers), body: requestBody });
 
   const response = await fetch(url, {
-    method: 'GET',
-    headers: createAuthHeaders(settings)
+    method: 'POST',
+    headers,
+    body: JSON.stringify(requestBody)
   });
+
+  debugLog('API', `Response ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);
@@ -176,15 +197,18 @@ export async function chatCompletion(
 ): Promise<ChatResult> {
   const normalizedBaseUrl = validateSettingsForRequest(settings);
   const url = `${normalizedBaseUrl}/chat/completions`;
+  const headers = createAuthHeaders(settings);
+  const requestBody = { model: settings.model.trim(), messages };
+
+  debugLog('API', `POST ${url}`, { headers: debugHeaders(headers), body: requestBody });
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: createAuthHeaders(settings),
-    body: JSON.stringify({
-      model: settings.model.trim(),
-      messages
-    })
+    headers,
+    body: JSON.stringify(requestBody)
   });
+
+  debugLog('API', `Response ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);
@@ -193,6 +217,8 @@ export async function chatCompletion(
   }
 
   const json = (await response.json()) as CompletionResponse;
+  debugLog('API', 'Response body', json);
+
   const message = json.choices?.[0]?.message?.content?.trim();
 
   if (!message) {
@@ -210,17 +236,19 @@ export async function chatCompletionStream(
 ): Promise<ChatResult> {
   const normalizedBaseUrl = validateSettingsForRequest(settings);
   const url = `${normalizedBaseUrl}/chat/completions`;
+  const headers = createAuthHeaders(settings);
+  const requestBody = { model: settings.model.trim(), messages, stream: true };
+
+  debugLog('API', `POST ${url} (stream)`, { headers: debugHeaders(headers), body: requestBody });
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: createAuthHeaders(settings),
+    headers,
     signal: options.signal,
-    body: JSON.stringify({
-      model: settings.model.trim(),
-      messages,
-      stream: true
-    })
+    body: JSON.stringify(requestBody)
   });
+
+  debugLog('API', `Response ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);
@@ -228,5 +256,6 @@ export async function chatCompletionStream(
   }
 
   const message = await readStreamingCompletion(response, callbacks);
+  debugLog('API', 'Stream complete', { fullMessage: message });
   return { message };
 }

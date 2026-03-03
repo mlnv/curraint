@@ -5,6 +5,7 @@ import {
   chatCompletionStream,
   testConnection
 } from '../common/openaiCompatibleClient';
+import { copilotChatStream, copilotTestConnection } from './copilotClient';
 import { composeConversation, normalizeSettings } from '../common/settings';
 import type { ChatMessage, EndpointSettings } from '../common/types';
 
@@ -56,6 +57,17 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     const settings = settingsAccess.getSettings();
     const composed = composeConversation(settings, messages);
 
+    if (settings.provider === 'copilot') {
+      let fullMessage = '';
+      const result = await copilotChatStream(
+        settings.model,
+        composed,
+        { onDelta: (delta) => { fullMessage += delta; } }
+      );
+      settingsAccess.onAssistantMessage?.();
+      return result;
+    }
+
     const result = await chatCompletion(settings, composed);
     settingsAccess.onAssistantMessage?.();
     return result.message;
@@ -72,6 +84,39 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     let streamedMessage = '';
     const controller = new AbortController();
     activeStreamControllers.set(payload.requestId, controller);
+
+    if (settings.provider === 'copilot') {
+      try {
+        const message = await copilotChatStream(
+          settings.model,
+          composed,
+          {
+            onDelta: (delta) => {
+              hasStreamedChunk = true;
+              streamedMessage += delta;
+              const chunkPayload: ChatStreamChunkPayload = {
+                requestId: payload.requestId,
+                delta
+              };
+              event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
+            }
+          },
+          { signal: controller.signal }
+        );
+        settingsAccess.onAssistantMessage?.();
+        return message;
+      } catch (error) {
+        const isAbortError =
+          (error instanceof DOMException && error.name === 'AbortError') ||
+          (error instanceof Error && error.name === 'AbortError');
+        if (isAbortError) {
+          return streamedMessage;
+        }
+        throw error;
+      } finally {
+        activeStreamControllers.delete(payload.requestId);
+      }
+    }
 
     try {
       const result = await chatCompletionStream(settings, composed, {
@@ -129,6 +174,9 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     IPC_CHANNELS.testConnection,
     async (_event, payload: EndpointSettings) => {
       const settings = normalizeSettings(payload);
+      if (settings.provider === 'copilot') {
+        return copilotTestConnection(settings.model);
+      }
       return testConnection(settings);
     }
   );

@@ -1,10 +1,10 @@
-# CurrAInt
+# curraint
 
-CurrAInt is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
+curraint is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
 
 It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards.
 
-## Why CurrAInt
+## Why curraint
 
 - Fast tray-first workflow for quick prompts
 - Cross-platform desktop support (Windows, macOS, Linux)

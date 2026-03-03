@@ -8,7 +8,7 @@
   "scripts": {
     "build": "pnpm build:renderer && pnpm build:main && pnpm build:cli",
     "build:renderer": "vite build",
-    "build:main": "tsup src/main/main.ts src/main/preload.ts --format cjs --out-dir dist/main --external electron",
+    "build:main": "tsup src/main/main.ts src/main/preload.ts --format cjs --out-dir dist/main --external electron --external electron-log",
     "build:cli": "tsup src/cli/index.ts --platform node --format cjs --out-dir dist/cli",
     "start": "electron dist/main/main.js",
     "dev": "pnpm build && pnpm start",
@@ -43,7 +43,7 @@
   },
   "build": {
     "appId": "com.curraint.app",
-    "productName": "CurrAInt",
+    "productName": "curraint",
     "files": [
       "dist/**/*",
       "package.json"
@@ -66,7 +66,11 @@
   },
   "packageManager": "pnpm@10.29.1+sha512.48dae233635a645768a3028d19545cacc1688639eeb1f3734e42d6d6b971afbf22aa1ac9af52a173d9c3a20c15857cfa400f19994d79a2f626fcc73fccda9bbc",
   "dependencies": {
+    "@github/copilot-sdk": "^0.1.29",
+    "electron-log": "^5.4.3",
+    "highlight.js": "^11.11.1",
     "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1"
   }
 }

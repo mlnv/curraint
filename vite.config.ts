@@ -12,7 +12,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         chat: resolve(__dirname, 'src/renderer/index.html'),
-        settings: resolve(__dirname, 'src/renderer/settings.html')
+        settings: resolve(__dirname, 'src/renderer/settings.html'),
+        quickInput: resolve(__dirname, 'src/renderer/quick-input.html')
       }
     }
   }

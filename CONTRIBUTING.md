@@ -1,6 +1,6 @@
-# Contributing to CurrAInt
+# Contributing to curraint
 
-Thanks for contributing to CurrAInt.
+Thanks for contributing to curraint.
 
 ## Development setup
 

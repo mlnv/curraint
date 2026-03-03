@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import {
   getUnclosedReasoningTagStart,
   hasThinkTag,
@@ -27,35 +28,43 @@ type MarkdownContentProps = {
 type CodeRendererProps = {
   className?: string;
   children?: React.ReactNode;
+  [key: string]: unknown;
 };
 
 function MarkdownCodeBlock({ className, children }: CodeRendererProps): React.JSX.Element {
   const [copied, setCopied] = useState(false);
-  const codeText = String(children ?? '').replace(/\n$/, '');
-  const isBlock = (className?.includes('language-') ?? false) || codeText.includes('\n');
+  const codeRef = useRef<HTMLElement>(null);
+  const language = className?.match(/language-(\S+)/)?.[1] ?? '';
+  const isBlock = Boolean(className?.includes('language-'));
 
   if (!isBlock) {
-    return <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>;
+    return <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{children}</code>;
   }
 
+  const handleCopy = (): void => {
+    const text = codeRef.current?.textContent ?? '';
+    void copyTextToClipboard(text).then((ok) => {
+      setCopied(ok);
+      window.setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <div className="relative">
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="absolute right-2 top-2 h-7 px-2 text-[11px]"
-        onClick={() => {
-          void copyTextToClipboard(codeText).then((ok) => {
-            setCopied(ok);
-            window.setTimeout(() => setCopied(false), 1200);
-          });
-        }}
-      >
-        {copied ? 'Copied' : 'Copy'}
-      </Button>
-      <pre className="overflow-x-auto rounded bg-muted p-2 pr-20 text-xs">
-        <code className={className}>{children}</code>
+    <div className="overflow-hidden rounded-md border border-border">
+      <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-1">
+        <span className="font-mono text-[10px] text-muted-foreground">
+          {language || 'code'}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="rounded px-2 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+        >
+          {copied ? '✓ copied' : 'copy'}
+        </button>
+      </div>
+      <pre className="overflow-x-auto bg-[hsl(var(--hljs-bg))] p-3 text-xs leading-relaxed">
+        <code ref={codeRef} className={className}>{children}</code>
       </pre>
     </div>
   );
@@ -66,6 +75,7 @@ function MarkdownContent({ content }: MarkdownContentProps): React.JSX.Element {
     <div className="space-y-2 break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
         components={{
           h1: ({ children }) => <h1 className="text-lg font-semibold">{children}</h1>,
           h2: ({ children }) => <h2 className="text-base font-semibold">{children}</h2>,

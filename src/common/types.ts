@@ -1,4 +1,15 @@
-export type ProviderId = 'openai' | 'lmstudio' | 'custom';
+export type ProviderId = 'openai' | 'lmstudio' | 'custom' | 'copilot';
+
+export type ThemeId = 'black' | 'white' | 'dark' | 'monokai' | 'retro-sand' | 'retro-green';
+
+export type SavedConnection = {
+  id: string;
+  name: string;
+  provider: ProviderId;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+};
 
 export type EndpointSettings = {
   provider: ProviderId;
@@ -9,6 +20,9 @@ export type EndpointSettings = {
   enableThinkTagFolding: boolean;
   contextMaxMessages: number;
   contextMaxCharacters: number;
+  savedConnections: SavedConnection[];
+  quickInputShortcut: string;
+  theme: ThemeId;
 };
 
 export type ChatMessage = {

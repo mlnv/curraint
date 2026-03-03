@@ -8,5 +8,8 @@ export const DEFAULT_SETTINGS: EndpointSettings = {
   systemPrompt: 'You are a helpful assistant.',
   enableThinkTagFolding: true,
   contextMaxMessages: 40,
-  contextMaxCharacters: 24000
+  contextMaxCharacters: 24000,
+  savedConnections: [],
+  quickInputShortcut: 'CommandOrControl+Shift+A',
+  theme: 'black'
 };

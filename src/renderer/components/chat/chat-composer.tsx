@@ -7,6 +7,7 @@ type Props = {
   canSend: boolean;
   isSending: boolean;
   isStopping: boolean;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   onStop: () => void;
   onPromptChange: (value: string) => void;
   onPromptKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -18,6 +19,7 @@ export function ChatComposer({
   canSend,
   isSending,
   isStopping,
+  textareaRef,
   onStop,
   onPromptChange,
   onPromptKeyDown
@@ -25,6 +27,7 @@ export function ChatComposer({
   return (
     <>
       <Textarea
+        ref={textareaRef}
         value={prompt}
         onChange={(event) => onPromptChange(event.target.value)}
         onKeyDown={onPromptKeyDown}

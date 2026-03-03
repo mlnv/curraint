@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS, type CurrAIntApi } from '../common/ipc';
+import type { EndpointSettings } from '../common/types';
 
 let activeStreamRequestId: string | null = null;
 
@@ -43,7 +44,34 @@ const api: CurrAIntApi = {
     await ipcRenderer.invoke(IPC_CHANNELS.chatCancel, activeStreamRequestId);
   },
   testConnection: (settings) =>
-    ipcRenderer.invoke(IPC_CHANNELS.testConnection, settings)
+    ipcRenderer.invoke(IPC_CHANNELS.testConnection, settings),
+  submitQuickInput: (message) =>
+    ipcRenderer.invoke(IPC_CHANNELS.quickInputSubmit, message),
+  closeQuickInput: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.quickInputClose),
+  hideChatWindow: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.chatWindowHide),
+  onReceiveQuickInput: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, message: string): void => {
+      callback(message);
+    };
+    ipcRenderer.on(IPC_CHANNELS.receiveQuickInput, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.receiveQuickInput, handler);
+  },
+  onShortcutRegistered: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, ok: boolean): void => {
+      callback(ok);
+    };
+    ipcRenderer.on(IPC_CHANNELS.shortcutRegistered, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.shortcutRegistered, handler);
+  },
+  onSettingsChanged: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, settings: EndpointSettings): void => {
+      callback(settings);
+    };
+    ipcRenderer.on(IPC_CHANNELS.settingsChanged, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.settingsChanged, handler);
+  }
 };
 
 contextBridge.exposeInMainWorld('curraint', api);

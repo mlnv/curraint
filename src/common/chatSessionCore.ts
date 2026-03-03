@@ -27,6 +27,7 @@ export type ChatSessionCore = {
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => Promise<void>;
   stopResponse: () => Promise<void>;
+  clearConversation: () => void;
 };
 
 type MutableState = {
@@ -224,6 +225,13 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       } catch {
         setState({ status: 'Failed to stop response' });
       }
+    },
+    clearConversation: () => {
+      if (state.isSending) {
+        return;
+      }
+
+      setState({ conversation: [], status: '' });
     }
   };
 }

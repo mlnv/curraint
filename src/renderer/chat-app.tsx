@@ -3,6 +3,7 @@ import { ChatComposer } from './components/chat/chat-composer';
 import { ChatMessageList } from './components/chat/chat-message-list';
 import { Card } from './components/ui/card';
 import { useChatSession } from './lib/use-chat-session';
+import { applyTheme } from './lib/theme';
 
 export function ChatApp(): React.JSX.Element {
   const {
@@ -15,11 +16,35 @@ export function ChatApp(): React.JSX.Element {
     setPrompt,
     submitPrompt,
     editUserMessage,
-    stopResponse
+    stopResponse,
+    clearConversation
   } = useChatSession();
   const [enableThinkTagFolding, setEnableThinkTagFolding] = useState(true);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const promptRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Focus the composer whenever the window is shown / gains focus
+  useEffect(() => {
+    const onFocus = (): void => {
+      promptRef.current?.focus();
+    };
+    window.addEventListener('focus', onFocus);
+    // Also focus immediately on mount (initial open)
+    promptRef.current?.focus();
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  // Hide the tray window on Escape via IPC (avoids close-event race on Windows)
+  useEffect(() => {
+    const onKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        void window.curraint.hideChatWindow();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const messages = useMemo(
     () => conversation.filter((message) => message.role !== 'system'),
@@ -31,10 +56,25 @@ export function ChatApp(): React.JSX.Element {
       .getSettings()
       .then((settings) => {
         setEnableThinkTagFolding(settings.enableThinkTagFolding);
+        applyTheme(settings.theme);
       })
       .catch(() => {
         setEnableThinkTagFolding(true);
       });
+  }, []);
+
+  useEffect(() => {
+    return window.curraint.onReceiveQuickInput((message) => {
+      clearConversation();
+      void submitPrompt(message);
+    });
+  }, [submitPrompt, clearConversation]);
+
+  useEffect(() => {
+    return window.curraint.onSettingsChanged((settings) => {
+      setEnableThinkTagFolding(settings.enableThinkTagFolding);
+      applyTheme(settings.theme);
+    });
   }, []);
 
   useEffect(() => {
@@ -84,8 +124,22 @@ export function ChatApp(): React.JSX.Element {
     <div className="h-screen bg-background p-3 text-foreground">
       <Card className="flex h-full flex-col overflow-hidden">
         <div className="border-b px-4 py-3">
-          <p className="text-sm font-medium">CurrAInt</p>
-          <p className="text-xs text-muted-foreground">Tray Chat</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">curraint</p>
+              <p className="text-xs text-muted-foreground">Tray Chat</p>
+            </div>
+            {conversation.length > 0 && !isSending && (
+              <button
+                type="button"
+                onClick={clearConversation}
+                className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="New chat"
+              >
+                New chat
+              </button>
+            )}
+          </div>
         </div>
 
         <ChatMessageList
@@ -104,6 +158,7 @@ export function ChatApp(): React.JSX.Element {
             canSend={canSend}
             isSending={isSending}
             isStopping={isStopping}
+            textareaRef={promptRef}
             onStop={stopResponse}
             onPromptChange={setPrompt}
             onPromptKeyDown={onPromptKeyDown}

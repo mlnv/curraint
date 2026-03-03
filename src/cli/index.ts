@@ -2,6 +2,7 @@ import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { createChatSessionCore } from '../common/chatSessionCore';
 import { composeConversation, normalizeSettings } from '../common/settings';
+import { loadSettingsFromFile, saveSettingsToFile, settingsFilePath } from '../common/settingsFile';
 import { isProviderId, requiresApiKeyForProvider } from '../common/providers';
 import type { ChatMessage, EndpointSettings } from '../common/types';
 import {
@@ -9,29 +10,44 @@ import {
   chatCompletionStream
 } from '../common/openaiCompatibleClient';
 
-function envSettings(): EndpointSettings {
-  const providerCandidate = process.env.CURRAINT_PROVIDER;
+/**
+ * Loads settings from the shared Desktop app settings file, then overlays
+ * any CURRAINT_* environment variables on top so env vars always win.
+ */
+function loadSettings(): EndpointSettings {
+  const file = loadSettingsFromFile();
+  const providerCandidate = process.env['CURRAINT_PROVIDER'];
 
   return normalizeSettings({
-    provider: providerCandidate && isProviderId(providerCandidate)
-      ? providerCandidate
-      : undefined,
-    apiKey: process.env.CURRAINT_API_KEY,
-    baseUrl: process.env.CURRAINT_BASE_URL,
-    model: process.env.CURRAINT_MODEL,
-    systemPrompt: process.env.CURRAINT_SYSTEM_PROMPT
+    ...file,
+    ...(providerCandidate && isProviderId(providerCandidate) ? { provider: providerCandidate } : {}),
+    ...(process.env['CURRAINT_API_KEY'] !== undefined ? { apiKey: process.env['CURRAINT_API_KEY'] } : {}),
+    ...(process.env['CURRAINT_BASE_URL'] !== undefined ? { baseUrl: process.env['CURRAINT_BASE_URL'] } : {}),
+    ...(process.env['CURRAINT_MODEL'] !== undefined ? { model: process.env['CURRAINT_MODEL'] } : {}),
+    ...(process.env['CURRAINT_SYSTEM_PROMPT'] !== undefined ? { systemPrompt: process.env['CURRAINT_SYSTEM_PROMPT'] } : {})
   });
 }
 
 async function run(): Promise<number> {
-  const settings = envSettings();
+  let settings = loadSettings();
+  const rl = readline.createInterface({ input, output });
 
   if (requiresApiKeyForProvider(settings.provider) && !settings.apiKey) {
-    output.write('Missing CURRAINT_API_KEY.\n');
-    return 1;
+    output.write(`No API key configured for provider "${settings.provider}".\n`);
+    const key = (await rl.question('Enter API key: ')).trim();
+    if (!key) {
+      output.write('API key is required. Exiting.\n');
+      rl.close();
+      return 1;
+    }
+    const save = (await rl.question('Save to settings file for future use? [Y/n] ')).trim().toLowerCase();
+    settings = normalizeSettings({ ...settings, apiKey: key });
+    if (save !== 'n') {
+      saveSettingsToFile(settings);
+      output.write(`Settings saved to ${settingsFilePath()}.\n`);
+    }
   }
 
-  const rl = readline.createInterface({ input, output });
   const session = createChatSessionCore({
     streamChat: async (messages, onDelta, options) => {
       const composed = composeConversation(settings, messages);
@@ -88,7 +104,7 @@ async function run(): Promise<number> {
     }
   });
 
-  output.write('CurrAInt CLI chat. Type "exit" to quit. Use /help for commands.\n');
+  output.write(`curraint CLI chat. Settings: ${settingsFilePath()}. Type "exit" to quit. Use /help for commands.\n`);
 
   process.on('SIGINT', () => {
     if (session.getState().isSending) {

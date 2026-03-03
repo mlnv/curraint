@@ -3,11 +3,17 @@ import type { ChatMessage, EndpointSettings } from './types';
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
   saveSettings: 'settings:save',
+  settingsChanged: 'settings:changed',
   chatSend: 'chat:send',
   chatStream: 'chat:stream',
   chatStreamChunk: 'chat:stream:chunk',
   chatCancel: 'chat:cancel',
-  testConnection: 'settings:testConnection'
+  testConnection: 'settings:testConnection',
+  quickInputSubmit: 'quick-input:submit',
+  quickInputClose: 'quick-input:close',
+  receiveQuickInput: 'quick-input:receive',
+  shortcutRegistered: 'shortcut:registered',
+  chatWindowHide: 'chat-window:hide'
 } as const;
 
 export type ChatStreamPayload = {
@@ -30,4 +36,10 @@ export type CurrAIntApi = {
   ) => Promise<string>;
   cancelChatStream: () => Promise<void>;
   testConnection: (settings: EndpointSettings) => Promise<string>;
+  submitQuickInput: (message: string) => Promise<void>;
+  closeQuickInput: () => Promise<void>;
+  hideChatWindow: () => Promise<void>;
+  onReceiveQuickInput: (callback: (message: string) => void) => () => void;
+  onShortcutRegistered: (callback: (ok: boolean) => void) => () => void;
+  onSettingsChanged: (callback: (settings: EndpointSettings) => void) => () => void;
 };

@@ -19,7 +19,10 @@ describe('normalizeSettings', () => {
       systemPrompt: 'helper',
       enableThinkTagFolding: true,
       contextMaxMessages: 40,
-      contextMaxCharacters: 24000
+      contextMaxCharacters: 24000,
+      savedConnections: [],
+      quickInputShortcut: 'CommandOrControl+Shift+A',
+      theme: 'black'
     });
   });
 

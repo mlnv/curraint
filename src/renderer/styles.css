@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* ── Default / black theme ─────────────────────────────────────────────── */
+:root,
+[data-theme="black"] {
   --background: 222 47% 4%;
   --foreground: 210 40% 98%;
   --card: 223 38% 8%;
@@ -15,6 +17,146 @@
   --primary: 220 91% 61%;
   --primary-foreground: 210 40% 98%;
   --radius: 0.7rem;
+  /* code token colors */
+  --hljs-bg: 222 47% 6%;
+  --hljs-keyword: #60a5fa;
+  --hljs-string: #86efac;
+  --hljs-number: #fb923c;
+  --hljs-comment: #475569;
+  --hljs-function: #fbbf24;
+  --hljs-type: #67e8f9;
+  --hljs-attr: #c4b5fd;
+  --hljs-literal: #f472b6;
+}
+
+/* ── White / light theme ────────────────────────────────────────────────── */
+[data-theme="white"] {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 210 20% 97%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 20% 93%;
+  --muted-foreground: 215 16% 40%;
+  --border: 220 13% 82%;
+  --input: 220 13% 82%;
+  --ring: 220 91% 55%;
+  --primary: 220 91% 55%;
+  --primary-foreground: 0 0% 100%;
+  --radius: 0.7rem;
+  /* code token colors */
+  --hljs-bg: 210 20% 91%;
+  --hljs-keyword: #2563eb;
+  --hljs-string: #16a34a;
+  --hljs-number: #ea580c;
+  --hljs-comment: #9ca3af;
+  --hljs-function: #7c3aed;
+  --hljs-type: #0891b2;
+  --hljs-attr: #6d28d9;
+  --hljs-literal: #db2777;
+}
+
+/* ── Dark theme (Cursor-style) ──────────────────────────────────────────── */
+[data-theme="dark"] {
+  --background: 230 10% 10%;
+  --foreground: 230 15% 90%;
+  --card: 230 10% 13%;
+  --card-foreground: 230 15% 90%;
+  --muted: 230 10% 18%;
+  --muted-foreground: 230 10% 58%;
+  --border: 230 10% 22%;
+  --input: 230 10% 22%;
+  --ring: 263 70% 65%;
+  --primary: 263 85% 68%;
+  --primary-foreground: 0 0% 100%;
+  --radius: 0.7rem;
+  /* code token colors */
+  --hljs-bg: 230 10% 8%;
+  --hljs-keyword: #a78bfa;
+  --hljs-string: #86efac;
+  --hljs-number: #fcd34d;
+  --hljs-comment: #475569;
+  --hljs-function: #93c5fd;
+  --hljs-type: #f9a8d4;
+  --hljs-attr: #c4b5fd;
+  --hljs-literal: #fb923c;
+}
+
+/* ── Monokai theme ──────────────────────────────────────────────────────── */
+[data-theme="monokai"] {
+  --background: 70 8% 10%;
+  --foreground: 60 30% 88%;
+  --card: 70 8% 13%;
+  --card-foreground: 60 30% 88%;
+  --muted: 70 8% 18%;
+  --muted-foreground: 60 10% 55%;
+  --border: 70 8% 24%;
+  --input: 70 8% 24%;
+  --ring: 80 70% 50%;
+  --primary: 80 75% 55%;
+  --primary-foreground: 70 8% 10%;
+  --radius: 0.4rem;
+  /* code token colors */
+  --hljs-bg: 70 8% 7%;
+  --hljs-keyword: #f92672;
+  --hljs-string: #e6db74;
+  --hljs-number: #ae81ff;
+  --hljs-comment: #75715e;
+  --hljs-function: #a6e22e;
+  --hljs-type: #66d9e8;
+  --hljs-attr: #fd971f;
+  --hljs-literal: #ae81ff;
+}
+
+/* ── Retro Sand (Fallout / wasteland amber) ─────────────────────────────── */
+[data-theme="retro-sand"] {
+  --background: 38 28% 6%;
+  --foreground: 42 85% 72%;
+  --card: 38 28% 9%;
+  --card-foreground: 42 85% 72%;
+  --muted: 38 22% 13%;
+  --muted-foreground: 42 55% 48%;
+  --border: 42 38% 20%;
+  --input: 42 38% 20%;
+  --ring: 42 90% 58%;
+  --primary: 42 100% 58%;
+  --primary-foreground: 38 28% 6%;
+  --radius: 0.2rem;
+  /* code token colors */
+  --hljs-bg: 38 28% 4%;
+  --hljs-keyword: #fcd34d;
+  --hljs-string: #fef3c7;
+  --hljs-number: #fb923c;
+  --hljs-comment: #78350f;
+  --hljs-function: #fde68a;
+  --hljs-type: #fbbf24;
+  --hljs-attr: #d97706;
+  --hljs-literal: #f59e0b;
+}
+
+/* ── Retro Green (phosphor CRT) ─────────────────────────────────────────── */
+[data-theme="retro-green"] {
+  --background: 130 50% 4%;
+  --foreground: 120 100% 65%;
+  --card: 130 50% 7%;
+  --card-foreground: 120 100% 65%;
+  --muted: 130 40% 10%;
+  --muted-foreground: 120 60% 40%;
+  --border: 120 55% 14%;
+  --input: 120 55% 14%;
+  --ring: 120 100% 55%;
+  --primary: 120 100% 55%;
+  --primary-foreground: 130 50% 4%;
+  --radius: 0rem;
+  /* code token colors */
+  --hljs-bg: 130 50% 2%;
+  --hljs-keyword: #4ade80;
+  --hljs-string: #bbf7d0;
+  --hljs-number: #a3e635;
+  --hljs-comment: #166534;
+  --hljs-function: #d1fae5;
+  --hljs-type: #6ee7b7;
+  --hljs-attr: #86efac;
+  --hljs-literal: #4ade80;
 }
 
 * {
@@ -53,4 +195,53 @@ body,
 
 *::-webkit-scrollbar-corner {
   background: hsl(var(--background));
+}
+
+/* ── Syntax highlighting (hljs token classes via rehype-highlight) ────────── */
+code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+.hljs-keyword,
+.hljs-operator,
+.hljs-selector-tag { color: var(--hljs-keyword); font-weight: 500; }
+
+.hljs-string,
+.hljs-regexp,
+.hljs-template-string { color: var(--hljs-string); }
+
+.hljs-number { color: var(--hljs-number); }
+
+.hljs-comment,
+.hljs-doctag,
+.hljs-meta { color: var(--hljs-comment); font-style: italic; }
+
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_ { color: var(--hljs-function); }
+
+.hljs-type,
+.hljs-built_in { color: var(--hljs-type); }
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-property { color: var(--hljs-attr); }
+
+.hljs-literal,
+.hljs-symbol,
+.hljs-boolean { color: var(--hljs-literal); }
+
+.hljs-subst,
+.hljs-name { color: hsl(var(--foreground)); }
+
+.hljs-variable.language_ { color: var(--hljs-literal); }
+
+.hljs-addition {
+  background: hsl(120 60% 30% / 0.25);
+  color: hsl(120 80% 70%);
+}
+.hljs-deletion {
+  background: hsl(0 60% 40% / 0.25);
+  color: hsl(0 80% 70%);
 }

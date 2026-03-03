@@ -5,7 +5,45 @@ import {
   truncateConversationForContext
 } from './contextSafety';
 import { isProviderId } from './providers';
-import type { ChatMessage, EndpointSettings } from './types';
+import type { ChatMessage, EndpointSettings, SavedConnection, ThemeId } from './types';
+
+const THEME_IDS: ThemeId[] = ['black', 'white', 'dark', 'monokai', 'retro-sand', 'retro-green'];
+
+function isThemeId(value: unknown): value is ThemeId {
+  return THEME_IDS.includes(value as ThemeId);
+}
+
+function normalizeSavedConnections(raw: unknown): SavedConnection[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const result: SavedConnection[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) {
+      continue;
+    }
+
+    const c = item as Record<string, unknown>;
+    if (typeof c['id'] !== 'string' || typeof c['name'] !== 'string') {
+      continue;
+    }
+
+    result.push({
+      id: c['id'],
+      name: c['name'],
+      provider:
+        typeof c['provider'] === 'string' && isProviderId(c['provider'])
+          ? c['provider']
+          : 'custom',
+      apiKey: typeof c['apiKey'] === 'string' ? c['apiKey'] : '',
+      baseUrl: typeof c['baseUrl'] === 'string' ? c['baseUrl'] : '',
+      model: typeof c['model'] === 'string' ? c['model'] : ''
+    });
+  }
+
+  return result;
+}
 
 export function normalizeSettings(
   input: Partial<EndpointSettings> | EndpointSettings
@@ -34,7 +72,13 @@ export function normalizeSettings(
       DEFAULT_SETTINGS.contextMaxCharacters,
       CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters,
       CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters
-    )
+    ),
+    savedConnections: normalizeSavedConnections(input.savedConnections),
+    quickInputShortcut:
+      typeof input.quickInputShortcut === 'string' && input.quickInputShortcut.trim()
+        ? input.quickInputShortcut.trim()
+        : DEFAULT_SETTINGS.quickInputShortcut,
+    theme: isThemeId(input.theme) ? input.theme : DEFAULT_SETTINGS.theme
   };
 }
 

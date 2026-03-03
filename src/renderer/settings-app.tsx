@@ -1,10 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { getProviderConfig } from '../common/providers';
-import type { EndpointSettings } from '../common/types';
+import type { EndpointSettings, SavedConnection } from '../common/types';
 import { Card } from './components/ui/card';
 import { SettingsFormActions } from './components/settings/settings-form-actions';
 import { SettingsFormFields } from './components/settings/settings-form-fields';
 import { toErrorMessage } from './lib/errors';
+import { applyTheme } from './lib/theme';
 
 type FormState = EndpointSettings;
 
@@ -16,7 +17,10 @@ const EMPTY_FORM: FormState = {
   systemPrompt: '',
   enableThinkTagFolding: true,
   contextMaxMessages: 40,
-  contextMaxCharacters: 24000
+  contextMaxCharacters: 24000,
+  savedConnections: [],
+  quickInputShortcut: 'CommandOrControl+Shift+A',
+  theme: 'black'
 };
 
 export function SettingsApp(): React.JSX.Element {
@@ -24,9 +28,13 @@ export function SettingsApp(): React.JSX.Element {
   const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [shortcutRegistered, setShortcutRegistered] = useState<boolean | undefined>(undefined);
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (key === 'theme') {
+      applyTheme(value as FormState['theme']);
+    }
   };
 
   const updateProvider = (provider: FormState['provider']): void => {
@@ -41,15 +49,55 @@ export function SettingsApp(): React.JSX.Element {
     }));
   };
 
+  const loadConnection = (conn: SavedConnection): void => {
+    setForm((prev) => ({
+      ...prev,
+      provider: conn.provider,
+      apiKey: conn.apiKey,
+      baseUrl: conn.baseUrl,
+      model: conn.model
+    }));
+  };
+
+  const saveConnection = (name: string): void => {
+    const newConn: SavedConnection = {
+      id: Date.now().toString(36),
+      name,
+      provider: form.provider,
+      apiKey: form.apiKey.trim(),
+      baseUrl: form.baseUrl.trim(),
+      model: form.model.trim()
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      savedConnections: [...prev.savedConnections, newConn]
+    }));
+  };
+
+  const deleteConnection = (id: string): void => {
+    setForm((prev) => ({
+      ...prev,
+      savedConnections: prev.savedConnections.filter((c) => c.id !== id)
+    }));
+  };
+
   useEffect(() => {
     window.curraint
       .getSettings()
       .then((settings) => {
         setForm(settings);
+        applyTheme(settings.theme);
       })
       .catch((error: unknown) => {
         setStatus(toErrorMessage(error, 'Failed to load settings'));
       });
+  }, []);
+
+  useEffect(() => {
+    return window.curraint.onShortcutRegistered((ok) => {
+      setShortcutRegistered(ok);
+    });
   }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -66,7 +114,10 @@ export function SettingsApp(): React.JSX.Element {
         systemPrompt: form.systemPrompt.trim(),
         enableThinkTagFolding: form.enableThinkTagFolding,
         contextMaxMessages: form.contextMaxMessages,
-        contextMaxCharacters: form.contextMaxCharacters
+        contextMaxCharacters: form.contextMaxCharacters,
+        savedConnections: form.savedConnections,
+        quickInputShortcut: form.quickInputShortcut,
+        theme: form.theme
       });
       setStatus('Saved');
       window.close();
@@ -90,7 +141,10 @@ export function SettingsApp(): React.JSX.Element {
         systemPrompt: form.systemPrompt.trim(),
         enableThinkTagFolding: form.enableThinkTagFolding,
         contextMaxMessages: form.contextMaxMessages,
-        contextMaxCharacters: form.contextMaxCharacters
+        contextMaxCharacters: form.contextMaxCharacters,
+        savedConnections: form.savedConnections,
+        quickInputShortcut: form.quickInputShortcut,
+        theme: form.theme
       });
 
       setStatus(message);
@@ -102,28 +156,36 @@ export function SettingsApp(): React.JSX.Element {
   };
 
   return (
-    <div className="h-screen bg-background p-3 text-foreground">
-      <Card className="h-full p-4">
-        <div className="mb-4">
+    <div className="h-screen bg-background text-foreground">
+      <Card className="flex h-full flex-col rounded-none p-4">
+        <div className="mb-4 shrink-0">
           <p className="text-sm font-medium">Settings</p>
           <p className="text-xs text-muted-foreground">OpenAI-compatible endpoint</p>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-3">
-          <SettingsFormFields
-            form={form}
-            onProviderChange={updateProvider}
-            onFieldChange={updateField}
-          />
+        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+            <SettingsFormFields
+              form={form}
+              shortcutRegistered={shortcutRegistered}
+              onProviderChange={updateProvider}
+              onFieldChange={updateField}
+              onLoadConnection={loadConnection}
+              onSaveConnection={saveConnection}
+              onDeleteConnection={deleteConnection}
+            />
+          </div>
 
-          <SettingsFormActions
-            status={status}
-            isSaving={isSaving}
-            isTesting={isTesting}
-            onTestConnection={() => {
-              void onTestConnection();
-            }}
-          />
+          <div className="mt-3 shrink-0 border-t pt-3">
+            <SettingsFormActions
+              status={status}
+              isSaving={isSaving}
+              isTesting={isTesting}
+              onTestConnection={() => {
+                void onTestConnection();
+              }}
+            />
+          </div>
         </form>
       </Card>
     </div>
