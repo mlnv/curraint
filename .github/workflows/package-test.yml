@@ -43,10 +43,15 @@ jobs:
       - name: Build package
         run: pnpm package -- --win
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "version=$(node -p "require('./packages/desktop/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: curraint-test-windows
+          name: curraint-${{ steps.version.outputs.version }}-test-windows
           path: |
             dist/**/*.exe
             dist/**/latest*.yml
@@ -76,10 +81,14 @@ jobs:
       - name: Build package
         run: pnpm package -- --mac
 
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./packages/desktop/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: curraint-test-macos
+          name: curraint-${{ steps.version.outputs.version }}-test-macos
           path: |
             dist/**/*.dmg
             dist/**/*.zip
@@ -109,10 +118,14 @@ jobs:
       - name: Build package
         run: pnpm package -- --linux
 
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./packages/desktop/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: curraint-test-linux
+          name: curraint-${{ steps.version.outputs.version }}-test-linux
           path: |
             dist/**/*.AppImage
             dist/**/*.deb
