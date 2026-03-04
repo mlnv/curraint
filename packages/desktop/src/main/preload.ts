@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS, type CurrAIntApi } from '../common/ipc';
-import type { EndpointSettings } from '../common/types';
+import { IPC_CHANNELS, type CurrAIntApi } from '../ipc';
+import type { AppSettings } from '../types';
 
 let activeStreamRequestId: string | null = null;
 
@@ -67,7 +67,7 @@ const api: CurrAIntApi = {
     return () => ipcRenderer.removeListener(IPC_CHANNELS.shortcutRegistered, handler);
   },
   onSettingsChanged: (callback) => {
-    const handler = (_event: Electron.IpcRendererEvent, settings: EndpointSettings): void => {
+    const handler = (_event: Electron.IpcRendererEvent, settings: AppSettings): void => {
       callback(settings);
     };
     ipcRenderer.on(IPC_CHANNELS.settingsChanged, handler);

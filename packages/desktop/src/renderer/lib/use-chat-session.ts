@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createChatSessionCore } from '../../common/chatSessionCore';
-import type { ChatMessage } from '../../common/types';
+import { createChatSessionCore } from '@curraint/core';
+import type { ChatMessage } from '@curraint/core';
 
 export type UseChatSessionResult = {
   conversation: ChatMessage[];

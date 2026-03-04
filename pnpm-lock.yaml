@@ -6,11 +6,61 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  packages/cli:
     dependencies:
+      '@curraint/core':
+        specifier: workspace:*
+        version: link:../core
       '@github/copilot-sdk':
-        specifier: ^0.1.29
-        version: 0.1.29
+        specifier: ^0.1.30
+        version: 0.1.30
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.19.11
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.11)(jsdom@28.1.0)
+
+  packages/core:
+    dependencies:
+      electron-log:
+        specifier: ^5.4.3
+        version: 5.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.19.11
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.11)(jsdom@28.1.0)
+    optionalDependencies:
+      '@github/copilot-sdk':
+        specifier: ^0.1.30
+        version: 0.1.30
+
+  packages/desktop:
+    dependencies:
+      '@curraint/core':
+        specifier: workspace:*
+        version: link:../core
+      '@github/copilot-sdk':
+        specifier: ^0.1.30
+        version: 0.1.30
       electron-log:
         specifier: ^5.4.3
         version: 5.4.3
@@ -754,8 +804,8 @@ packages:
     os: [linux]
     hasBin: true
 
-  '@github/copilot-sdk@0.1.29':
-    resolution: {integrity: sha512-GdcN6bJTeesr1HP6IrhN2MznIf1B3ufqd3PX+uKbDLXNriOmP65Ai29/hxzTidNLHyOf6rW4NwmFfkMXiKfCBw==}
+  '@github/copilot-sdk@0.1.30':
+    resolution: {integrity: sha512-Stg+h8xsPRR0TNGBQfd9laxhJfWZ6DsdpbowcKIZoyKxZvMAbjnY0zyDeOpewJbxWBTJVhBZb5okOq6iaPNMZw==}
     engines: {node: '>=20.0.0'}
 
   '@github/copilot-win32-arm64@0.0.420':
@@ -3879,7 +3929,7 @@ snapshots:
   '@github/copilot-linux-x64@0.0.420':
     optional: true
 
-  '@github/copilot-sdk@0.1.29':
+  '@github/copilot-sdk@0.1.30':
     dependencies:
       '@github/copilot': 0.0.420
       vscode-jsonrpc: 8.2.1

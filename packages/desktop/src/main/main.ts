@@ -4,8 +4,8 @@ import {
   globalShortcut,
   ipcMain
 } from 'electron';
-import type { EndpointSettings } from '../common/types';
-import { IPC_CHANNELS } from '../common/ipc';
+import type { AppSettings } from '../types';
+import { IPC_CHANNELS } from '../ipc';
 import { configureAppRuntime } from './runtime';
 import {
   createChatWindow,
@@ -16,7 +16,7 @@ import {
 } from './windows';
 import { registerIpcHandlers } from './ipcHandlers';
 import { loadSettings, saveSettings } from './settingsStore';
-import { warmupCopilotSession } from './copilotClient';
+import { warmupCopilotSession } from '@curraint/core';
 import { TrayManager } from './trayManager';
 
 configureAppRuntime();
@@ -30,7 +30,7 @@ let chatWindow: BrowserWindow | null = null;
 let prepareChatWindowShow: () => void = () => { /* noop until initialized */ };
 let settingsWindow: BrowserWindow | null = null;
 let quickInputWindow: BrowserWindow | null = null;
-let settings: EndpointSettings;
+let settings: AppSettings;
 let isQuitting = false;
 const trayManager = new TrayManager({
   onToggleChat: () => toggleChatWindow(),

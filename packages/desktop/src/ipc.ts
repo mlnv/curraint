@@ -1,4 +1,5 @@
-import type { ChatMessage, EndpointSettings } from './types';
+import type { ChatMessage } from '@curraint/core';
+import type { AppSettings } from './types';
 
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
@@ -28,8 +29,8 @@ export type ChatStreamChunkPayload = {
 };
 
 export type CurrAIntApi = {
-  getSettings: () => Promise<EndpointSettings>;
-  saveSettings: (settings: EndpointSettings) => Promise<EndpointSettings>;
+  getSettings: () => Promise<AppSettings>;
+  saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   chat: (messages: ChatMessage[]) => Promise<string>;
   chatStream: (
     messages: ChatMessage[],
@@ -37,11 +38,11 @@ export type CurrAIntApi = {
   ) => Promise<string>;
   cancelChatStream: () => Promise<void>;
   clearChatSession: () => Promise<void>;
-  testConnection: (settings: EndpointSettings) => Promise<string>;
+  testConnection: (settings: AppSettings) => Promise<string>;
   submitQuickInput: (message: string) => Promise<void>;
   closeQuickInput: () => Promise<void>;
   hideChatWindow: () => Promise<void>;
   onReceiveQuickInput: (callback: (message: string) => void) => () => void;
   onShortcutRegistered: (callback: (ok: boolean) => void) => () => void;
-  onSettingsChanged: (callback: (settings: EndpointSettings) => void) => () => void;
+  onSettingsChanged: (callback: (settings: AppSettings) => void) => () => void;
 };

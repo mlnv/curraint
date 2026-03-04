@@ -1,0 +1,72 @@
+{
+  "name": "@curraint/desktop",
+  "version": "0.1.0",
+  "description": "Desktop application for curraint (macOS/Linux/Windows)",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "pnpm build:renderer && pnpm build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsup --config tsup.main.config.ts",
+    "start": "electron dist/main/main.js",
+    "dev": "pnpm build && pnpm start",
+    "package": "pnpm build && electron-builder --publish never",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@curraint/core": "workspace:*",
+    "@github/copilot-sdk": "^0.1.30",
+    "electron-log": "^5.4.3",
+    "highlight.js": "^11.11.1",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^40.6.0",
+    "electron-builder": "^25.1.8",
+    "jsdom": "^28.1.0",
+    "postcss": "^8.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.3.0",
+    "tailwindcss": "^3.4.17",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^2.1.8"
+  },
+  "build": {
+    "appId": "com.curraint.app",
+    "productName": "curraint",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  }
+}

@@ -116,6 +116,30 @@ Behavior notes:
 	- `/edit <number>` – edit a previous user message and regenerate from that point
 	- `Ctrl+C` while streaming – stop current response
 
+## Security
+
+### API key storage
+
+API keys are **never written to `settings.json`** in plain text.  They are stored in a separate encrypted file:
+
+| Platform | Path |
+|----------|------|
+| Windows  | `%APPDATA%\curraint\secrets.json` |
+| macOS    | `~/Library/Application Support/curraint/secrets.json` |
+| Linux    | `~/.config/curraint/secrets.json` |
+
+Each value is individually encrypted with **AES-256-GCM**.  The encryption key is derived from the current machine's hostname and OS username using PBKDF2-SHA256 (100 000 iterations), making the secrets file unreadable on any other machine or user account without access to the same credentials.
+
+On Unix systems the file is created with `0600` permissions (owner read/write only).
+
+The Desktop and CLI share the same `secrets.json`, so API keys entered in either app are immediately available in the other — no re-entry needed.
+
+The `CURRAINT_API_KEY` environment variable always takes precedence over the stored secret when set.
+
+### `settings.json`
+
+Non-sensitive settings (provider, base URL, model, system prompt, theme, shortcuts) continue to be stored in plain JSON in `settings.json` alongside `secrets.json`.
+
 ## Testing
 
 Run unit tests:
