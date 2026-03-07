@@ -41,7 +41,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: pnpm package -- --win
+        run: pnpm --filter @curraint/desktop package -- --win
 
       - name: Get version
         id: version
@@ -53,8 +53,8 @@ jobs:
         with:
           name: curraint-${{ steps.version.outputs.version }}-test-windows
           path: |
-            dist/**/*.exe
-            dist/**/latest*.yml
+            packages/desktop/dist/**/*.exe
+            packages/desktop/dist/**/latest*.yml
           if-no-files-found: error
 
   package-macos:
@@ -79,7 +79,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: pnpm package -- --mac
+        run: pnpm --filter @curraint/desktop package -- --mac
 
       - name: Get version
         id: version
@@ -90,8 +90,8 @@ jobs:
         with:
           name: curraint-${{ steps.version.outputs.version }}-test-macos
           path: |
-            dist/**/*.dmg
-            dist/**/*.zip
+            packages/desktop/dist/**/*.dmg
+            packages/desktop/dist/**/*.zip
           if-no-files-found: error
 
   package-linux:
@@ -116,7 +116,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: pnpm package -- --linux
+        run: pnpm --filter @curraint/desktop package -- --linux
 
       - name: Get version
         id: version
@@ -127,6 +127,6 @@ jobs:
         with:
           name: curraint-${{ steps.version.outputs.version }}-test-linux
           path: |
-            dist/**/*.AppImage
-            dist/**/*.deb
+            packages/desktop/dist/**/*.AppImage
+            packages/desktop/dist/**/*.deb
           if-no-files-found: error
