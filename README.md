@@ -211,20 +211,6 @@ Notes:
 	- Builds selected platform packages
 	- Uploads artifacts only (no release)
 
-## Project structure
-
-- `src/main` – Electron main process (tray, windows, IPC orchestration)
-- `src/renderer` – React UI (chat/settings)
-- `src/common` – shared types, provider config, API client, settings and context safety
-- `src/cli` – terminal chat client
-
-Key modules:
-
-- `src/common/contextSafety.ts` – context-window truncation + summary policy
-- `src/common/chatSessionCore.ts` – shared submit/edit/stream/stop chat orchestration
-- `src/common/settings.ts` – settings normalization + conversation composition orchestration
-- `src/renderer/lib/use-chat-session.ts` – chat session orchestration for renderer
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding standards, and PR checklist.
