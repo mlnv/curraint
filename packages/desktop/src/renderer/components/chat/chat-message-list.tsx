@@ -125,10 +125,18 @@ export function ChatMessageList({
           /* ── Assistant bubble ─────────────────────────────────────── */
           <div key={`${message.role}-${index}`} className="group mb-2 flex flex-col items-start">
             <div className="max-w-[88%] rounded-2xl rounded-bl-sm border border-border bg-card px-3.5 py-2.5 text-sm leading-relaxed text-card-foreground">
-              <AssistantMessageContent
-                content={message.content}
-                enableThinkTagFolding={enableThinkTagFolding}
-              />
+              {isSending && index === messages.length - 1 && message.content === '' ? (
+                <div className="flex items-center gap-1.5 px-0.5 py-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+                </div>
+              ) : (
+                <AssistantMessageContent
+                  content={message.content}
+                  enableThinkTagFolding={enableThinkTagFolding}
+                />
+              )}
             </div>
             <span className="mt-0.5 pl-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
               {formatTime(timestampsRef.current.get(index))}
@@ -137,8 +145,8 @@ export function ChatMessageList({
         )
       )}
 
-      {/* ── Typing indicator ────────────────────────────────────────── */}
-      {isSending ? (
+      {/* ── Typing indicator (only when no empty assistant message is already shown) ── */}
+      {isSending && !(messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1].content === '') ? (
         <div className="mb-2 flex flex-col items-start">
           <div className="rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3.5">
             <div className="flex items-center gap-1.5">
