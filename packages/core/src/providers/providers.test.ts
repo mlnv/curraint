@@ -15,10 +15,10 @@ describe('isProviderId', () => {
 });
 
 describe('provider configs', () => {
-  it('exposes options for all provider configs', () => {
-    const optionIds = PROVIDER_OPTIONS.map((option) => option.id).sort();
-    const configIds = Object.keys(PROVIDER_CONFIGS).sort();
-    expect(optionIds).toEqual(configIds);
+  it('all provider options have a corresponding config', () => {
+    PROVIDER_OPTIONS.forEach((option) => {
+      expect(PROVIDER_CONFIGS[option.id]).toBeDefined();
+    });
   });
 
   it('returns provider config by id', () => {

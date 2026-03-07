@@ -3,7 +3,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { createChatSessionCore } from '@curraint/core';
 import { composeConversation, normalizeSettings } from '@curraint/core';
 import { loadSettingsFromFile, loadRawSettingsFromFile, saveSettingsToFile, settingsFilePath } from '@curraint/core';
-import { isProviderId, requiresApiKeyForProvider, PROVIDER_OPTIONS, getProviderConfig } from '@curraint/core';
+import { isProviderId, requiresApiKeyForProvider, PROVIDER_OPTIONS, getProviderConfig, ENABLE_COPILOT_PROVIDER } from '@curraint/core';
 import type { ChatMessage, EndpointSettings } from '@curraint/core';
 import {
   chatCompletion,
@@ -15,7 +15,7 @@ import {
 import type { ChatSessionCore, ChatSessionTransport } from '@curraint/core';
 
 function buildTransport(settings: EndpointSettings): ChatSessionTransport {
-  if (settings.provider === 'copilot') {
+  if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
     return {
       streamChat: async (messages, onDelta, options) => {
         const composed = composeConversation(settings, messages);
@@ -271,7 +271,7 @@ async function run(): Promise<number> {
         }
 
         // Stop the old copilot subprocess if switching away.
-        if (settings.provider === 'copilot') {
+        if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
           await stopCopilotClient();
         }
 
@@ -343,7 +343,7 @@ async function run(): Promise<number> {
     }
   } finally {
     rl.close();
-    if (settings.provider === 'copilot') {
+    if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
       await stopCopilotClient();
     }
   }

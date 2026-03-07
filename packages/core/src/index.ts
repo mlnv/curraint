@@ -1,5 +1,6 @@
 // Shared base types
 export type { ProviderId, ChatMessage, ChatResult } from './types';
+export { ENABLE_COPILOT_PROVIDER } from './features';
 
 // Domain modules
 export * from './chat';

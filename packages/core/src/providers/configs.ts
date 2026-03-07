@@ -1,5 +1,6 @@
 import type { ProviderId } from '../types';
 import type { ProviderConfig } from './types';
+import { ENABLE_COPILOT_PROVIDER } from '../features';
 
 export const PROVIDER_CONFIGS: Record<ProviderId, ProviderConfig> = {
   openai: {
@@ -40,5 +41,5 @@ export const PROVIDER_OPTIONS: ProviderConfig[] = [
   PROVIDER_CONFIGS.openai,
   PROVIDER_CONFIGS.lmstudio,
   PROVIDER_CONFIGS.custom,
-  PROVIDER_CONFIGS.copilot
+  ...(ENABLE_COPILOT_PROVIDER ? [PROVIDER_CONFIGS.copilot] : [])
 ];
