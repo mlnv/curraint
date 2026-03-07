@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build core
+        run: pnpm --filter @curraint/core build
+
       - name: Build package
         run: pnpm --filter @curraint/desktop package -- --win
 
@@ -78,6 +81,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build core
+        run: pnpm --filter @curraint/core build
+
       - name: Build package
         run: pnpm --filter @curraint/desktop package -- --mac
 
@@ -114,6 +120,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build core
+        run: pnpm --filter @curraint/core build
 
       - name: Build package
         run: pnpm --filter @curraint/desktop package -- --linux
