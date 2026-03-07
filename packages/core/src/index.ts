@@ -1,12 +1,27 @@
-export * from './chatSessionCore';
-export * from './contextSafety';
-export * from './copilotClient';
-export * from './debugLog';
-export * from './defaults';
-export * from './openaiCompatibleClient';
+// Shared base types
+export type { ProviderId, ChatMessage, ChatResult } from './types';
+
+// Domain modules
+export * from './chat';
+export * from './context';
 export * from './providers';
-export * from './secretsFile';
 export * from './settings';
-export * from './settingsFile';
-export * from './thinkTags';
-export * from './types';
+export * from './secrets';
+export * from './think-tags';
+export { debugLog } from './debug/log';
+
+// API clients
+export {
+  testConnection,
+  chatCompletion,
+  chatCompletionStream
+} from './api/openai/client';
+export type { StreamCallbacks, StreamOptions } from './api/openai/types';
+export {
+  copilotChatStream,
+  warmupCopilotSession,
+  resetCopilotSession,
+  copilotTestConnection,
+  stopCopilotClient
+} from './api/copilot';
+export type { CopilotStreamCallbacks, CopilotStreamOptions } from './api/copilot';

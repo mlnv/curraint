@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  PROVIDER_CONFIGS,
-  PROVIDER_OPTIONS,
-  getProviderConfig,
-  isProviderId,
-  requiresApiKeyForProvider
-} from './providers';
+import { PROVIDER_CONFIGS, PROVIDER_OPTIONS, getProviderConfig, isProviderId, requiresApiKeyForProvider } from '.';
 
 describe('isProviderId', () => {
   it('returns true for known providers', () => {

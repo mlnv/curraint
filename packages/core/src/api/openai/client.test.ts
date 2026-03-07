@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  chatCompletion,
-  chatCompletionStream,
-  testConnection
-} from './openaiCompatibleClient';
-import type { EndpointSettings } from './types';
+import { chatCompletion, chatCompletionStream, testConnection } from './client';
+import type { EndpointSettings } from '../../settings/types';
 
 const validSettings: EndpointSettings = {
   provider: 'openai',
@@ -74,9 +70,7 @@ describe('chatCompletion', () => {
 
   it('surfaces API error message from JSON response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: { message: 'Invalid API key' } }), {
-        status: 401
-      })
+      new Response(JSON.stringify({ error: { message: 'Invalid API key' } }), { status: 401 })
     );
 
     await expect(
@@ -86,9 +80,7 @@ describe('chatCompletion', () => {
 
   it('throws when endpoint returns empty content', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ choices: [{ message: { content: ' ' } }] }), {
-        status: 200
-      })
+      new Response(JSON.stringify({ choices: [{ message: { content: ' ' } }] }), { status: 200 })
     );
 
     await expect(
@@ -120,12 +112,7 @@ describe('chatCompletion', () => {
       );
 
     await chatCompletion(
-      {
-        ...validSettings,
-        provider: 'lmstudio',
-        apiKey: '',
-        baseUrl: 'http://127.0.0.1:1234/v1'
-      },
+      { ...validSettings, provider: 'lmstudio', apiKey: '', baseUrl: 'http://127.0.0.1:1234/v1' },
       [{ role: 'user', content: 'Hi' }]
     );
 
@@ -146,9 +133,7 @@ describe('testConnection', () => {
 
   it('surfaces status and message on failed endpoint', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: { message: 'Server unavailable' } }), {
-        status: 503
-      })
+      new Response(JSON.stringify({ error: { message: 'Server unavailable' } }), { status: 503 })
     );
 
     await expect(testConnection(validSettings)).rejects.toThrow(
@@ -162,28 +147,20 @@ describe('chatCompletionStream', () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         const encoder = new TextEncoder();
-        controller.enqueue(
-          encoder.encode('data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n')
-        );
-        controller.enqueue(
-          encoder.encode('data: {"choices":[{"delta":{"content":"lo"}}]}\n\n')
-        );
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n'));
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"lo"}}]}\n\n'));
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       }
     });
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(stream, { status: 200 })
-    );
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
 
     const deltas: string[] = [];
     const result = await chatCompletionStream(
       validSettings,
       [{ role: 'user', content: 'Hi' }],
-      {
-        onDelta: (delta) => deltas.push(delta)
-      }
+      { onDelta: (delta) => deltas.push(delta) }
     );
 
     expect(deltas).toEqual(['Hel', 'lo']);
@@ -199,9 +176,7 @@ describe('chatCompletionStream', () => {
       }
     });
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(stream, { status: 200 })
-    );
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
 
     await expect(
       chatCompletionStream(validSettings, [{ role: 'user', content: 'Hi' }], {

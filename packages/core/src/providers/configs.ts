@@ -1,13 +1,5 @@
-import type { ProviderId } from './types';
-
-export type ProviderConfig = {
-  id: ProviderId;
-  label: string;
-  defaultBaseUrl: string;
-  defaultModel: string;
-  requiresApiKey: boolean;
-  requiresBaseUrl: boolean;
-};
+import type { ProviderId } from '../types';
+import type { ProviderConfig } from './types';
 
 export const PROVIDER_CONFIGS: Record<ProviderId, ProviderConfig> = {
   openai: {
@@ -50,15 +42,3 @@ export const PROVIDER_OPTIONS: ProviderConfig[] = [
   PROVIDER_CONFIGS.custom,
   PROVIDER_CONFIGS.copilot
 ];
-
-export function isProviderId(value: string): value is ProviderId {
-  return value === 'openai' || value === 'lmstudio' || value === 'custom' || value === 'copilot';
-}
-
-export function getProviderConfig(provider: ProviderId): ProviderConfig {
-  return PROVIDER_CONFIGS[provider];
-}
-
-export function requiresApiKeyForProvider(provider: ProviderId): boolean {
-  return PROVIDER_CONFIGS[provider].requiresApiKey;
-}

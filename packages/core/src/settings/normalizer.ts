@@ -1,19 +1,13 @@
+import { CONTEXT_SAFETY_LIMIT_BOUNDS, normalizeContextLimit } from '../context';
+import { isProviderId } from '../providers/utils';
 import { DEFAULT_SETTINGS } from './defaults';
-import {
-  CONTEXT_SAFETY_LIMIT_BOUNDS,
-  normalizeContextLimit,
-  truncateConversationForContext
-} from './contextSafety';
-import { isProviderId } from './providers';
-import type { ChatMessage, EndpointSettings } from './types';
+import type { EndpointSettings } from './types';
 
 export function normalizeSettings(
   input: Partial<EndpointSettings> | EndpointSettings
 ): EndpointSettings {
   const providerCandidate = input.provider ?? DEFAULT_SETTINGS.provider;
-  const provider = isProviderId(providerCandidate)
-    ? providerCandidate
-    : DEFAULT_SETTINGS.provider;
+  const provider = isProviderId(providerCandidate) ? providerCandidate : DEFAULT_SETTINGS.provider;
 
   return {
     provider,
@@ -34,26 +28,4 @@ export function normalizeSettings(
       CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters
     )
   };
-}
-
-export function composeConversation(
-  settings: EndpointSettings,
-  messages: ChatMessage[]
-): ChatMessage[] {
-  const { keptMessages, summary } = truncateConversationForContext(messages, {
-    maxMessages: settings.contextMaxMessages,
-    maxCharacters: settings.contextMaxCharacters
-  });
-  const composed: ChatMessage[] = [];
-
-  if (settings.systemPrompt) {
-    composed.push({ role: 'system', content: settings.systemPrompt });
-  }
-
-  if (summary) {
-    composed.push({ role: 'system', content: summary });
-  }
-
-  composed.push(...keptMessages);
-  return composed;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createChatSessionCore, type ChatSessionState } from './chatSessionCore';
+import { createChatSessionCore } from './session';
+import type { ChatSessionState } from './types';
 
 function latestState(states: ChatSessionState[]): ChatSessionState {
   return states[states.length - 1];

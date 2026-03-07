@@ -6,16 +6,19 @@
  * IPC_CHANNELS) so the renderer can import everything from a single alias.
  */
 
-// Browser-safe core modules
-export * from '../../core/src/chatSessionCore';
-export * from '../../core/src/contextSafety';
-export * from '../../core/src/debugLog';
-export * from '../../core/src/defaults';
-export * from '../../core/src/openaiCompatibleClient';
+// Browser-safe core modules (no Node.js fs/path/crypto)
+export * from '../../core/src/chat';
+export * from '../../core/src/context';
+export { debugLog } from '../../core/src/debug/log';
+export { DEFAULT_SETTINGS } from '../../core/src/settings/defaults';
+export { normalizeSettings } from '../../core/src/settings/normalizer';
+export { composeConversation } from '../../core/src/settings/composer';
+export type { EndpointSettings } from '../../core/src/settings/types';
+export { testConnection, chatCompletion, chatCompletionStream } from '../../core/src/api/openai/client';
+export type { StreamCallbacks, StreamOptions } from '../../core/src/api/openai/types';
 export * from '../../core/src/providers';
-export * from '../../core/src/settings';
-export * from '../../core/src/thinkTags';
-export * from '../../core/src/types';
+export * from '../../core/src/think-tags';
+export type { ProviderId, ChatMessage, ChatResult } from '../../core/src/types';
 
 // Desktop-specific additions surfaced through the @curraint/core alias
 export * from './types';    // AppSettings, ThemeId, SavedConnection

@@ -1,34 +1,43 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_APP_SETTINGS } from '../appSettings';
 
-const { loadRawMock, saveRawMock } = vi.hoisted(() => ({
-  loadRawMock: vi.fn(),
-  saveRawMock: vi.fn()
-}));
+const { loadRawMock, saveRawMock, loadSecretMock, saveSecretMock, deleteSecretMock } =
+  vi.hoisted(() => ({
+    loadRawMock: vi.fn(),
+    saveRawMock: vi.fn(),
+    loadSecretMock: vi.fn().mockReturnValue(''),
+    saveSecretMock: vi.fn(),
+    deleteSecretMock: vi.fn()
+  }));
 
 vi.mock('@curraint/core', async (importActual) => {
   const actual = await importActual<typeof import('@curraint/core')>();
   return {
     ...actual,
     loadRawSettingsFromFile: loadRawMock,
-    saveRawSettingsToFile: saveRawMock
+    saveRawSettingsToFile: saveRawMock,
+    loadSecret: loadSecretMock,
+    saveSecret: saveSecretMock,
+    deleteSecret: deleteSecretMock
   };
 });
 
 describe('settingsStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    loadSecretMock.mockReturnValue('');
   });
 
   it('loads and normalizes settings from raw file', async () => {
-    loadRawMock.mockReturnValue({ apiKey: 'my-key' });
+    loadRawMock.mockReturnValue({ theme: 'monokai' });
+    loadSecretMock.mockReturnValue('my-key');
 
     const { loadSettings } = await import('./settingsStore');
     const result = loadSettings();
 
     expect(loadRawMock).toHaveBeenCalledTimes(1);
     expect(result.apiKey).toBe('my-key');
-    expect(result.theme).toBe(DEFAULT_APP_SETTINGS.theme);
+    expect(result.theme).toBe('monokai');
   });
 
   it('returns default app settings when file is empty', async () => {
@@ -51,7 +60,9 @@ describe('settingsStore', () => {
     expect(saveRawMock).toHaveBeenCalledTimes(1);
     const written = saveRawMock.mock.calls[0][0] as Record<string, unknown>;
     expect(written['unknownField']).toBe('keep-me');
-    expect(written['apiKey']).toBe('new-key');
+    // apiKey is now stored in secrets, not raw settings
+    expect(written['apiKey']).toBeUndefined();
+    expect(saveSecretMock).toHaveBeenCalledWith('apiKey', 'new-key');
   });
 });
 

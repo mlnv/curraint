@@ -3,7 +3,7 @@ import {
   CONTEXT_SAFETY_LIMIT_BOUNDS,
   normalizeContextLimit,
   truncateConversationForContext
-} from './contextSafety';
+} from '.';
 
 describe('normalizeContextLimit', () => {
   it('returns fallback for invalid values', () => {
