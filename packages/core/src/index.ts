@@ -8,7 +8,7 @@ export * from './providers';
 export * from './settings';
 export * from './secrets';
 export * from './think-tags';
-export { debugLog } from './debug/log';
+export { debugLog, setDebugEnabled } from './debug/log';
 
 // API clients
 export {

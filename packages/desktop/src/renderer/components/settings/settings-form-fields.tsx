@@ -3,6 +3,7 @@ import type { AppSettings, SavedConnection } from '@curraint/core';
 import { THEME_OPTIONS } from '../../lib/theme';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import { Button } from '../ui/button';
 import { SavedConnections } from './saved-connections';
 import { ShortcutRecorder } from './shortcut-recorder';
 
@@ -17,6 +18,7 @@ type Props = {
   onLoadConnection: (connection: SavedConnection) => void;
   onSaveConnection: (name: string) => void;
   onDeleteConnection: (id: string) => void;
+  onOpenLogFolder: () => void;
 };
 
 export function SettingsFormFields({
@@ -26,7 +28,8 @@ export function SettingsFormFields({
   onFieldChange,
   onLoadConnection,
   onSaveConnection,
-  onDeleteConnection
+  onDeleteConnection,
+  onOpenLogFolder
 }: Props): React.JSX.Element {
   const providerConfig = getProviderConfig(form.provider);
 
@@ -187,6 +190,34 @@ export function SettingsFormFields({
           <p className="text-[11px] text-muted-foreground">
             Older messages are summarized when these limits are exceeded.
           </p>
+        </div>
+      </details>
+
+      <details className="rounded-md border p-2">
+        <summary className="cursor-pointer text-xs text-muted-foreground">
+          Diagnostics
+        </summary>
+        <div className="mt-2 space-y-2">
+          <label className="flex items-center gap-2 rounded-md border p-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={form.enableDebugLogging}
+              onChange={(event) => onFieldChange('enableDebugLogging', event.target.checked)}
+            />
+            Enable debug logging to file
+          </label>
+          <p className="text-[11px] text-muted-foreground">
+            Logs provider requests and performance timings. Useful for diagnosing Copilot
+            or connection issues. Takes effect after saving.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onOpenLogFolder}
+          >
+            Open Log Folder
+          </Button>
         </div>
       </details>
     </>

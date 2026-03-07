@@ -50,7 +50,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   theme: 'black',
   quickInputShortcut: 'CommandOrControl+Shift+A',
   savedConnections: [],
-  enableThinkTagFolding: true
+  enableThinkTagFolding: true,
+  enableDebugLogging: false
 };
 
 export function normalizeAppSettings(
@@ -61,6 +62,10 @@ export function normalizeAppSettings(
     ...core,
     enableThinkTagFolding:
       input.enableThinkTagFolding ?? DEFAULT_APP_SETTINGS.enableThinkTagFolding,
+    enableDebugLogging:
+      typeof input.enableDebugLogging === 'boolean'
+        ? input.enableDebugLogging
+        : DEFAULT_APP_SETTINGS.enableDebugLogging,
     savedConnections: normalizeSavedConnections(input.savedConnections),
     quickInputShortcut:
       typeof input.quickInputShortcut === 'string' && input.quickInputShortcut.trim()

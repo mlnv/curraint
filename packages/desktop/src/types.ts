@@ -20,4 +20,5 @@ export type AppSettings = EndpointSettings & {
   quickInputShortcut: string;
   savedConnections: SavedConnection[];
   enableThinkTagFolding: boolean;
+  enableDebugLogging: boolean;
 };

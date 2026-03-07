@@ -1,7 +1,11 @@
 import type log from 'electron-log';
 
-const isDebug =
+let _debugEnabled: boolean =
   typeof process !== 'undefined' && process.env['CURRAINT_DEBUG'] === '1';
+
+export function setDebugEnabled(flag: boolean): void {
+  _debugEnabled = flag;
+}
 
 let _log: typeof log | null = null;
 
@@ -28,7 +32,7 @@ function serializeData(data: unknown): string | undefined {
 }
 
 export function debugLog(category: string, message: string, data?: unknown): void {
-  if (!isDebug) return;
+  if (!_debugEnabled) return;
   const serialized = serializeData(data);
   const text = serialized
     ? `[${category}] ${message}\n${serialized}`

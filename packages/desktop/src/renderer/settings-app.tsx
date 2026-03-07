@@ -16,6 +16,7 @@ const EMPTY_FORM: FormState = {
   model: '',
   systemPrompt: '',
   enableThinkTagFolding: true,
+  enableDebugLogging: false,
   contextMaxMessages: 40,
   contextMaxCharacters: 24000,
   savedConnections: [],
@@ -114,6 +115,7 @@ export function SettingsApp(): React.JSX.Element {
         model: form.model.trim(),
         systemPrompt: form.systemPrompt.trim(),
         enableThinkTagFolding: form.enableThinkTagFolding,
+        enableDebugLogging: form.enableDebugLogging,
         contextMaxMessages: form.contextMaxMessages,
         contextMaxCharacters: form.contextMaxCharacters,
         savedConnections: form.savedConnections,
@@ -141,6 +143,7 @@ export function SettingsApp(): React.JSX.Element {
         model: form.model.trim(),
         systemPrompt: form.systemPrompt.trim(),
         enableThinkTagFolding: form.enableThinkTagFolding,
+        enableDebugLogging: form.enableDebugLogging,
         contextMaxMessages: form.contextMaxMessages,
         contextMaxCharacters: form.contextMaxCharacters,
         savedConnections: form.savedConnections,
@@ -174,6 +177,7 @@ export function SettingsApp(): React.JSX.Element {
               onLoadConnection={loadConnection}
               onSaveConnection={saveConnection}
               onDeleteConnection={deleteConnection}
+              onOpenLogFolder={() => { void window.curraint.openLogFolder(); }}
             />
           </div>
 

@@ -1,6 +1,6 @@
-import { ipcMain } from 'electron';
+import { ipcMain, shell, app } from 'electron';
 import { IPC_CHANNELS, type ChatStreamChunkPayload, type ChatStreamPayload } from '../ipc';
-import { debugLog } from '@curraint/core';
+import { debugLog, setDebugEnabled } from '@curraint/core';
 import {
   chatCompletion,
   chatCompletionStream,
@@ -46,10 +46,19 @@ function isChatStreamPayload(payload: unknown): payload is ChatStreamPayload {
 export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
   const activeStreamControllers = new Map<string, AbortController>();
 
+  // Apply the persisted debug-logging preference on startup.
+  setDebugEnabled(settingsAccess.getSettings().enableDebugLogging);
+
   ipcMain.handle(IPC_CHANNELS.getSettings, () => settingsAccess.getSettings());
 
   ipcMain.handle(IPC_CHANNELS.saveSettings, (_event, next: AppSettings) => {
-    return settingsAccess.saveSettings(next);
+    const saved = settingsAccess.saveSettings(next);
+    setDebugEnabled(saved.enableDebugLogging);
+    return saved;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.openLogFolder, () => {
+    return shell.openPath(app.getPath('logs'));
   });
 
   ipcMain.handle(IPC_CHANNELS.chatSend, async (_event, messages: unknown) => {

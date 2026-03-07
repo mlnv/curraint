@@ -15,7 +15,8 @@ export const IPC_CHANNELS = {
   quickInputClose: 'quick-input:close',
   receiveQuickInput: 'quick-input:receive',
   shortcutRegistered: 'shortcut:registered',
-  chatWindowHide: 'chat-window:hide'
+  chatWindowHide: 'chat-window:hide',
+  openLogFolder: 'log:openFolder'
 } as const;
 
 export type ChatStreamPayload = {
@@ -42,6 +43,7 @@ export type CurraintApi = {
   submitQuickInput: (message: string) => Promise<void>;
   closeQuickInput: () => Promise<void>;
   hideChatWindow: () => Promise<void>;
+  openLogFolder: () => Promise<void>;
   onReceiveQuickInput: (callback: (message: string) => void) => () => void;
   onShortcutRegistered: (callback: (ok: boolean) => void) => () => void;
   onSettingsChanged: (callback: (settings: AppSettings) => void) => () => void;
