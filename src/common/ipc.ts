@@ -27,7 +27,7 @@ export type ChatStreamChunkPayload = {
   delta: string;
 };
 
-export type CurrAIntApi = {
+export type CurraintApi = {
   getSettings: () => Promise<EndpointSettings>;
   saveSettings: (settings: EndpointSettings) => Promise<EndpointSettings>;
   chat: (messages: ChatMessage[]) => Promise<string>;

@@ -1,10 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS, type CurrAIntApi } from '../ipc';
+import { IPC_CHANNELS, type CurraintApi } from '../ipc';
 import type { AppSettings } from '../types';
 
 let activeStreamRequestId: string | null = null;
 
-const api: CurrAIntApi = {
+const api: CurraintApi = {
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.getSettings),
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
   chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
@@ -79,6 +79,6 @@ contextBridge.exposeInMainWorld('curraint', api);
 
 declare global {
   interface Window {
-    curraint: CurrAIntApi;
+    curraint: CurraintApi;
   }
 }
