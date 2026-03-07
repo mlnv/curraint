@@ -134,7 +134,6 @@ export function ChatApp(): React.JSX.Element {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">curraint</p>
-              <p className="text-xs text-muted-foreground">Tray Chat</p>
             </div>
             {conversation.length > 0 && !isSending && (
               <button
