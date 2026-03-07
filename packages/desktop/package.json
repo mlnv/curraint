@@ -2,6 +2,11 @@
   "name": "@curraint/desktop",
   "version": "0.1.0",
   "description": "Desktop application for curraint (macOS/Linux/Windows)",
+  "author": {
+    "name": "curraint",
+    "email": "curraint@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/curraint/curraint",
   "main": "dist/main/main.js",
   "scripts": {
     "build": "pnpm build:renderer && pnpm build:main",
