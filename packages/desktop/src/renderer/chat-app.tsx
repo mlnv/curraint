@@ -66,8 +66,13 @@ export function ChatApp(): React.JSX.Element {
 
   useEffect(() => {
     return window.curraint.onReceiveQuickInput((message) => {
-      clearConversation();
-      void submitPrompt(message);
+      // Await the session clear before streaming to prevent a race where
+      // chatClear and chatStream IPC calls run concurrently in the main
+      // process and destroy each other's Copilot sessions.
+      void (async () => {
+        await clearConversation();
+        void submitPrompt(message);
+      })();
     });
   }, [submitPrompt, clearConversation]);
 
@@ -134,7 +139,7 @@ export function ChatApp(): React.JSX.Element {
             {conversation.length > 0 && !isSending && (
               <button
                 type="button"
-                onClick={clearConversation}
+                onClick={() => { void clearConversation(); }}
                 className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
                 title="New chat"
               >

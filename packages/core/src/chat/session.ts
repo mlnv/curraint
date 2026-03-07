@@ -53,10 +53,10 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         setState({ status: 'Failed to stop response' });
       }
     },
-    clearConversation: () => {
+    clearConversation: async () => {
       if (state.isSending) return;
       setState({ conversation: [], status: '' });
-      void transport.clearSession?.();
+      await transport.clearSession?.();
     }
   };
 }

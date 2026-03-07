@@ -13,7 +13,7 @@ export type UseChatSessionResult = {
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => void;
   stopResponse: () => void;
-  clearConversation: () => void;
+  clearConversation: () => Promise<void>;
 };
 
 export function useChatSession(): UseChatSessionResult {
@@ -62,8 +62,8 @@ export function useChatSession(): UseChatSessionResult {
     void sessionRef.current.stopResponse();
   };
 
-  const clearConversation = (): void => {
-    sessionRef.current.clearConversation();
+  const clearConversation = (): Promise<void> => {
+    return sessionRef.current.clearConversation();
   };
 
   return {

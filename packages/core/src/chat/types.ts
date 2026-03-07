@@ -28,5 +28,5 @@ export type ChatSessionCore = {
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => Promise<void>;
   stopResponse: () => Promise<void>;
-  clearConversation: () => void;
+  clearConversation: () => Promise<void>;
 };
