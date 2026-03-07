@@ -54,6 +54,7 @@
   "build": {
     "appId": "com.curraint.app",
     "productName": "curraint",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "package.json"
