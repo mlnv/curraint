@@ -22,7 +22,7 @@ function makeCtx(overrides: Partial<CommandContext> = {}): CommandContext {
     setSettings: vi.fn(),
     getSession: vi.fn().mockReturnValue({ loadConversation: vi.fn() }),
     rebuildSession: vi.fn(),
-    sessionUI: {} as CommandContext['sessionUI'],
+    sessionUI: { printHistory: vi.fn() } as unknown as CommandContext['sessionUI'],
     getCurrentSessionId: () => null,
     setCurrentSessionId,
     getSettingsFilePath: () => '/config/settings.json',

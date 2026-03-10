@@ -6,6 +6,9 @@ function latestState(states: ChatSessionState[]): ChatSessionState {
   return states[states.length - 1];
 }
 
+const stripTs = (msgs: { role: string; content: string; timestamp?: number }[]) =>
+  msgs.map(({ role, content }) => ({ role, content }));
+
 describe('chatSessionCore', () => {
   it('submits prompt and streams assistant response', async () => {
     const session = createChatSessionCore({
@@ -23,7 +26,7 @@ describe('chatSessionCore', () => {
 
     await session.submitPrompt('  Hi  ');
 
-    expect(latestState(states).conversation).toEqual([
+    expect(stripTs(latestState(states).conversation)).toEqual([
       { role: 'user', content: 'Hi' },
       { role: 'assistant', content: 'Hello' }
     ]);
@@ -44,7 +47,7 @@ describe('chatSessionCore', () => {
     await session.submitPrompt('second');
     await session.editUserMessage(0, 'first edited');
 
-    expect(session.getState().conversation).toEqual([
+    expect(stripTs(session.getState().conversation)).toEqual([
       { role: 'user', content: 'first edited' },
       { role: 'assistant', content: 'Edited answer' }
     ]);
