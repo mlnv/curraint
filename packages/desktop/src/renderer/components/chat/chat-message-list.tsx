@@ -14,8 +14,12 @@ type Props = {
 };
 
 function formatTime(ts: number | undefined): string {
-  if (ts === undefined) return '';
+  if (ts === undefined || ts === 0) return '';
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function getTimestamp(msg: ChatMessage, index: number, fallback: Map<number, number>): number | undefined {
+  return msg.timestamp ?? fallback.get(index);
 }
 
 export function ChatMessageList({
@@ -30,9 +34,10 @@ export function ChatMessageList({
   const [editingContent, setEditingContent] = useState('');
   const timestampsRef = useRef<Map<number, number>>(new Map());
 
-  // Stamp each new message index the first time it appears
-  messages.forEach((_, i) => {
-    if (!timestampsRef.current.has(i)) {
+  // For messages without a timestamp (e.g. old persisted sessions), assign
+  // Date.now() the first time they appear so the time stays stable.
+  messages.forEach((msg, i) => {
+    if (!timestampsRef.current.has(i) && msg.timestamp === undefined) {
       timestampsRef.current.set(i, Date.now());
     }
   });
@@ -118,7 +123,7 @@ export function ChatMessageList({
               )}
             </div>
             <span className="mt-0.5 pr-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-              {formatTime(timestampsRef.current.get(index))}
+              {formatTime(getTimestamp(message, index, timestampsRef.current))}
             </span>
           </div>
         ) : (
@@ -139,7 +144,7 @@ export function ChatMessageList({
               )}
             </div>
             <span className="mt-0.5 pl-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-              {formatTime(timestampsRef.current.get(index))}
+              {formatTime(getTimestamp(message, index, timestampsRef.current))}
             </span>
           </div>
         )

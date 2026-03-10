@@ -12,6 +12,10 @@ const saveSessionMock = vi.fn();
 const onSettingsChangedMock = vi.fn();
 const onSessionLoadMock = vi.fn();
 
+// Strip timestamps before equality checks — tests don't care about exact values.
+const stripTs = (msgs: { role: string; content: string; timestamp?: number }[]) =>
+  msgs.map(({ role, content }) => ({ role, content }));
+
 function makeCurraint(overrides: Record<string, unknown> = {}): unknown {
   return {
     chatStream: chatStreamMock,
@@ -51,7 +55,7 @@ describe('useChatSession', () => {
       await result.current.submitPrompt('  Hi  ');
     });
 
-    expect(result.current.conversation).toEqual([
+    expect(stripTs(result.current.conversation)).toEqual([
       { role: 'user', content: 'Hi' },
       { role: 'assistant', content: 'Hello' }
     ]);
@@ -73,7 +77,7 @@ describe('useChatSession', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.conversation).toEqual([
+      expect(stripTs(result.current.conversation)).toEqual([
         { role: 'user', content: 'first' },
         { role: 'assistant', content: 'Answer 1' }
       ]);
@@ -95,7 +99,7 @@ describe('useChatSession', () => {
       expect(result.current.isSending).toBe(false);
     });
 
-    expect(result.current.conversation).toEqual([
+    expect(stripTs(result.current.conversation)).toEqual([
       { role: 'user', content: 'first edited' },
       { role: 'assistant', content: 'Edited answer' }
     ]);
@@ -185,7 +189,7 @@ describe('useChatSession', () => {
     expect(saveSessionMock).toHaveBeenCalledTimes(1);
     const saved = saveSessionMock.mock.calls[0][0] as SavedSession;
     expect(saved.title).toBe('Hello');
-    expect(saved.messages).toEqual([
+    expect(stripTs(saved.messages)).toEqual([
       { role: 'user', content: 'Hello' },
       { role: 'assistant', content: 'Reply' }
     ]);
