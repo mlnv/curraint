@@ -80,7 +80,7 @@ Configure:
 - System Prompt
 - Reasoning block handling (`<think>` / `<reasoning>` show-hide)
 - Context safety limits in Advanced section
-- **Save sessions** — persist conversations so you can resume them later (off by default)
+- **Save sessions**, persist conversations so you can resume them later (off by default)
 
 Use **Test Connection** to validate endpoint access before saving.
 
@@ -113,12 +113,12 @@ Behavior notes:
 - Works with OpenAI-compatible endpoints configured via environment variables.
 - Conversation history is **not saved by default**. To persist sessions across runs, use `/sessions-save on` (saved to `settings.json`). Once enabled, use `/sessions` to browse and resume past conversations.
 - CLI commands:
-	- `/help` – show available commands
-	- `/history` – print conversation history
-	- `/sessions` – browse and resume saved sessions
-	- `/sessions-save on|off` – enable or disable session saving
-	- `/edit <number>` – edit a previous user message and regenerate from that point
-	- `Ctrl+C` while streaming – stop current response
+	- `/help`, show available commands
+	- `/history`, print conversation history
+	- `/sessions`, browse and resume saved sessions
+	- `/sessions-save on|off`, enable or disable session saving
+	- `/edit <number>`, edit a previous user message and regenerate from that point
+	- `Ctrl+C` while streaming, stop current response
 
 ## Security
 
@@ -136,7 +136,7 @@ Each value is individually encrypted with **AES-256-GCM**.  The encryption key i
 
 On Unix systems the file is created with `0600` permissions (owner read/write only).
 
-The Desktop and CLI share the same `secrets.json`, so API keys entered in either app are immediately available in the other — no re-entry needed.
+The Desktop and CLI share the same `secrets.json`, so API keys entered in either app are immediately available in the other, no re-entry needed.
 
 The `CURRAINT_API_KEY` environment variable always takes precedence over the stored secret when set.
 
@@ -198,7 +198,7 @@ Notes:
 - Build `.exe` on Windows for best compatibility.
 - Build `.dmg` on macOS for best compatibility and signing/notarization workflows.
 
-### macOS — "app is damaged" warning
+### macOS, "app is damaged" warning
 
 Because the DMG is not code-signed or notarized (no Apple Developer account), macOS Gatekeeper may block the app with a _"curraint is damaged and can't be opened"_ error after installation.
 
@@ -208,7 +208,7 @@ Run this command once to remove the quarantine attribute:
 xattr -cr /Applications/curraint.app
 ```
 
-Then open the app normally. This is safe — the flag is added automatically by macOS to any app downloaded via a browser and is unrelated to the actual integrity of the binary.
+Then open the app normally. This is safe, the flag is added automatically by macOS to any app downloaded via a browser and is unrelated to the actual integrity of the binary.
 
 ## CI/CD pipelines
 
