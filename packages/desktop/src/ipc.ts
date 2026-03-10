@@ -3,6 +3,7 @@ import type { AppSettings } from './types';
 
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
+  openExternal: 'shell:openExternal',
   saveSettings: 'settings:save',
   settingsChanged: 'settings:changed',
   chatSend: 'chat:send',
@@ -31,6 +32,7 @@ export type ChatStreamChunkPayload = {
 
 export type CurraintApi = {
   getSettings: () => Promise<AppSettings>;
+  openExternal: (url: string) => Promise<void>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   chat: (messages: ChatMessage[]) => Promise<string>;
   chatStream: (

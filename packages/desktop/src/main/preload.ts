@@ -54,6 +54,8 @@ const api: CurraintApi = {
     ipcRenderer.invoke(IPC_CHANNELS.chatWindowHide),
   openLogFolder: () =>
     ipcRenderer.invoke(IPC_CHANNELS.openLogFolder),
+  openExternal: (url: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.openExternal, url),
   onReceiveQuickInput: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, message: string): void => {
       callback(message);

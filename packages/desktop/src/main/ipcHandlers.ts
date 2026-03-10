@@ -61,6 +61,13 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     return shell.openPath(app.getPath('logs'));
   });
 
+  ipcMain.handle(IPC_CHANNELS.openExternal, (_event, url: string) => {
+    const allowed = /^https:\/\/github\.com\/mlnv\/curraint/.test(url);
+    if (allowed) {
+      void shell.openExternal(url);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.chatSend, async (_event, messages: unknown) => {
     if (!isChatMessageArray(messages)) {
       throw new Error('Invalid chat payload.');

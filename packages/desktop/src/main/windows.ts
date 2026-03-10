@@ -3,8 +3,9 @@ import { join } from 'path';
 
 const WINDOW_SIZES = {
   chat: { width: 380, height: 520 },
-  settings: { width: 480, height: 420 },
-  quickInput: { width: 620, height: 72 }
+  settings: { width: 560, height: 560 },
+  quickInput: { width: 620, height: 72 },
+  about: { width: 400, height: 320 }
 } as const;
 
 const CHAT_OFFSET = 8;
@@ -64,7 +65,17 @@ export function createChatWindow(context: WindowVisibilityContext): {
     if (context.isSettingsFocused()) {
       return;
     }
-    if (Date.now() - lastShownAt < MIN_VISIBLE_MS) {
+    const elapsed = Date.now() - lastShownAt;
+    if (elapsed < MIN_VISIBLE_MS) {
+      // Blur fired during the guard window (e.g. Windows steals focus after
+      // installer launch). Schedule a deferred hide so the window doesn't get
+      // stuck visible-but-unfocused.
+      const remaining = MIN_VISIBLE_MS - elapsed;
+      setTimeout(() => {
+        if (!win.isDestroyed() && !win.isFocused() && !context.isSettingsFocused()) {
+          win.hide();
+        }
+      }, remaining + 50);
       return;
     }
     if (!win.isDestroyed()) {
@@ -102,6 +113,26 @@ export function createSettingsWindow(isQuitting: () => boolean): BrowserWindow {
     win.hide();
   });
 
+  return win;
+}
+
+export function createAboutWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: WINDOW_SIZES.about.width,
+    height: WINDOW_SIZES.about.height,
+    show: false,
+    autoHideMenuBar: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    webPreferences: {
+      preload: join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  void win.loadFile(join(__dirname, '../renderer/about.html'));
   return win;
 }
 

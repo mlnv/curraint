@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
+import pkg from './package.json';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version)
+  },
   base: './',
   root: resolve(__dirname, 'src/renderer'),
   resolve: {
@@ -19,7 +23,8 @@ export default defineConfig({
       input: {
         chat: resolve(__dirname, 'src/renderer/index.html'),
         settings: resolve(__dirname, 'src/renderer/settings.html'),
-        quickInput: resolve(__dirname, 'src/renderer/quick-input.html')
+        quickInput: resolve(__dirname, 'src/renderer/quick-input.html'),
+        about: resolve(__dirname, 'src/renderer/about.html')
       }
     }
   }

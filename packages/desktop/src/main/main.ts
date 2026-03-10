@@ -8,6 +8,7 @@ import type { AppSettings } from '../types';
 import { IPC_CHANNELS } from '../ipc';
 import { configureAppRuntime } from './runtime';
 import {
+  createAboutWindow,
   createChatWindow,
   createSettingsWindow,
   createQuickInputWindow,
@@ -29,12 +30,14 @@ if (!hasSingleInstanceLock) {
 let chatWindow: BrowserWindow | null = null;
 let prepareChatWindowShow: () => void = () => { /* noop until initialized */ };
 let settingsWindow: BrowserWindow | null = null;
+let aboutWindow: BrowserWindow | null = null;
 let quickInputWindow: BrowserWindow | null = null;
 let settings: AppSettings;
 let isQuitting = false;
 const trayManager = new TrayManager({
   onToggleChat: () => toggleChatWindow(),
-  onOpenSettings: () => showSettingsWindow()
+  onOpenSettings: () => showSettingsWindow(),
+  onOpenAbout: () => showAboutWindow()
 });
 
 function isWindowUsable(window: BrowserWindow | null): window is BrowserWindow {
@@ -81,6 +84,15 @@ function showSettingsWindow(): void {
 
   settingsWindow.show();
   settingsWindow.focus();
+}
+
+function showAboutWindow(): void {
+  if (!isWindowUsable(aboutWindow)) {
+    aboutWindow = createAboutWindow();
+  }
+
+  aboutWindow.show();
+  aboutWindow.focus();
 }
 
 let currentShortcut = '';
@@ -131,6 +143,7 @@ function registerQuickInputShortcut(shortcut: string): void {
 app.whenReady().then(() => {
   settings = loadSettings();
   settingsWindow = createSettingsWindow(() => isQuitting);
+  aboutWindow = createAboutWindow();
   const chatWindowHandle = createChatWindow({
     isQuitting: () => isQuitting,
     isSettingsFocused: () => isWindowFocused(settingsWindow)

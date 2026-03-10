@@ -7,14 +7,17 @@
     "curraint": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --platform node --format cjs --out-dir dist",
+    "build": "tsup",
+    "package": "tsup --config tsup.package.config.ts",
     "start": "node dist/index.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@curraint/core": "workspace:*",
-    "@github/copilot-sdk": "^0.1.30"
+    "@github/copilot-sdk": "^0.1.30",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

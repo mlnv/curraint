@@ -194,6 +194,18 @@ Notes:
 - Build `.exe` on Windows for best compatibility.
 - Build `.dmg` on macOS for best compatibility and signing/notarization workflows.
 
+### macOS — "app is damaged" warning
+
+Because the DMG is not code-signed or notarized (no Apple Developer account), macOS Gatekeeper may block the app with a _"curraint is damaged and can't be opened"_ error after installation.
+
+Run this command once to remove the quarantine attribute:
+
+```bash
+xattr -cr /Applications/curraint.app
+```
+
+Then open the app normally. This is safe — the flag is added automatically by macOS to any app downloaded via a browser and is unrelated to the actual integrity of the binary.
+
 ## CI/CD pipelines
 
 - `CI` ([.github/workflows/ci.yml](.github/workflows/ci.yml))

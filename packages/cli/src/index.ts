@@ -1,5 +1,7 @@
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import { version } from '../package.json';
+import { renderMarkdown } from './markdown';
 import { createChatSessionCore } from '@curraint/core';
 import { composeConversation, normalizeSettings } from '@curraint/core';
 import { loadSettingsFromFile, loadRawSettingsFromFile, saveSettingsToFile, settingsFilePath } from '@curraint/core';
@@ -13,6 +15,241 @@ import {
   stopCopilotClient
 } from '@curraint/core';
 import type { ChatSessionCore, ChatSessionTransport } from '@curraint/core';
+
+const c = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  dim:     '\x1b[2m',
+  red:     '\x1b[31m',
+  green:   '\x1b[32m',
+  yellow:  '\x1b[33m',
+  cyan:    '\x1b[36m',
+} as const;
+
+const divider = () =>
+  `${c.dim}${'─'.repeat(Math.max(20, (process.stdout.columns ?? 60) - 2))}${c.reset}`;
+
+/**
+ * Prompts for a secret value (e.g. API key) without echoing characters to the
+ * terminal. Temporarily overrides readline's internal `_writeToOutput` to mute
+ * key-echo, writes the prompt directly to stdout, then restores normal echo
+ * after the user presses Enter.
+ */
+async function askSecret(rl: readline.Interface, prompt: string): Promise<string> {
+  const stdin = process.stdin as NodeJS.ReadStream;
+
+  if (!stdin.isTTY) {
+    // Non-TTY (piped input): no echo risk, use readline normally.
+    output.write(prompt);
+    const answer = await (rl as unknown as { question(q: string): Promise<string> }).question('');
+    return answer.trim();
+  }
+
+  // ConPTY / real TTY: _writeToOutput tricks don't suppress echo because the
+  // terminal echoes characters at the PTY level before Node.js sees them.
+  // setRawMode(true) disables that echo at the OS level.
+  //
+  // We temporarily remove all stdin 'data' listeners (including readline's
+  // internal one) so only our raw-mode reader processes keystrokes, then
+  // restore them afterwards.
+  // Important: write the prompt AFTER removing listeners and enabling raw mode
+  // so that readline's internal line-refresh logic can't overwrite the prompt text.
+  const savedListeners = stdin.rawListeners('data').slice() as ((...args: unknown[]) => void)[];
+  savedListeners.forEach(fn => stdin.removeListener('data', fn));
+
+  stdin.setRawMode(true);
+  stdin.resume();
+  stdin.setEncoding('utf8');
+
+  output.write(prompt);
+
+  const value = await new Promise<string>((resolve) => {
+    let buf = '';
+    const onData = (char: string) => {
+      switch (char) {
+        case '\r':
+        case '\n':
+          stdin.removeListener('data', onData);
+          resolve(buf);
+          break;
+        case '\u0003': // Ctrl+C
+          stdin.removeListener('data', onData);
+          output.write('\n');
+          stdin.setRawMode(false);
+          savedListeners.forEach(fn => stdin.on('data', fn));
+          process.exit(0);
+          break;
+        case '\u007f': // Delete/Backspace
+        case '\b':
+          if (buf.length > 0) {
+            buf = buf.slice(0, -1);
+            output.write('\b \b'); // erase last asterisk
+          }
+          break;
+        default:
+          if (char >= ' ') {
+            // When pasting, char may contain multiple characters at once.
+            buf += char;
+            output.write('*'.repeat(char.length));
+          }
+      }
+    };
+    stdin.on('data', onData);
+  });
+
+  stdin.setRawMode(false);
+  output.write('\n');
+  savedListeners.forEach(fn => stdin.on('data', fn));
+
+  return value.trim();
+}
+
+const SLASH_COMMANDS: Array<{ command: string; description: string }> = [
+  { command: '/help',     description: 'Show commands' },
+  { command: '/history',  description: 'Show conversation history' },
+  { command: '/edit',     description: 'Edit a user message and regenerate' },
+  { command: '/provider', description: 'Switch the AI provider' },
+  { command: '/model',    description: 'Change the model' },
+  { command: '/version',  description: 'Show version' },
+  { command: '/clear',    description: 'Clear the screen' },
+  { command: '/exit',     description: 'Quit' },
+];
+
+/**
+ * Reads a line of input. When running in a real TTY, shows a slash-command
+ * completion menu as the user types "/" and supports navigating with arrow
+ * keys and accepting with Tab or Enter. Falls back to plain readline in
+ * non-TTY (piped) environments.
+ */
+async function readLineWithCompletion(rl: readline.Interface, prompt: string): Promise<string> {
+  const stdin = process.stdin as NodeJS.ReadStream;
+  if (!stdin.isTTY) {
+    return rl.question(prompt);
+  }
+
+  return new Promise<string>((resolve) => {
+    let buf = '';
+    let suggestions: typeof SLASH_COMMANDS = [];
+    let selectedIdx = 0;
+
+    const savedListeners = stdin.rawListeners('data').slice() as ((...args: unknown[]) => void)[];
+    savedListeners.forEach(fn => stdin.removeListener('data', fn));
+
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+
+    output.write(prompt);
+
+    const redraw = () => {
+      let out = '\r\x1b[J' + prompt + buf;
+
+      if (suggestions.length > 0) {
+        out += '\n';
+        suggestions.forEach((s, i) => {
+          if (i === selectedIdx) {
+            out += `\x1b[7m  ${s.command.padEnd(12)} ${s.description}\x1b[0m`;
+          } else {
+            out += `  ${c.cyan}${s.command.padEnd(12)}${c.reset}${c.dim} ${s.description}${c.reset}`;
+          }
+          if (i < suggestions.length - 1) out += '\n';
+        });
+        out += `\x1b[${suggestions.length}A\r${prompt}${buf}`;
+      }
+
+      output.write(out);
+    };
+
+    const updateSuggestions = () => {
+      if (buf.startsWith('/') && !buf.includes(' ')) {
+        suggestions = SLASH_COMMANDS.filter(c => c.command.startsWith(buf));
+        if (selectedIdx >= suggestions.length) selectedIdx = 0;
+      } else {
+        suggestions = [];
+        selectedIdx = 0;
+      }
+      redraw();
+    };
+
+    const cleanup = () => {
+      output.write('\r\x1b[J');
+      output.write(prompt + buf + '\n');
+      stdin.setRawMode(false);
+      savedListeners.forEach(fn => stdin.on('data', fn));
+    };
+
+    const onData = (char: string) => {
+      if (char === '\x1b[A') { // Up arrow
+        if (suggestions.length > 0) {
+          selectedIdx = (selectedIdx - 1 + suggestions.length) % suggestions.length;
+          redraw();
+        }
+        return;
+      }
+      if (char === '\x1b[B') { // Down arrow
+        if (suggestions.length > 0) {
+          selectedIdx = (selectedIdx + 1) % suggestions.length;
+          redraw();
+        }
+        return;
+      }
+
+      switch (char) {
+        case '\r':
+        case '\n':
+          if (suggestions.length > 0) {
+            buf = suggestions[selectedIdx]!.command;
+            suggestions = [];
+            selectedIdx = 0;
+          }
+          stdin.removeListener('data', onData);
+          cleanup();
+          resolve(buf);
+          break;
+
+        case '\t':
+          if (suggestions.length > 0) {
+            buf = suggestions[selectedIdx]!.command;
+            suggestions = [];
+            selectedIdx = 0;
+            redraw();
+          }
+          break;
+
+        case '\x1b': // Escape — dismiss menu
+          suggestions = [];
+          selectedIdx = 0;
+          redraw();
+          break;
+
+        case '\u0003': // Ctrl+C
+          stdin.removeListener('data', onData);
+          output.write('\r\x1b[J\n');
+          stdin.setRawMode(false);
+          savedListeners.forEach(fn => stdin.on('data', fn));
+          process.exit(0);
+          break;
+
+        case '\u007f': // Backspace
+        case '\b':
+          if (buf.length > 0) {
+            buf = buf.slice(0, -1);
+            updateSuggestions();
+          }
+          break;
+
+        default:
+          if (char.length === 1 && char >= ' ') {
+            buf += char;
+            updateSuggestions();
+          }
+          break;
+      }
+    };
+
+    stdin.on('data', onData);
+  });
+}
 
 function buildTransport(settings: EndpointSettings): ChatSessionTransport {
   if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
@@ -128,13 +365,24 @@ async function run(): Promise<number> {
         baseUrl: providerDefaults.defaultBaseUrl
       });
       output.write(`Provider set to: ${chosen.label}\n`);
+
+      if (chosen.id === 'custom') {
+        const customUrl = (await rl.question(`Base URL [${providerDefaults.defaultBaseUrl}]: `)).trim();
+        if (customUrl) {
+          settings = normalizeSettings({ ...settings, baseUrl: customUrl });
+        }
+        const key = await askSecret(rl, 'API key (leave blank if not required): ');
+        if (key) {
+          settings = normalizeSettings({ ...settings, apiKey: key });
+        }
+      }
     }
   }
 
   // Prompt for API key if the chosen provider requires one.
   if (requiresApiKeyForProvider(settings.provider) && !settings.apiKey) {
     output.write(`No API key configured for provider "${settings.provider}".\n`);
-    const key = (await rl.question('Enter API key: ')).trim();
+    const key = await askSecret(rl, 'Enter API key: ');
     if (!key) {
       output.write('API key is required. Exiting.\n');
       rl.close();
@@ -154,24 +402,43 @@ async function run(): Promise<number> {
   let deltaPrintedForTurn = false;
   let activeAssistantPrefixPrinted = false;
 
+  // Braille spinner shown while the AI is streaming.
+  let spinnerTimer: ReturnType<typeof setInterval> | null = null;
+  const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+  const startSpinner = () => {
+    let idx = 0;
+    output.write('\n');
+    spinnerTimer = setInterval(() => {
+      output.write(`\r${c.yellow}AI:${c.reset} ${c.dim}${spinnerFrames[idx++ % spinnerFrames.length]}${c.reset}`);
+    }, 80);
+  };
+
+  const stopSpinner = () => {
+    if (spinnerTimer !== null) {
+      clearInterval(spinnerTimer);
+      spinnerTimer = null;
+      output.write('\r\x1b[K'); // erase spinner line
+    }
+  };
+
   let session: ChatSessionCore = createChatSessionCore(buildTransport(settings));
 
   const subscribeToSession = (s: ChatSessionCore): void => {
     s.subscribe({
-      onDelta: (delta) => {
+      onDelta: (_delta) => {
         deltaPrintedForTurn = true;
         if (!activeAssistantPrefixPrinted) {
-          output.write('AI: ');
           activeAssistantPrefixPrinted = true;
+          startSpinner();
         }
-        output.write(delta);
       }
     });
   };
 
   subscribeToSession(session);
 
-  output.write(`curraint CLI — provider: ${settings.provider}, model: ${settings.model}. Settings: ${settingsFilePath()}. Type "exit" to quit. Use /help for commands.\n`);
+  output.write(`${c.bold}curraint CLI${c.reset} — provider: ${c.cyan}${settings.provider}${c.reset}, model: ${c.cyan}${settings.model}${c.reset}. Settings: ${c.dim}${settingsFilePath()}${c.reset}. Type ${c.cyan}/exit${c.reset} to quit. Use ${c.cyan}/help${c.reset} for commands.\n`);
 
   process.on('SIGINT', () => {
     if (session.getState().isSending) {
@@ -185,19 +452,21 @@ async function run(): Promise<number> {
   });
 
   const printFinalAssistantIfNeeded = (): void => {
-    const current = session.getState();
-    if (activeAssistantPrefixPrinted) {
-      output.write('\n');
-      activeAssistantPrefixPrinted = false;
-    }
+    stopSpinner();
+    activeAssistantPrefixPrinted = false;
 
+    const current = session.getState();
     const last = current.conversation[current.conversation.length - 1];
-    if (!deltaPrintedForTurn && last?.role === 'assistant' && last.content.trim()) {
-      output.write(`AI: ${last.content}\n`);
+    const content = last?.role === 'assistant' ? last.content.trim() : '';
+
+    if (content) {
+      output.write(`\n${c.yellow}AI:${c.reset}\n`);
+      output.write(renderMarkdown(content));
+      output.write('\n');
     }
 
     if (current.status) {
-      output.write(`Status: ${current.status}\n`);
+      output.write(`${c.dim}Status: ${current.status}${c.reset}\n`);
     }
   };
 
@@ -220,35 +489,55 @@ async function run(): Promise<number> {
     }
 
     conversation.forEach((message, index) => {
-      const label = message.role === 'assistant' ? 'AI' : 'You';
-      output.write(`${index + 1}. ${label}: ${message.content}\n`);
+      if (index > 0) output.write('\n');
+      if (message.role === 'assistant') {
+        output.write(`${c.dim}${index + 1}.${c.reset} ${c.yellow}AI:${c.reset}\n`);
+        output.write(renderMarkdown(message.content));
+        output.write('\n');
+      } else {
+        output.write(`${c.dim}${index + 1}.${c.reset} ${c.green}You:${c.reset} ${message.content}\n`);
+      }
     });
   };
 
   try {
     while (true) {
-      const text = (await rl.question('You: ')).trim();
+      output.write(`\n${divider()}\n`);
+      const text = (await readLineWithCompletion(rl, `${c.green}You:${c.reset} `)).trim();
       if (!text) {
         continue;
       }
 
-      if (text.toLowerCase() === 'exit' || text.toLowerCase() === 'quit') {
+      if (text === '/exit') {
         break;
       }
 
       if (text === '/help') {
-        output.write('Commands:\n');
-        output.write('  /help           Show commands\n');
-        output.write('  /history        Show conversation history\n');
-        output.write('  /edit <number>  Edit a user message and regenerate from there\n');
-        output.write('  /provider       Switch the AI provider\n');
-        output.write('  exit            Quit\n');
-        output.write('Tip: press Ctrl+C while streaming to stop the current response.\n');
+        output.write(`${c.bold}Commands:${c.reset}\n`);
+        output.write(`  ${c.cyan}/help${c.reset}           ${c.dim}Show commands${c.reset}\n`);
+        output.write(`  ${c.cyan}/history${c.reset}        ${c.dim}Show conversation history${c.reset}\n`);
+        output.write(`  ${c.cyan}/edit${c.reset} <number>  ${c.dim}Edit a user message and regenerate from there${c.reset}\n`);
+        output.write(`  ${c.cyan}/provider${c.reset}       ${c.dim}Switch the AI provider${c.reset}\n`);
+        output.write(`  ${c.cyan}/model${c.reset}          ${c.dim}Change the model for the current provider${c.reset}\n`);
+        output.write(`  ${c.cyan}/version${c.reset}        ${c.dim}Show version${c.reset}\n`);
+        output.write(`  ${c.cyan}/clear${c.reset}          ${c.dim}Clear the screen${c.reset}\n`);
+        output.write(`  ${c.cyan}/exit${c.reset}           ${c.dim}Quit${c.reset}\n`);
+        output.write(`${c.dim}Tip: press Ctrl+C while streaming to stop the current response.${c.reset}\n`);
         continue;
       }
 
       if (text === '/history') {
         printHistory();
+        continue;
+      }
+
+      if (text === '/version') {
+        output.write(`${version}\n`);
+        continue;
+      }
+
+      if (text === '/clear') {
+        output.write('\x1b[2J\x1b[H');
         continue;
       }
 
@@ -281,13 +570,27 @@ async function run(): Promise<number> {
           provider: chosen.id,
           model: providerDefaults.defaultModel,
           baseUrl: providerDefaults.defaultBaseUrl,
-          // Clear stale API key when switching to a provider that doesn't need one.
-          apiKey: providerDefaults.requiresApiKey ? settings.apiKey : ''
+          apiKey: ''  // Always clear API key on provider switch; re-enter below if needed.
         });
 
-        // Prompt for API key if the new provider needs one.
-        if (providerDefaults.requiresApiKey && !settings.apiKey) {
-          const key = (await rl.question(`Enter API key for ${chosen.label}: `)).trim();
+        // Always prompt for API key when switching to a provider that requires one.
+        if (providerDefaults.requiresApiKey) {
+          const key = await askSecret(rl, `Enter API key for ${chosen.label}: `);
+          if (!key) {
+            output.write('API key is required for this provider. Provider unchanged.\n');
+            settings = loadSettings();
+            continue;
+          }
+          settings = normalizeSettings({ ...settings, apiKey: key });
+        }
+
+        // For custom providers, also prompt for base URL and optional API key.
+        if (chosen.id === 'custom') {
+          const customUrl = (await rl.question(`Base URL [${providerDefaults.defaultBaseUrl}]: `)).trim();
+          if (customUrl) {
+            settings = normalizeSettings({ ...settings, baseUrl: customUrl });
+          }
+          const key = await askSecret(rl, 'API key (leave blank if not required): ');
           if (key) {
             settings = normalizeSettings({ ...settings, apiKey: key });
           }
@@ -303,6 +606,32 @@ async function run(): Promise<number> {
         session = createChatSessionCore(buildTransport(settings));
         subscribeToSession(session);
         output.write(`Switched to ${chosen.label} (${settings.model}). Conversation cleared.\n`);
+        continue;
+      }
+
+      if (text === '/model') {
+        output.write(`Current model: ${settings.model} (provider: ${settings.provider})\n`);
+        const newModel = (await rl.question('Enter new model name: ')).trim();
+        if (!newModel) {
+          output.write('No model entered. Model unchanged.\n');
+          continue;
+        }
+        if (newModel === settings.model) {
+          output.write(`Already using model "${settings.model}".\n`);
+          continue;
+        }
+        settings = normalizeSettings({ ...settings, model: newModel });
+        if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
+          await resetCopilotSession(settings.model, settings.systemPrompt);
+        }
+        session = createChatSessionCore(buildTransport(settings));
+        subscribeToSession(session);
+        const saveModel = (await rl.question('Save model change to settings file? [Y/n] ')).trim().toLowerCase();
+        if (saveModel !== 'n') {
+          saveSettingsToFile(settings);
+          output.write(`Settings saved to ${settingsFilePath()}.\n`);
+        }
+        output.write(`Model changed to "${settings.model}". Conversation cleared.\n`);
         continue;
       }
 
@@ -337,7 +666,7 @@ async function run(): Promise<number> {
         printFinalAssistantIfNeeded();
       } catch (error) {
         output.write(
-          `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n`
+          `${c.red}Error:${c.reset} ${error instanceof Error ? error.message : 'Unknown error'}\n`
         );
       }
     }
@@ -349,6 +678,11 @@ async function run(): Promise<number> {
   }
 
   return 0;
+}
+
+if (process.argv.includes('--version') || process.argv.includes('-V')) {
+  output.write(`${version}\n`);
+  process.exit(0);
 }
 
 run()
