@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createChatSessionCore } from '@curraint/core';
-import type { ChatMessage } from '@curraint/core';
+import type { ChatMessage, SavedSession } from '@curraint/core';
 
 export type UseChatSessionResult = {
   conversation: ChatMessage[];
@@ -14,56 +14,199 @@ export type UseChatSessionResult = {
   editUserMessage: (index: number, editedContent: string) => void;
   stopResponse: () => void;
   clearConversation: () => Promise<void>;
+  loadSession: (session: SavedSession) => void;
 };
 
+// Each session gets its own independent core instance. The UI always reflects
+// whichever slot is currently "active". Background slots (e.g. a previous
+// session still streaming after the user switched away) run to completion,
+// auto-save, and clean themselves up without affecting the UI.
+type SessionSlot = {
+  core: ReturnType<typeof createChatSessionCore>;
+  sessionId: string | null;
+  sessionCreatedAt: number;
+  prevIsSending: boolean;
+  unsubscribe: () => void;
+};
+
+const INITIAL_SLOT_KEY = '__new__';
+
+function makeSessionId(): string {
+  const rand = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
+  return `${Date.now()}-${rand}`;
+}
+
 export function useChatSession(): UseChatSessionResult {
-  const sessionRef = useRef(
-    createChatSessionCore({
+  // Which slot's state is currently shown in the UI.
+  const activeSlotKeyRef = useRef<string>(INITIAL_SLOT_KEY);
+  // All live slots (active + any background streaming slots).
+  const slotsRef = useRef<Map<string, SessionSlot>>(new Map());
+
+  const [conversation, setConversation] = useState<ChatMessage[]>([]);
+  const [prompt, setPrompt] = useState('');
+  const [status, setStatus] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+
+  const enableSessionSavingRef = useRef(false);
+
+  const autoSave = (slot: SessionSlot, messages: ChatMessage[]): void => {
+    if (!enableSessionSavingRef.current) return;
+    const msgs = messages.filter((m) => m.role !== 'system');
+    if (msgs.length === 0) return;
+    if (!slot.sessionId) {
+      slot.sessionId = makeSessionId();
+      slot.sessionCreatedAt = Date.now();
+    }
+    const firstUser = msgs.find((m) => m.role === 'user')?.content ?? '';
+    const title = firstUser.length > 60 ? firstUser.slice(0, 60) : firstUser;
+    void window.curraint.saveSession({
+      id: slot.sessionId,
+      title,
+      createdAt: slot.sessionCreatedAt,
+      updatedAt: Date.now(),
+      messages: msgs
+    });
+  };
+
+  const createSlot = (
+    slotKey: string,
+    sessionId: string | null,
+    sessionCreatedAt: number
+  ): SessionSlot => {
+    const core = createChatSessionCore({
       streamChat: (messages, onDelta) => window.curraint.chatStream(messages, onDelta),
       cancelChatStream: () => window.curraint.cancelChatStream(),
       clearSession: () => window.curraint.clearChatSession()
-    })
-  );
-  const [conversation, setConversation] = useState<ChatMessage[]>(
-    sessionRef.current.getState().conversation
-  );
-  const [prompt, setPrompt] = useState('');
-  const [status, setStatus] = useState(sessionRef.current.getState().status);
-  const [isSending, setIsSending] = useState(sessionRef.current.getState().isSending);
-  const [isStopping, setIsStopping] = useState(sessionRef.current.getState().isStopping);
+    });
 
-  useEffect(() => {
-    return sessionRef.current.subscribe({
+    const slot: SessionSlot = {
+      core,
+      sessionId,
+      sessionCreatedAt,
+      prevIsSending: false,
+      unsubscribe: () => {}
+    };
+
+    slot.unsubscribe = core.subscribe({
       onStateChange: (nextState) => {
-        setConversation(nextState.conversation);
-        setStatus(nextState.status);
-        setIsSending(nextState.isSending);
-        setIsStopping(nextState.isStopping);
+        const wasSending = slot.prevIsSending;
+        slot.prevIsSending = nextState.isSending;
+        const isActive = slotKey === activeSlotKeyRef.current;
+
+        if (wasSending && !nextState.isSending) {
+          autoSave(slot, nextState.conversation);
+          if (!isActive) {
+            // Background slot finished — unsubscribe and remove.
+            slot.unsubscribe();
+            slotsRef.current.delete(slotKey);
+            return;
+          }
+        }
+
+        if (isActive) {
+          setConversation(nextState.conversation);
+          setStatus(nextState.status);
+          setIsSending(nextState.isSending);
+          setIsStopping(nextState.isStopping);
+        }
       }
     });
-  }, []);
 
-  const canSend = useMemo(() => !isSending && prompt.trim().length > 0, [isSending, prompt]);
+    return slot;
+  };
 
-  const submitPrompt = async (content: string): Promise<void> => {
-    if (isSending || !content.trim()) {
+  const switchToSession = (session: SavedSession): void => {
+    const slotKey = session.id;
+    const existing = slotsRef.current.get(slotKey);
+
+    if (existing?.core.getState().isSending) {
+      // Already streaming in background — just switch the view to it.
+      activeSlotKeyRef.current = slotKey;
+      const state = existing.core.getState();
+      setConversation(state.conversation);
+      setStatus(state.status);
+      setIsSending(state.isSending);
+      setIsStopping(state.isStopping);
       return;
     }
 
+    // Replace any stale idle slot and create a fresh one.
+    if (existing) {
+      existing.unsubscribe();
+      slotsRef.current.delete(slotKey);
+    }
+
+    const slot = createSlot(slotKey, session.id, session.createdAt);
+    slotsRef.current.set(slotKey, slot);
+
+    // Activate BEFORE loadConversation so the resulting onStateChange
+    // sees isActive=true and drives React state immediately.
+    activeSlotKeyRef.current = slotKey;
+    slot.core.loadConversation(session.messages);
+  };
+
+  // Create the initial slot once on mount.
+  useEffect(() => {
+    const slot = createSlot(INITIAL_SLOT_KEY, null, 0);
+    slotsRef.current.set(INITIAL_SLOT_KEY, slot);
+
+    return () => {
+      for (const s of slotsRef.current.values()) s.unsubscribe();
+      slotsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    void window.curraint.getSettings().then((s) => {
+      if (s) enableSessionSavingRef.current = s.enableSessionSaving;
+    }).catch(() => { /* non-fatal */ });
+  }, []);
+
+  useEffect(() => {
+    return window.curraint.onSettingsChanged((s) => {
+      if (s) enableSessionSavingRef.current = s.enableSessionSaving;
+    });
+  }, []);
+
+  useEffect(() => {
+    return window.curraint.onSessionLoad((session) => {
+      switchToSession(session);
+    });
+  }, []);
+
+  const activeSlot = (): SessionSlot | undefined =>
+    slotsRef.current.get(activeSlotKeyRef.current);
+
+  const canSend = useMemo(
+    () => !isSending && prompt.trim().length > 0,
+    [isSending, prompt]
+  );
+
+  const submitPrompt = async (content: string): Promise<void> => {
+    if (isSending || !content.trim()) return;
     setPrompt('');
-    await sessionRef.current.submitPrompt(content);
+    await activeSlot()?.core.submitPrompt(content);
   };
 
   const editUserMessage = (index: number, editedContent: string): void => {
-    void sessionRef.current.editUserMessage(index, editedContent);
+    void activeSlot()?.core.editUserMessage(index, editedContent);
   };
 
   const stopResponse = (): void => {
-    void sessionRef.current.stopResponse();
+    void activeSlot()?.core.stopResponse();
   };
 
-  const clearConversation = (): Promise<void> => {
-    return sessionRef.current.clearConversation();
+  const clearConversation = async (): Promise<void> => {
+    const slot = activeSlot();
+    if (!slot) return;
+    slot.sessionId = null;
+    slot.sessionCreatedAt = 0;
+    return slot.core.clearConversation();
+  };
+
+  const loadSession = (session: SavedSession): void => {
+    switchToSession(session);
   };
 
   return {
@@ -77,6 +220,7 @@ export function useChatSession(): UseChatSessionResult {
     submitPrompt,
     editUserMessage,
     stopResponse,
-    clearConversation
+    clearConversation,
+    loadSession
   };
 }

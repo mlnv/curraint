@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS, type CurraintApi } from '../ipc';
 import type { AppSettings } from '../types';
+import type { SavedSession } from '@curraint/core';
 
 let activeStreamRequestId: string | null = null;
 
@@ -76,6 +77,19 @@ const api: CurraintApi = {
     };
     ipcRenderer.on(IPC_CHANNELS.settingsChanged, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.settingsChanged, handler);
+  },
+  listSessions: () => ipcRenderer.invoke(IPC_CHANNELS.sessionsList),
+  getSession: (id) => ipcRenderer.invoke(IPC_CHANNELS.sessionsGet, id),
+  saveSession: (session) => ipcRenderer.invoke(IPC_CHANNELS.sessionsSave, session),
+  deleteSession: (id) => ipcRenderer.invoke(IPC_CHANNELS.sessionsDelete, id),
+  openSessionsWindow: () => ipcRenderer.invoke(IPC_CHANNELS.sessionsOpen),
+  loadSession: (id) => ipcRenderer.invoke(IPC_CHANNELS.sessionsLoad, id),
+  onSessionLoad: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, session: SavedSession): void => {
+      callback(session);
+    };
+    ipcRenderer.on(IPC_CHANNELS.sessionsLoadPush, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.sessionsLoadPush, handler);
   }
 };
 

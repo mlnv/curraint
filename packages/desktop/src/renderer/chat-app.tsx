@@ -135,16 +135,26 @@ export function ChatApp(): React.JSX.Element {
             <div>
               <p className="text-sm font-medium">curraint</p>
             </div>
-            {conversation.length > 0 && !isSending && (
+            <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => { void clearConversation(); }}
+                onClick={() => { void window.curraint.openSessionsWindow(); }}
                 className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                title="New chat"
+                title="Browse sessions"
               >
-                New chat
+                Sessions
               </button>
-            )}
+              {conversation.length > 0 && !isSending && (
+                <button
+                  type="button"
+                  onClick={() => { void clearConversation(); }}
+                  className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="New chat"
+                >
+                  New chat
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

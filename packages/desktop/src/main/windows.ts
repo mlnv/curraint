@@ -116,6 +116,34 @@ export function createSettingsWindow(isQuitting: () => boolean): BrowserWindow {
   return win;
 }
 
+export function createSessionsWindow(isQuitting: () => boolean): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 560,
+    height: 520,
+    show: false,
+    autoHideMenuBar: true,
+    resizable: true,
+    webPreferences: {
+      preload: join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  void win.loadFile(join(__dirname, '../renderer/sessions.html'));
+  if (isDebug) { win.webContents.openDevTools({ mode: 'detach' }); }
+  win.on('close', (event) => {
+    if (isQuitting()) {
+      return;
+    }
+
+    event.preventDefault();
+    win.hide();
+  });
+
+  return win;
+}
+
 export function createAboutWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: WINDOW_SIZES.about.width,

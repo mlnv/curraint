@@ -31,5 +31,5 @@ export function createMarkedInstance(width = 80): Marked {
 const _marked = createMarkedInstance(Math.min(process.stdout.columns ?? 80, 100));
 
 export function renderMarkdown(text: string): string {
-  return (_marked.parse(text) as string).trimEnd();
+  return (_marked.parse(text) as string).trim();
 }

@@ -5,6 +5,8 @@ import { runHistory } from './history';
 import { runEdit } from './edit';
 import { runProvider } from './provider';
 import { runModel } from './model';
+import { runSessions } from './sessions';
+import { runSessionsSave } from './sessions-save';
 import type { CommandContext, CommandResult } from './types';
 
 export async function dispatchSlashCommand(
@@ -13,8 +15,14 @@ export async function dispatchSlashCommand(
 ): Promise<CommandResult | null> {
   if (text === '/help')     return runHelp();
   if (text === '/history')  return runHistory(ctx);
+  if (text === '/sessions') return runSessions(ctx);
+  if (text.startsWith('/sessions-save')) return runSessionsSave(ctx, text.slice('/sessions-save'.length).trim());
   if (text === '/version')  { output.write(`${version}\n`); return 'continue'; }
-  if (text === '/clear')    { output.write('\x1b[2J\x1b[H'); return 'continue'; }
+  if (text === '/clear')    {
+    output.write('\x1b[2J\x1b[H');
+    ctx.setCurrentSessionId(null);
+    return 'continue';
+  }
   if (text === '/exit')     return 'break';
   if (text === '/provider') return runProvider(ctx);
   if (text === '/model')    return runModel(ctx);

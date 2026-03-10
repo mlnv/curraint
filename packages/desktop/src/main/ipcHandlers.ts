@@ -8,7 +8,8 @@ import {
 } from '@curraint/core';
 import { copilotChatStream, copilotTestConnection, resetCopilotSession } from '@curraint/core';
 import { composeConversation } from '@curraint/core';
-import type { ChatMessage } from '@curraint/core';
+import { listSessions, getSession, saveSession, deleteSession } from '@curraint/core';
+import type { ChatMessage, SavedSession } from '@curraint/core';
 import { normalizeAppSettings } from '../appSettings';
 import type { AppSettings } from '../types';
 
@@ -16,6 +17,8 @@ type SettingsAccess = {
   getSettings: () => AppSettings;
   saveSettings: (next: AppSettings) => AppSettings;
   onAssistantMessage?: () => void;
+  sendToChat?: (channel: string, data: unknown) => void;
+  showChatWindow?: () => void;
 };
 
 function isChatMessageArray(messages: unknown): messages is ChatMessage[] {
@@ -41,6 +44,18 @@ function isChatStreamPayload(payload: unknown): payload is ChatStreamPayload {
 
   const candidate = payload as { requestId?: unknown; messages?: unknown };
   return typeof candidate.requestId === 'string' && isChatMessageArray(candidate.messages);
+}
+
+function isValidSavedSession(payload: unknown): payload is SavedSession {
+  if (typeof payload !== 'object' || payload === null) return false;
+  const s = payload as Record<string, unknown>;
+  return (
+    typeof s['id'] === 'string' &&
+    typeof s['title'] === 'string' &&
+    typeof s['createdAt'] === 'number' &&
+    typeof s['updatedAt'] === 'number' &&
+    Array.isArray(s['messages'])
+  );
 }
 
 export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
@@ -221,4 +236,30 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
       return testConnection(settings);
     }
   );
+
+  ipcMain.handle(IPC_CHANNELS.sessionsList, () => listSessions());
+
+  ipcMain.handle(IPC_CHANNELS.sessionsGet, (_event, id: unknown) => {
+    if (typeof id !== 'string') return null;
+    return getSession(id);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.sessionsSave, (_event, session: unknown) => {
+    if (!isValidSavedSession(session)) return;
+    saveSession(session);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.sessionsDelete, (_event, id: unknown) => {
+    if (typeof id !== 'string') return;
+    deleteSession(id);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.sessionsLoad, (_event, id: unknown) => {
+    if (typeof id !== 'string') return;
+    const session = getSession(id);
+    if (session) {
+      settingsAccess.sendToChat?.(IPC_CHANNELS.sessionsLoadPush, session);
+      settingsAccess.showChatWindow?.();
+    }
+  });
 }

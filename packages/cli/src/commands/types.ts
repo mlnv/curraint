@@ -10,6 +10,9 @@ export type CommandContext = {
   getSession: () => ChatSessionCore;
   rebuildSession: (newSettings: EndpointSettings) => void;
   sessionUI: SessionUI;
+  getCurrentSessionId: () => string | null;
+  setCurrentSessionId: (id: string | null, createdAt?: number) => void;
+  getSettingsFilePath: () => string;
 };
 
 export type CommandResult = 'continue' | 'break';

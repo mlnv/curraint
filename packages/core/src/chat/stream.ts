@@ -86,7 +86,7 @@ export async function runStream(
   let firstDelta = false;
 
   applyStateUpdate(state, {
-    conversation: [...nextConversation, { role: 'assistant', content: '' }],
+    conversation: [...nextConversation, { role: 'assistant', content: '', timestamp: Date.now() }],
     status: 'Thinking...',
     isSending: true,
     isStopping: false

@@ -7,5 +7,6 @@ export const DEFAULT_SETTINGS: EndpointSettings = {
   model: 'gpt-4o-mini',
   systemPrompt: 'You are a helpful assistant.',
   contextMaxMessages: 40,
-  contextMaxCharacters: 24000
+  contextMaxCharacters: 24000,
+  enableSessionSaving: false
 };

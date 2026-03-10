@@ -26,6 +26,10 @@ export function normalizeSettings(
       DEFAULT_SETTINGS.contextMaxCharacters,
       CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters,
       CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters
-    )
+    ),
+    enableSessionSaving:
+      typeof input.enableSessionSaving === 'boolean'
+        ? input.enableSessionSaving
+        : DEFAULT_SETTINGS.enableSessionSaving
   };
 }

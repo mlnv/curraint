@@ -80,6 +80,7 @@ Configure:
 - System Prompt
 - Reasoning block handling (`<think>` / `<reasoning>` show-hide)
 - Context safety limits in Advanced section
+- **Save sessions** — persist conversations so you can resume them later (off by default)
 
 Use **Test Connection** to validate endpoint access before saving.
 
@@ -110,9 +111,12 @@ Behavior notes:
 - Uses the same shared chat-session core as desktop chat (streaming, stop, edit/regenerate flow).
 - Uses the same shared context-safety composition logic as desktop chat.
 - Works with OpenAI-compatible endpoints configured via environment variables.
+- Conversation history is **not saved by default**. To persist sessions across runs, use `/sessions-save on` (saved to `settings.json`). Once enabled, use `/sessions` to browse and resume past conversations.
 - CLI commands:
 	- `/help` – show available commands
 	- `/history` – print conversation history
+	- `/sessions` – browse and resume saved sessions
+	- `/sessions-save on|off` – enable or disable session saving
 	- `/edit <number>` – edit a previous user message and regenerate from that point
 	- `Ctrl+C` while streaming – stop current response
 

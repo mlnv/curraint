@@ -30,7 +30,7 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
     submitPrompt: async (content) => {
       const trimmed = content.trim();
       if (!trimmed || state.isSending) return;
-      await resend([...state.conversation, { role: 'user', content: trimmed }]);
+      await resend([...state.conversation, { role: 'user', content: trimmed, timestamp: Date.now() }]);
     },
     editUserMessage: async (index, editedContent) => {
       if (state.isSending) return;
@@ -39,7 +39,7 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       if (!trimmed || !target || target.role !== 'user' || target.content === trimmed) return;
       const next = state.conversation
         .slice(0, index + 1)
-        .map((m, i) => (i === index ? { ...m, content: trimmed } : m));
+        .map((m, i) => (i === index ? { ...m, content: trimmed, timestamp: Date.now() } : m));
       await resend(next);
     },
     stopResponse: async () => {
@@ -57,6 +57,9 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       if (state.isSending) return;
       setState({ conversation: [], status: '' });
       await transport.clearSession?.();
+    },
+    loadConversation: (messages) => {
+      setState({ conversation: messages, status: '' });
     }
   };
 }

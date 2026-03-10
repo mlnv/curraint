@@ -6,6 +6,8 @@ export function runHelp(): CommandResult {
   output.write(`${c.bold}Commands:${c.reset}\n`);
   output.write(`  ${c.cyan}/help${c.reset}           ${c.dim}Show commands${c.reset}\n`);
   output.write(`  ${c.cyan}/history${c.reset}        ${c.dim}Show conversation history${c.reset}\n`);
+  output.write(`  ${c.cyan}/sessions${c.reset}       ${c.dim}Browse and resume saved sessions${c.reset}\n`);
+  output.write(`  ${c.cyan}/sessions-save${c.reset}  ${c.dim}Enable or disable session saving (on/off)${c.reset}\n`);
   output.write(`  ${c.cyan}/edit${c.reset} <number>  ${c.dim}Edit a user message and regenerate from there${c.reset}\n`);
   output.write(`  ${c.cyan}/provider${c.reset}       ${c.dim}Switch the AI provider${c.reset}\n`);
   output.write(`  ${c.cyan}/model${c.reset}          ${c.dim}Change the model for the current provider${c.reset}\n`);

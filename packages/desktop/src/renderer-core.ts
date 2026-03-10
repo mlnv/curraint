@@ -23,3 +23,4 @@ export type { ProviderId, ChatMessage, ChatResult } from '../../core/src/types';
 // Desktop-specific additions surfaced through the @curraint/core alias
 export * from './types';    // AppSettings, ThemeId, SavedConnection
 export * from './ipc';      // IPC_CHANNELS, CurraintApi, payload types
+export type { SavedSession, SessionSummary } from '../../core/src/sessions/types';

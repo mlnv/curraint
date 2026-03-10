@@ -2,10 +2,12 @@ import readline from 'node:readline/promises';
 import { stdout as output } from 'node:process';
 import { c } from './theme';
 
-export const SLASH_COMMANDS: Array<{ command: string; description: string }> = [
+export const SLASH_COMMANDS: Array<{ command: string; description: string; requiresArg?: boolean }> = [
   { command: '/help',     description: 'Show commands' },
   { command: '/history',  description: 'Show conversation history' },
-  { command: '/edit',     description: 'Edit a user message and regenerate' },
+  { command: '/sessions', description: 'Browse and resume saved sessions' },
+  { command: '/sessions-save', description: 'Enable or disable session saving (on/off)', requiresArg: true },
+  { command: '/edit',     description: 'Edit a user message and regenerate', requiresArg: true },
   { command: '/provider', description: 'Switch the AI provider' },
   { command: '/model',    description: 'Change the model' },
   { command: '/version',  description: 'Show version' },
@@ -96,9 +98,14 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
         case '\r':
         case '\n':
           if (suggestions.length > 0) {
-            buf = suggestions[selectedIdx]!.command;
+            const selected = suggestions[selectedIdx]!;
+            buf = selected.requiresArg ? selected.command + ' ' : selected.command;
             suggestions = [];
             selectedIdx = 0;
+            if (selected.requiresArg) {
+              redraw();
+              break;
+            }
           }
           stdin.removeListener('data', onData);
           cleanup();

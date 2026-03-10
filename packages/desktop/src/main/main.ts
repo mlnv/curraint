@@ -11,6 +11,7 @@ import {
   createAboutWindow,
   createChatWindow,
   createSettingsWindow,
+  createSessionsWindow,
   createQuickInputWindow,
   positionChatWindowNearTray,
   showQuickInputWindowCentered
@@ -30,12 +31,14 @@ if (!hasSingleInstanceLock) {
 let chatWindow: BrowserWindow | null = null;
 let prepareChatWindowShow: () => void = () => { /* noop until initialized */ };
 let settingsWindow: BrowserWindow | null = null;
+let sessionsWindow: BrowserWindow | null = null;
 let aboutWindow: BrowserWindow | null = null;
 let quickInputWindow: BrowserWindow | null = null;
 let settings: AppSettings;
 let isQuitting = false;
 const trayManager = new TrayManager({
   onToggleChat: () => toggleChatWindow(),
+  onOpenSessions: () => showSessionsWindow(),
   onOpenSettings: () => showSettingsWindow(),
   onOpenAbout: () => showAboutWindow()
 });
@@ -93,6 +96,15 @@ function showAboutWindow(): void {
 
   aboutWindow.show();
   aboutWindow.focus();
+}
+
+function showSessionsWindow(): void {
+  if (!isWindowUsable(sessionsWindow)) {
+    sessionsWindow = createSessionsWindow(() => isQuitting);
+  }
+
+  sessionsWindow.show();
+  sessionsWindow.focus();
 }
 
 let currentShortcut = '';
@@ -183,8 +195,24 @@ app.whenReady().then(() => {
       if (!isChatViewedByUser()) {
         trayManager.markUnreadMessage();
       }
+    },
+    sendToChat: (channel, data) => {
+      if (isWindowUsable(chatWindow)) {
+        chatWindow.webContents.send(channel, data);
+      }
+    },
+    showChatWindow: () => {
+      if (!isWindowUsable(chatWindow)) return;
+      const tray = trayManager.getTray();
+      if (tray) positionChatWindowNearTray(tray, chatWindow);
+      prepareChatWindowShow();
+      chatWindow.show();
+      chatWindow.focus();
+      trayManager.clearUnreadMessages();
     }
   });
+
+  ipcMain.handle(IPC_CHANNELS.sessionsOpen, () => showSessionsWindow());
 
   ipcMain.handle(IPC_CHANNELS.quickInputSubmit, (_event, message: string) => {
     if (isWindowUsable(quickInputWindow)) {
