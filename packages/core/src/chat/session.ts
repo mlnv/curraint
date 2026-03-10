@@ -57,6 +57,9 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       if (state.isSending) return;
       setState({ conversation: [], status: '' });
       await transport.clearSession?.();
+    },
+    loadConversation: (messages) => {
+      setState({ conversation: messages, status: '' });
     }
   };
 }

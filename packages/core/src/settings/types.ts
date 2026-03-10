@@ -8,4 +8,5 @@ export type EndpointSettings = {
   systemPrompt: string;
   contextMaxMessages: number;
   contextMaxCharacters: number;
+  enableSessionSaving: boolean;
 };

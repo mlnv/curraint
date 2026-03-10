@@ -79,4 +79,23 @@ describe('chatSessionCore', () => {
     expect(latestState(states).isSending).toBe(false);
     expect(latestState(states).status).toBe('Response stopped');
   });
+
+  it('loads a conversation without calling the transport', () => {
+    const streamChat = vi.fn();
+    const session = createChatSessionCore({ streamChat });
+
+    const states: ChatSessionState[] = [];
+    session.subscribe({ onStateChange: (s) => states.push(s) });
+
+    session.loadConversation([
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'World' }
+    ]);
+
+    expect(latestState(states).conversation).toEqual([
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'World' }
+    ]);
+    expect(streamChat).not.toHaveBeenCalled();
+  });
 });

@@ -51,7 +51,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   quickInputShortcut: 'CommandOrControl+Shift+A',
   savedConnections: [],
   enableThinkTagFolding: true,
-  enableDebugLogging: false
+  enableDebugLogging: false,
+  enableSessionSaving: false
 };
 
 export function normalizeAppSettings(

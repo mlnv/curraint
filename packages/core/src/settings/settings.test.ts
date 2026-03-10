@@ -19,7 +19,8 @@ describe('normalizeSettings', () => {
       model: 'my-model',
       systemPrompt: 'helper',
       contextMaxMessages: 40,
-      contextMaxCharacters: 24000
+      contextMaxCharacters: 24000,
+      enableSessionSaving: false
     });
   });
 
@@ -37,6 +38,21 @@ describe('normalizeSettings', () => {
     const result = normalizeSettings({ contextMaxMessages: 9999, contextMaxCharacters: 100 });
     expect(result.contextMaxMessages).toBe(120);
     expect(result.contextMaxCharacters).toBe(4000);
+  });
+
+  it('defaults enableSessionSaving to false when not provided', () => {
+    const result = normalizeSettings({ apiKey: 'key' });
+    expect(result.enableSessionSaving).toBe(false);
+  });
+
+  it('preserves a truthy enableSessionSaving value', () => {
+    const result = normalizeSettings({ enableSessionSaving: true });
+    expect(result.enableSessionSaving).toBe(true);
+  });
+
+  it('coerces non-boolean enableSessionSaving to the default', () => {
+    const result = normalizeSettings({ enableSessionSaving: 'yes' as unknown as boolean });
+    expect(result.enableSessionSaving).toBe(false);
   });
 });
 

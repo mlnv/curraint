@@ -24,7 +24,8 @@ export default defineConfig({
         chat: resolve(__dirname, 'src/renderer/index.html'),
         settings: resolve(__dirname, 'src/renderer/settings.html'),
         quickInput: resolve(__dirname, 'src/renderer/quick-input.html'),
-        about: resolve(__dirname, 'src/renderer/about.html')
+        about: resolve(__dirname, 'src/renderer/about.html'),
+        sessions: resolve(__dirname, 'src/renderer/sessions.html')
       }
     }
   }

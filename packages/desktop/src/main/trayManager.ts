@@ -3,6 +3,7 @@ import { createTrayIcon } from './trayIcon';
 
 type TrayManagerOptions = {
   onToggleChat: () => void;
+  onOpenSessions: () => void;
   onOpenSettings: () => void;
   onOpenAbout: () => void;
 };
@@ -19,6 +20,7 @@ export class TrayManager {
 
     const template: MenuItemConstructorOptions[] = [
       { label: 'Open Chat', click: this.options.onToggleChat },
+      { label: 'Sessions', click: this.options.onOpenSessions },
       { label: 'Settings', click: this.options.onOpenSettings },
       { label: 'About', click: this.options.onOpenAbout },
       { type: 'separator' },

@@ -124,6 +124,15 @@ export function SettingsFormFields({
         Hide and collapse &lt;think&gt; / &lt;reasoning&gt; blocks in AI responses
       </label>
 
+      <label className="flex items-center gap-2 rounded-md border p-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={form.enableSessionSaving}
+          onChange={(event) => onFieldChange('enableSessionSaving', event.target.checked)}
+        />
+        Save sessions — persist conversations so you can resume them later
+      </label>
+
       <div className="space-y-1.5">
         <label className="text-xs text-muted-foreground">Quick Input Shortcut</label>
         <ShortcutRecorder

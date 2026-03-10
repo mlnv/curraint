@@ -11,8 +11,8 @@ export class SessionUI {
 
   subscribe(session: ChatSessionCore): void {
     session.subscribe({
-      onDelta: () => {
-        if (!this.activeAssistantPrefixPrinted) {
+      onStateChange: (state) => {
+        if (state.isSending && !this.activeAssistantPrefixPrinted) {
           this.activeAssistantPrefixPrinted = true;
           this.startSpinner();
         }
@@ -33,7 +33,7 @@ export class SessionUI {
     const content = last?.role === 'assistant' ? last.content.trim() : '';
 
     if (content) {
-      output.write(`\n${c.yellow}AI:${c.reset}\n`);
+      output.write(`${c.yellow}AI:${c.reset}\n`);
       output.write(renderMarkdown(content));
       output.write('\n');
     }

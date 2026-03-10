@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@curraint/core';
 import type { AppSettings } from './types';
+import type { SavedSession, SessionSummary } from '@curraint/core';
 
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
@@ -17,7 +18,14 @@ export const IPC_CHANNELS = {
   receiveQuickInput: 'quick-input:receive',
   shortcutRegistered: 'shortcut:registered',
   chatWindowHide: 'chat-window:hide',
-  openLogFolder: 'log:openFolder'
+  openLogFolder: 'log:openFolder',
+  sessionsList: 'sessions:list',
+  sessionsGet: 'sessions:get',
+  sessionsSave: 'sessions:save',
+  sessionsDelete: 'sessions:delete',
+  sessionsLoad: 'sessions:load',
+  sessionsLoadPush: 'sessions:load:push',
+  sessionsOpen: 'sessions:open'
 } as const;
 
 export type ChatStreamPayload = {
@@ -49,4 +57,11 @@ export type CurraintApi = {
   onReceiveQuickInput: (callback: (message: string) => void) => () => void;
   onShortcutRegistered: (callback: (ok: boolean) => void) => () => void;
   onSettingsChanged: (callback: (settings: AppSettings) => void) => () => void;
+  listSessions: () => Promise<SessionSummary[]>;
+  getSession: (id: string) => Promise<SavedSession | null>;
+  saveSession: (session: SavedSession) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  openSessionsWindow: () => Promise<void>;
+  loadSession: (id: string) => Promise<void>;
+  onSessionLoad: (callback: (session: SavedSession) => void) => () => void;
 };
