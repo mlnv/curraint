@@ -19,6 +19,12 @@ export function AboutApp(): React.JSX.Element {
       >
         github.com/mlnv/curraint
       </button>
+      <button
+        className="text-xs opacity-40 hover:opacity-70 mt-1 cursor-pointer bg-transparent border-0 p-0"
+        onClick={() => void window.curraint.openLicensesWindow()}
+      >
+        Third-party licenses
+      </button>
     </div>
   );
 }

@@ -230,3 +230,7 @@ Then open the app normally. This is safe, the flag is added automatically by mac
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding standards, and PR checklist.
+
+## Licenses
+
+Third-party dependency licenses are listed in [LICENSES.md](LICENSES.md) (auto-generated during `pnpm build`).

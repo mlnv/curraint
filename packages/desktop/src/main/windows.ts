@@ -164,6 +164,25 @@ export function createAboutWindow(): BrowserWindow {
   return win;
 }
 
+export function createLicensesWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 720,
+    height: 560,
+    show: false,
+    autoHideMenuBar: true,
+    resizable: true,
+    webPreferences: {
+      preload: join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  void win.loadFile(join(__dirname, '../renderer/licenses.html'));
+  if (isDebug) { win.webContents.openDevTools({ mode: 'detach' }); }
+  return win;
+}
+
 export function createQuickInputWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: WINDOW_SIZES.quickInput.width,

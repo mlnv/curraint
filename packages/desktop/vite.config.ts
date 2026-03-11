@@ -25,7 +25,8 @@ export default defineConfig({
         settings: resolve(__dirname, 'src/renderer/settings.html'),
         quickInput: resolve(__dirname, 'src/renderer/quick-input.html'),
         about: resolve(__dirname, 'src/renderer/about.html'),
-        sessions: resolve(__dirname, 'src/renderer/sessions.html')
+        sessions: resolve(__dirname, 'src/renderer/sessions.html'),
+        licenses: resolve(__dirname, 'src/renderer/licenses.html')
       }
     }
   }

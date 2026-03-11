@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "description": "Tray-first AI chat app for desktop and CLI using OpenAI-compatible chat completion endpoints.",
   "author": "",
-  "license": "MIT",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/generate-licenses.mjs",
     "build": "pnpm -r build",
+    "generate:licenses": "node scripts/generate-licenses.mjs",
     "test": "pnpm -r test",
     "desktop": "pnpm --filter @curraint/desktop start",
     "cli": "pnpm --filter @curraint/cli start"

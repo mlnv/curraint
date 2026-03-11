@@ -10,6 +10,7 @@ import { configureAppRuntime } from './runtime';
 import {
   createAboutWindow,
   createChatWindow,
+  createLicensesWindow,
   createSettingsWindow,
   createSessionsWindow,
   createQuickInputWindow,
@@ -33,6 +34,7 @@ let prepareChatWindowShow: () => void = () => { /* noop until initialized */ };
 let settingsWindow: BrowserWindow | null = null;
 let sessionsWindow: BrowserWindow | null = null;
 let aboutWindow: BrowserWindow | null = null;
+let licensesWindow: BrowserWindow | null = null;
 let quickInputWindow: BrowserWindow | null = null;
 let settings: AppSettings;
 let isQuitting = false;
@@ -96,6 +98,15 @@ function showAboutWindow(): void {
 
   aboutWindow.show();
   aboutWindow.focus();
+}
+
+function showLicensesWindow(): void {
+  if (!isWindowUsable(licensesWindow)) {
+    licensesWindow = createLicensesWindow();
+  }
+
+  licensesWindow.show();
+  licensesWindow.focus();
 }
 
 function showSessionsWindow(): void {
@@ -213,6 +224,8 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle(IPC_CHANNELS.sessionsOpen, () => showSessionsWindow());
+
+  ipcMain.handle(IPC_CHANNELS.openLicensesWindow, () => showLicensesWindow());
 
   ipcMain.handle(IPC_CHANNELS.quickInputSubmit, (_event, message: string) => {
     if (isWindowUsable(quickInputWindow)) {

@@ -25,7 +25,8 @@ export const IPC_CHANNELS = {
   sessionsDelete: 'sessions:delete',
   sessionsLoad: 'sessions:load',
   sessionsLoadPush: 'sessions:load:push',
-  sessionsOpen: 'sessions:open'
+  sessionsOpen: 'sessions:open',
+  openLicensesWindow: 'licenses:open'
 } as const;
 
 export type ChatStreamPayload = {
@@ -64,4 +65,5 @@ export type CurraintApi = {
   openSessionsWindow: () => Promise<void>;
   loadSession: (id: string) => Promise<void>;
   onSessionLoad: (callback: (session: SavedSession) => void) => () => void;
+  openLicensesWindow: () => Promise<void>;
 };

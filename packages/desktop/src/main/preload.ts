@@ -84,6 +84,7 @@ const api: CurraintApi = {
   deleteSession: (id) => ipcRenderer.invoke(IPC_CHANNELS.sessionsDelete, id),
   openSessionsWindow: () => ipcRenderer.invoke(IPC_CHANNELS.sessionsOpen),
   loadSession: (id) => ipcRenderer.invoke(IPC_CHANNELS.sessionsLoad, id),
+  openLicensesWindow: () => ipcRenderer.invoke(IPC_CHANNELS.openLicensesWindow),
   onSessionLoad: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, session: SavedSession): void => {
       callback(session);

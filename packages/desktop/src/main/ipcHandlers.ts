@@ -84,8 +84,13 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.openExternal, (_event, url: string) => {
-    const allowed = /^https:\/\/github\.com\/mlnv\/curraint/.test(url);
-    if (allowed) {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return;
+    }
+    if (parsed.protocol === 'https:') {
       void shell.openExternal(url);
     }
   });
