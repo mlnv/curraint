@@ -166,7 +166,7 @@ describe('useChatSession', () => {
     expect(chatStreamMock).not.toHaveBeenCalled();
   });
 
-  it('auto-saves session after response completes when saving is enabled', async () => {
+  it('auto-saves session twice per exchange (on submit and on completion) when saving is enabled', async () => {
     getSettingsMock.mockResolvedValue({ enableSessionSaving: true });
 
     chatStreamMock.mockResolvedValue('Reply');
@@ -186,8 +186,11 @@ describe('useChatSession', () => {
       expect(result.current.isSending).toBe(false);
     });
 
-    expect(saveSessionMock).toHaveBeenCalledTimes(1);
-    const saved = saveSessionMock.mock.calls[0][0] as SavedSession;
+    // Called twice: once when the user message is submitted (early save so the
+    // session appears in the list while streaming), and once when the response
+    // completes with the full exchange.
+    expect(saveSessionMock).toHaveBeenCalledTimes(2);
+    const saved = saveSessionMock.mock.calls[1][0] as SavedSession;
     expect(saved.title).toBe('Hello');
     expect(stripTs(saved.messages)).toEqual([
       { role: 'user', content: 'Hello' },
@@ -217,7 +220,7 @@ describe('useChatSession', () => {
     expect(saveSessionMock).not.toHaveBeenCalled();
   });
 
-  it('clears session ID when clearConversation is called', async () => {
+  it('clears session ID when clearConversation is called so next exchange gets a new ID', async () => {
     getSettingsMock.mockResolvedValue({ enableSessionSaving: true });
     chatStreamMock.mockResolvedValueOnce('Reply').mockResolvedValueOnce('Reply 2');
 
@@ -233,6 +236,7 @@ describe('useChatSession', () => {
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(false));
+    // Each exchange triggers 2 saves (early + completion). Use calls[0] for the first exchange ID.
     const firstCallId = (saveSessionMock.mock.calls[0][0] as SavedSession).id;
 
     // Clear the conversation.
@@ -246,7 +250,8 @@ describe('useChatSession', () => {
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(false));
-    const secondCallId = (saveSessionMock.mock.calls[1][0] as SavedSession).id;
+    // calls[2] is the early save of the second exchange (calls[0..1] belong to the first).
+    const secondCallId = (saveSessionMock.mock.calls[2][0] as SavedSession).id;
 
     expect(firstCallId).not.toBe(secondCallId);
   });
