@@ -52,7 +52,12 @@ export function useChatSession(): UseChatSessionResult {
 
   const autoSave = (slot: SessionSlot, messages: ChatMessage[]): void => {
     if (!enableSessionSavingRef.current) return;
-    const msgs = messages.filter((m) => m.role !== 'system');
+    let msgs = messages.filter((m) => m.role !== 'system');
+    // Strip the empty assistant placeholder that exists while the stream is
+    // in flight — only save substantive content.
+    if (msgs[msgs.length - 1]?.role === 'assistant' && msgs[msgs.length - 1].content === '') {
+      msgs = msgs.slice(0, -1);
+    }
     if (msgs.length === 0) return;
     if (!slot.sessionId) {
       slot.sessionId = makeSessionId();
@@ -94,6 +99,12 @@ export function useChatSession(): UseChatSessionResult {
         slot.prevIsSending = nextState.isSending;
         const isActive = slotKey === activeSlotKeyRef.current;
 
+        if (!wasSending && nextState.isSending) {
+          // Save as soon as the user message is added so the session
+          // appears in the sessions list while the response is pending.
+          autoSave(slot, nextState.conversation);
+        }
+
         if (wasSending && !nextState.isSending) {
           autoSave(slot, nextState.conversation);
           if (!isActive) {
@@ -118,11 +129,25 @@ export function useChatSession(): UseChatSessionResult {
 
   const switchToSession = (session: SavedSession): void => {
     const slotKey = session.id;
-    const existing = slotsRef.current.get(slotKey);
+    let existing = slotsRef.current.get(slotKey);
+    let existingKey = slotKey;
+
+    // A background slot (e.g. INITIAL_SLOT_KEY) may have been auto-saved under
+    // a generated sessionId that differs from its slot key.  Find it by sessionId
+    // so we can switch back to the live stream instead of a stale snapshot.
+    if (!existing) {
+      for (const [key, slot] of slotsRef.current) {
+        if (slot.sessionId === session.id && slot.core.getState().isSending) {
+          existing = slot;
+          existingKey = key;
+          break;
+        }
+      }
+    }
 
     if (existing?.core.getState().isSending) {
       // Already streaming in background — just switch the view to it.
-      activeSlotKeyRef.current = slotKey;
+      activeSlotKeyRef.current = existingKey;
       const state = existing.core.getState();
       setConversation(state.conversation);
       setStatus(state.status);
@@ -139,6 +164,13 @@ export function useChatSession(): UseChatSessionResult {
 
     const slot = createSlot(slotKey, session.id, session.createdAt);
     slotsRef.current.set(slotKey, slot);
+
+    // Reset all UI state immediately so switching away from a streaming session
+    // never leaves stale messages or the waiting indicator visible.
+    setConversation(session.messages);
+    setIsSending(false);
+    setIsStopping(false);
+    setStatus('');
 
     // Activate BEFORE loadConversation so the resulting onStateChange
     // sees isActive=true and drives React state immediately.

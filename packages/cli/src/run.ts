@@ -121,7 +121,11 @@ export async function run(): Promise<number> {
   } finally {
     rl.close();
     if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
-      await stopCopilotClient();
+      try {
+        await stopCopilotClient();
+      } catch {
+        // ignore shutdown errors
+      }
     }
   }
 

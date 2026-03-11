@@ -1,4 +1,5 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { homedir } from 'os';
 import { dirname, join } from 'path';
 import type { EncryptedEntry } from './types';
 
@@ -10,14 +11,14 @@ function appUserDataDir(): string {
   switch (process.platform) {
     case 'win32':
       return join(
-        process.env['APPDATA'] ?? join(process.env['USERPROFILE'] ?? '', 'AppData', 'Roaming'),
+        process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming'),
         APP_NAME
       );
     case 'darwin':
-      return join(process.env['HOME'] ?? '', 'Library', 'Application Support', APP_NAME);
+      return join(process.env['HOME'] ?? homedir(), 'Library', 'Application Support', APP_NAME);
     default:
       return join(
-        process.env['XDG_CONFIG_HOME'] ?? join(process.env['HOME'] ?? '', '.config'),
+        process.env['XDG_CONFIG_HOME'] ?? join(process.env['HOME'] ?? homedir(), '.config'),
         APP_NAME
       );
   }

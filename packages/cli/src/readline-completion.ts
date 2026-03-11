@@ -143,12 +143,16 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
           }
           break;
 
-        default:
-          if (char.length === 1 && char >= ' ') {
-            buf += char;
+        default: {
+          // Handle printable characters, including multi-char paste from clipboard.
+          // In raw mode, a paste arrives as one data event with all characters at once.
+          const printable = [...char].filter(c => c >= ' ').join('');
+          if (printable.length > 0) {
+            buf += printable;
             updateSuggestions();
           }
           break;
+        }
       }
     };
 

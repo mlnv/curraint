@@ -1,12 +1,9 @@
 import type { ProviderId } from '../types';
-import { PROVIDER_CONFIGS } from './configs';
+import { PROVIDER_CONFIGS, PROVIDER_OPTIONS } from './configs';
 import type { ProviderConfig } from './types';
-import { ENABLE_COPILOT_PROVIDER } from '../features';
 
 export function isProviderId(value: string): value is ProviderId {
-  if (value === 'openai' || value === 'lmstudio' || value === 'custom') return true;
-  if (ENABLE_COPILOT_PROVIDER && value === 'copilot') return true;
-  return false;
+  return PROVIDER_OPTIONS.some((p) => p.id === value);
 }
 
 export function getProviderConfig(provider: ProviderId): ProviderConfig {

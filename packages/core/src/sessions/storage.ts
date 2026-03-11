@@ -43,6 +43,7 @@ export function readSession(id: string): SavedSession | null {
   try {
     return JSON.parse(readFileSync(filePath, 'utf8')) as SavedSession;
   } catch {
+    console.warn(`[sessions] Failed to parse session file (corrupt?): ${filePath}`);
     return null;
   }
 }

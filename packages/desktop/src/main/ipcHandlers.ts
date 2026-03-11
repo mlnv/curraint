@@ -58,6 +58,13 @@ function isValidSavedSession(payload: unknown): payload is SavedSession {
   );
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
 export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
   const activeStreamControllers = new Map<string, AbortController>();
 
@@ -141,7 +148,11 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
                 requestId: payload.requestId,
                 delta
               };
-              event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
+              try {
+                event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
+              } catch {
+                // renderer window closed mid-stream
+              }
             }
           },
           { signal: controller.signal }
@@ -150,10 +161,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
         settingsAccess.onAssistantMessage?.();
         return message;
       } catch (error) {
-        const isAbortError =
-          (error instanceof DOMException && error.name === 'AbortError') ||
-          (error instanceof Error && error.name === 'AbortError');
-        if (isAbortError) {
+        if (isAbortError(error)) {
           return streamedMessage;
         }
         throw error;
@@ -175,7 +183,11 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
             requestId: payload.requestId,
             delta
           };
-          event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
+          try {
+            event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
+          } catch {
+            // renderer window closed mid-stream
+          }
         }
       }, {
         signal: controller.signal
@@ -185,11 +197,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
       settingsAccess.onAssistantMessage?.();
       return result.message;
     } catch (error) {
-      const isAbortError =
-        (error instanceof DOMException && error.name === 'AbortError') ||
-        (error instanceof Error && error.name === 'AbortError');
-
-      if (isAbortError) {
+      if (isAbortError(error)) {
         return streamedMessage;
       }
 
