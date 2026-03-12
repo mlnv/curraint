@@ -15,7 +15,7 @@ describe('chatSessionCore', () => {
       streamChat: async (_messages, onDelta) => {
         onDelta('Hel');
         onDelta('lo');
-        return 'Hello';
+        return { text: 'Hello' };
       }
     });
 
@@ -37,9 +37,9 @@ describe('chatSessionCore', () => {
   it('edits a user message and truncates later history before regenerating', async () => {
     const streamChat = vi
       .fn()
-      .mockResolvedValueOnce('Answer 1')
-      .mockResolvedValueOnce('Answer 2')
-      .mockResolvedValueOnce('Edited answer');
+      .mockResolvedValueOnce({ text: 'Answer 1' })
+      .mockResolvedValueOnce({ text: 'Answer 2' })
+      .mockResolvedValueOnce({ text: 'Edited answer' });
 
     const session = createChatSessionCore({ streamChat });
 
@@ -58,7 +58,7 @@ describe('chatSessionCore', () => {
 
     const session = createChatSessionCore({
       streamChat: (_messages, _onDelta, options) =>
-        new Promise<string>((_resolve, reject) => {
+        new Promise<{ text: string }>((_resolve, reject) => {
           rejectPending = reject;
           options?.signal?.addEventListener('abort', () => {
             const error = new DOMException('aborted', 'AbortError');
@@ -87,7 +87,7 @@ describe('chatSessionCore', () => {
     const session = createChatSessionCore({
       streamChat: async (_messages, onDelta) => {
         onDelta('Hi');
-        return 'Hi';
+        return { text: 'Hi' };
       }
     });
 
@@ -105,7 +105,7 @@ describe('chatSessionCore', () => {
 
     const session = createChatSessionCore({
       streamChat: (_messages, _onDelta, options) =>
-        new Promise<string>((_resolve, reject) => {
+        new Promise<{ text: string }>((_resolve, reject) => {
           rejectPending = reject;
           options?.signal?.addEventListener('abort', () => {
             reject(new DOMException('aborted', 'AbortError'));
@@ -124,6 +124,64 @@ describe('chatSessionCore', () => {
     // Stopped with no content → assistant message is removed entirely
     const assistant = conversation.find((m) => m.role === 'assistant');
     expect(assistant).toBeUndefined();
+  });
+
+  it('stores token usage on the assistant message when transport returns it', async () => {
+    const session = createChatSessionCore({
+      streamChat: async (_messages, onDelta) => {
+        onDelta('Answer');
+        return { text: 'Answer', usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } };
+      }
+    });
+
+    await session.submitPrompt('Question');
+
+    const { conversation } = session.getState();
+    const assistant = conversation.find((m) => m.role === 'assistant');
+    expect(assistant?.usage).toEqual({ prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 });
+  });
+
+  it('leaves usage undefined on the assistant message when transport does not return it', async () => {
+    const session = createChatSessionCore({
+      streamChat: async (_messages, onDelta) => {
+        onDelta('Answer');
+        return { text: 'Answer' };
+      }
+    });
+
+    await session.submitPrompt('Question');
+
+    const { conversation } = session.getState();
+    const assistant = conversation.find((m) => m.role === 'assistant');
+    expect(assistant?.usage).toBeUndefined();
+  });
+
+  it('does not set usage when response is stopped', async () => {
+    let rejectPending: ((reason?: unknown) => void) | null = null;
+
+    const session = createChatSessionCore({
+      streamChat: (_messages, onDelta, options) =>
+        new Promise<{ text: string }>((_resolve, reject) => {
+          rejectPending = reject;
+          // emit some content so the assistant message is kept
+          setTimeout(() => onDelta('partial'), 0);
+          options?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'));
+          });
+        })
+    });
+
+    const pending = session.submitPrompt('long request');
+    await new Promise((r) => setTimeout(r, 10)); // let onDelta fire
+
+    await session.stopResponse();
+    rejectPending?.(new DOMException('aborted', 'AbortError'));
+    await pending;
+
+    const { conversation } = session.getState();
+    const assistant = conversation.find((m) => m.role === 'assistant');
+    // partial content kept, but usage must not be set
+    expect(assistant?.usage).toBeUndefined();
   });
 
   it('loads a conversation without calling the transport', () => {

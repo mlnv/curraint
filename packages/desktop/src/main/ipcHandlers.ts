@@ -104,14 +104,13 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     const composed = composeConversation(settings, messages);
 
     if (settings.provider === 'copilot') {
-      let fullMessage = '';
       const result = await copilotChatStream(
         settings.model,
         composed,
-        { onDelta: (delta) => { fullMessage += delta; } }
+        { onDelta: () => {} }
       );
       settingsAccess.onAssistantMessage?.();
-      return result;
+      return result.message;
     }
 
     const result = await chatCompletion(settings, composed);
@@ -138,7 +137,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
 
     if (settings.provider === 'copilot') {
       try {
-        const message = await copilotChatStream(
+        const result = await copilotChatStream(
           settings.model,
           composed,
           {
@@ -164,10 +163,10 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
         );
         debugLog('PERF:main', `copilotChatStream resolved +${(performance.now() - _perfT0).toFixed(0)}ms total`);
         settingsAccess.onAssistantMessage?.();
-        return message;
+        return { text: result.message, usage: result.usage };
       } catch (error) {
         if (isAbortError(error)) {
-          return streamedMessage;
+          return { text: streamedMessage };
         }
         throw error;
       } finally {
@@ -200,10 +199,10 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
 
       debugLog('PERF:main', `chatCompletionStream resolved +${(performance.now() - _perfT0).toFixed(0)}ms total`);
       settingsAccess.onAssistantMessage?.();
-      return result.message;
+      return { text: result.message, usage: result.usage };
     } catch (error) {
       if (isAbortError(error)) {
-        return streamedMessage;
+        return { text: streamedMessage };
       }
 
       if (hasStreamedChunk) {
@@ -212,7 +211,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
 
       const fallback = await chatCompletion(settings, composed);
       settingsAccess.onAssistantMessage?.();
-      return fallback.message;
+      return { text: fallback.message, usage: fallback.usage };
     } finally {
       activeStreamControllers.delete(payload.requestId);
     }

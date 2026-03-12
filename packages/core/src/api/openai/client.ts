@@ -51,12 +51,12 @@ export async function chatCompletionStream(
   const baseUrl = validateSettingsForRequest(settings);
   const url = `${baseUrl}/chat/completions`;
   const headers = createAuthHeaders(settings);
-  const body = { model: settings.model.trim(), messages, stream: true };
+  const body = { model: settings.model.trim(), messages, stream: true, stream_options: { include_usage: true } };
   logRequest('(stream)', url, headers, body);
   const response = await fetch(url, { method: 'POST', headers, signal: options.signal, body: JSON.stringify(body) });
   logResponse(response);
   if (!response.ok) throw new Error(`Streaming request failed (${response.status}): ${await readErrorDetail(response)}`);
-  const message = await readStreamingCompletion(response, callbacks);
-  debugLog('API', 'Stream complete', { fullMessage: message });
-  return { message };
+  const result = await readStreamingCompletion(response, callbacks);
+  debugLog('API', 'Stream complete', { fullMessage: result.message, usage: result.usage });
+  return { message: result.message, usage: result.usage };
 }

@@ -1,6 +1,6 @@
 import type { CopilotSession as CopilotSessionType } from '@github/copilot-sdk';
 import { debugLog } from '../../debug/log';
-import type { ChatMessage } from '../../types';
+import type { ChatMessage, ChatResult, TokenUsage } from '../../types';
 import { getOrCreateSession, incrementMessageCount, invalidateSession } from './session';
 import type { CopilotStreamCallbacks, CopilotStreamOptions } from './types';
 
@@ -22,14 +22,15 @@ async function streamFromSession(
   content: string,
   callbacks: CopilotStreamCallbacks,
   signal?: AbortSignal
-): Promise<string> {
+): Promise<ChatResult> {
   let fullMessage = '';
+  let usage: TokenUsage | undefined;
   const t0 = performance.now();
   let firstDelta = false;
 
   if (signal) signal.addEventListener('abort', () => void session.abort());
 
-  const unsubscribe = session.on('assistant.message_delta', (event) => {
+  const unsubDelta = session.on('assistant.message_delta', (event) => {
     const delta = event.data.deltaContent;
     if (!delta) return;
     if (!firstDelta) {
@@ -40,14 +41,27 @@ async function streamFromSession(
     callbacks.onDelta(delta);
   });
 
+  const unsubUsage = session.on('assistant.usage', (event) => {
+    const data = event.data;
+    const inputTokens = data.inputTokens ?? 0;
+    const outputTokens = data.outputTokens ?? 0;
+    usage = {
+      prompt_tokens: inputTokens,
+      completion_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+    };
+  });
+
   try {
     incrementMessageCount();
     await session.sendAndWait({ prompt: content });
-    unsubscribe();
+    unsubDelta();
+    unsubUsage();
     if (!fullMessage.trim()) throw new Error('GitHub Copilot returned an empty response.');
-    return fullMessage;
+    return { message: fullMessage, usage };
   } catch (error) {
-    unsubscribe();
+    unsubDelta();
+    unsubUsage();
     await invalidateSession(session);
     throw error;
   }
@@ -58,7 +72,7 @@ export async function copilotChatStream(
   messages: ChatMessage[],
   callbacks: CopilotStreamCallbacks,
   options: CopilotStreamOptions = {}
-): Promise<string> {
+): Promise<ChatResult> {
   const { lastUserContent, systemPrompt, isNewConversation } = extractConversationInfo(messages);
   debugLog('PERF:copilot', 'getOrCreateSession starting', { model, isNewConversation });
   const session = await getOrCreateSession(model, systemPrompt, isNewConversation);

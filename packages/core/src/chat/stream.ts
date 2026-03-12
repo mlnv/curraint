@@ -1,5 +1,5 @@
 import { debugLog } from '../debug/log';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, TokenUsage } from '../types';
 import { applyStateUpdate, emitDelta, emitStateChange } from './state';
 import type { MutableState } from './state';
 import type { ChatSessionSubscriber, ChatSessionTransport } from './types';
@@ -27,7 +27,7 @@ function handleDelta(ctx: StreamContext, delta: string): void {
   });
 }
 
-function handleSuccess(ctx: StreamContext, reply: string, wasCancelling: boolean, durationMs: number): void {
+function handleSuccess(ctx: StreamContext, reply: string, wasCancelling: boolean, durationMs: number, usage: TokenUsage | undefined): void {
   const trimmedReply = reply.trim();
   const assistant = ctx.state.conversation[ctx.assistantIndex];
   if (wasCancelling && assistant?.role === 'assistant' && trimmedReply.length === 0) {
@@ -40,7 +40,7 @@ function handleSuccess(ctx: StreamContext, reply: string, wasCancelling: boolean
   setState(ctx, {
     conversation: ctx.state.conversation.map((msg, i) =>
       i === ctx.assistantIndex && msg.role === 'assistant'
-        ? { ...msg, content: reply, durationMs: wasCancelling ? undefined : durationMs }
+        ? { ...msg, content: reply, durationMs: wasCancelling ? undefined : durationMs, usage: wasCancelling ? undefined : usage }
         : msg
     ),
     status: wasCancelling ? 'Response stopped' : ''
@@ -97,7 +97,7 @@ export async function runStream(
   debugLog('PERF:renderer', 'streamChat call starting');
 
   try {
-    const reply = await transport.streamChat(
+    const { text, usage } = await transport.streamChat(
       nextConversation,
       (delta) => {
         if (!firstDelta) {
@@ -110,7 +110,7 @@ export async function runStream(
     );
     const durationMs = Math.round(performance.now() - t0);
     debugLog('PERF:renderer', `streamChat resolved +${durationMs}ms`);
-    handleSuccess(ctx, reply, isCancelling(), durationMs);
+    handleSuccess(ctx, text, isCancelling(), durationMs, usage);
   } catch (error) {
     handleError(ctx, error, isCancelling());
   } finally {

@@ -9,6 +9,7 @@ export type UseChatSessionResult = {
   isSending: boolean;
   isStopping: boolean;
   canSend: boolean;
+  totalTokens: number;
   setPrompt: (value: string) => void;
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => void;
@@ -216,6 +217,11 @@ export function useChatSession(): UseChatSessionResult {
     [isSending, prompt]
   );
 
+  const totalTokens = useMemo(
+    () => conversation.reduce((sum, m) => sum + (m.usage?.total_tokens ?? 0), 0),
+    [conversation]
+  );
+
   const submitPrompt = async (content: string): Promise<void> => {
     if (isSending || !content.trim()) return;
     setPrompt('');
@@ -253,6 +259,7 @@ export function useChatSession(): UseChatSessionResult {
     isSending,
     isStopping,
     canSend,
+    totalTokens,
     setPrompt,
     submitPrompt,
     editUserMessage,

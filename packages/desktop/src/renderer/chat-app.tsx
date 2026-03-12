@@ -13,6 +13,7 @@ export function ChatApp(): React.JSX.Element {
     isSending,
     isStopping,
     canSend,
+    totalTokens,
     setPrompt,
     submitPrompt,
     editUserMessage,
@@ -168,6 +169,12 @@ export function ChatApp(): React.JSX.Element {
           onEditUserMessage={editUserMessage}
           onRetryLastUserMessage={retryLastMessage}
         />
+
+        {totalTokens > 0 ? (
+          <div className="border-t px-4 py-1 text-right text-[10px] text-muted-foreground">
+            {totalTokens.toLocaleString()} tokens this session
+          </div>
+        ) : null}
 
         <form onSubmit={onSubmit} className="space-y-2 border-t p-3">
           <ChatComposer

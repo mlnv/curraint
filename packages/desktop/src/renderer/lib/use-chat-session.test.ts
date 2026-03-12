@@ -45,7 +45,7 @@ describe('useChatSession', () => {
     chatStreamMock.mockImplementation(async (_messages, onDelta) => {
       onDelta('Hel');
       onDelta('lo');
-      return 'Hello';
+      return { text: 'Hello' };
     });
 
     const { result } = renderHook(() => useChatSession());
@@ -66,9 +66,9 @@ describe('useChatSession', () => {
 
   it('edits a previous user message and truncates later history before resending', async () => {
     chatStreamMock
-      .mockResolvedValueOnce('Answer 1')
-      .mockResolvedValueOnce('Answer 2')
-      .mockResolvedValueOnce('Edited answer');
+      .mockResolvedValueOnce({ text: 'Answer 1' })
+      .mockResolvedValueOnce({ text: 'Answer 2' })
+      .mockResolvedValueOnce({ text: 'Edited answer' });
 
     const { result } = renderHook(() => useChatSession());
 
@@ -106,10 +106,10 @@ describe('useChatSession', () => {
   });
 
   it('requests cancel while sending and updates stopping status', async () => {
-    let resolveStream: ((value: string) => void) | undefined;
+    let resolveStream: ((value: { text: string }) => void) | undefined;
     chatStreamMock.mockImplementation(
       () =>
-        new Promise<string>((resolve) => {
+        new Promise<{ text: string }>((resolve) => {
           resolveStream = resolve;
         })
     );
@@ -133,7 +133,7 @@ describe('useChatSession', () => {
     expect(result.current.status).toBe('Stopping response...');
 
     await act(async () => {
-      resolveStream?.('');
+      resolveStream?.({ text: '' });
     });
 
     await waitFor(() => {
@@ -169,7 +169,7 @@ describe('useChatSession', () => {
   it('auto-saves session twice per exchange (on submit and on completion) when saving is enabled', async () => {
     getSettingsMock.mockResolvedValue({ enableSessionSaving: true });
 
-    chatStreamMock.mockResolvedValue('Reply');
+    chatStreamMock.mockResolvedValue({ text: 'Reply' });
 
     const { result } = renderHook(() => useChatSession());
 
@@ -201,7 +201,7 @@ describe('useChatSession', () => {
   it('does NOT auto-save when session saving is disabled', async () => {
     getSettingsMock.mockResolvedValue({ enableSessionSaving: false });
 
-    chatStreamMock.mockResolvedValue('Reply');
+    chatStreamMock.mockResolvedValue({ text: 'Reply' });
 
     const { result } = renderHook(() => useChatSession());
 
@@ -222,7 +222,7 @@ describe('useChatSession', () => {
 
   it('clears session ID when clearConversation is called so next exchange gets a new ID', async () => {
     getSettingsMock.mockResolvedValue({ enableSessionSaving: true });
-    chatStreamMock.mockResolvedValueOnce('Reply').mockResolvedValueOnce('Reply 2');
+    chatStreamMock.mockResolvedValueOnce({ text: 'Reply' }).mockResolvedValueOnce({ text: 'Reply 2' });
 
     const { result } = renderHook(() => useChatSession());
 

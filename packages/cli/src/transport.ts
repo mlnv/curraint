@@ -21,7 +21,7 @@ function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport
       const composed = composeConversation(settings, messages);
       let streamedMessage = '';
       try {
-        return await copilotChatStream(
+        const result = await copilotChatStream(
           settings.model,
           composed,
           {
@@ -32,8 +32,9 @@ function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport
           },
           { signal: options?.signal }
         );
+        return { text: result.message, usage: result.usage };
       } catch (error) {
-        if (isAbortError(error)) return streamedMessage;
+        if (isAbortError(error)) return { text: streamedMessage };
         throw error;
       }
     },
@@ -49,7 +50,7 @@ function buildOpenAiTransport(settings: EndpointSettings): ChatSessionTransport 
       let streamedMessage = '';
 
       try {
-        const streamed = await chatCompletionStream(
+        const result = await chatCompletionStream(
           settings,
           composed,
           {
@@ -61,12 +62,12 @@ function buildOpenAiTransport(settings: EndpointSettings): ChatSessionTransport 
           },
           { signal: options?.signal }
         );
-        return streamed.message;
+        return { text: result.message, usage: result.usage };
       } catch (error) {
-        if (isAbortError(error)) return streamedMessage;
+        if (isAbortError(error)) return { text: streamedMessage };
         if (hasStreamedChunk) throw error;
         const fallback = await chatCompletion(settings, composed);
-        return fallback.message;
+        return { text: fallback.message, usage: fallback.usage };
       }
     },
   };

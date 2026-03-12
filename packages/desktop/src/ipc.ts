@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@curraint/core';
+import type { ChatMessage, TokenUsage } from '@curraint/core';
 import type { AppSettings } from './types';
 import type { SavedSession, SessionSummary } from '@curraint/core';
 
@@ -47,7 +47,7 @@ export type CurraintApi = {
   chatStream: (
     messages: ChatMessage[],
     onDelta: (delta: string) => void
-  ) => Promise<string>;
+  ) => Promise<{ text: string; usage?: TokenUsage }>;
   cancelChatStream: () => Promise<void>;
   clearChatSession: () => Promise<void>;
   testConnection: (settings: AppSettings) => Promise<string>;

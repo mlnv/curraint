@@ -36,6 +36,9 @@ export class SessionUI {
       output.write(`${c.yellow}AI:${c.reset}\n`);
       output.write(renderMarkdown(content));
       output.write('\n');
+      if (last.usage?.total_tokens) {
+        output.write(`${c.dim}${c.cyan}  total tokens: ${last.usage.total_tokens}${c.reset}\n`);
+      }
     }
 
     if (state.status) {

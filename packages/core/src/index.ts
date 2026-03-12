@@ -1,5 +1,6 @@
 // Shared base types
-export type { ProviderId, ChatMessage, ChatResult } from './types';
+export type { ProviderId, ChatMessage, ChatResult, TokenUsage } from './types';
+export type { ChatStreamResult } from './chat/types';
 export * from './sessions';
 export { ENABLE_COPILOT_PROVIDER } from './features';
 

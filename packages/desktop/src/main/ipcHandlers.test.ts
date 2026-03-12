@@ -72,7 +72,7 @@ describe('registerIpcHandlers', () => {
       { requestId: 'req-1', messages: [{ role: 'user', content: 'Hi' }] }
     );
 
-    expect(result).toBe('Hello world');
+    expect(result).toEqual({ text: 'Hello world', usage: undefined });
     expect(send).toHaveBeenCalledWith(IPC_CHANNELS.chatStreamChunk, {
       requestId: 'req-1',
       delta: 'Hello '
@@ -103,7 +103,7 @@ describe('registerIpcHandlers', () => {
       { requestId: 'req-2', messages: [{ role: 'user', content: 'Hi' }] }
     );
 
-    expect(result).toBe('Fallback response');
+    expect(result).toEqual({ text: 'Fallback response', usage: undefined });
     expect(chatCompletionMock).toHaveBeenCalledTimes(1);
     expect(onAssistantMessage).toHaveBeenCalledTimes(1);
   });
@@ -138,7 +138,7 @@ describe('registerIpcHandlers', () => {
 
     await chatCancel?.({}, 'req-3');
 
-    await expect(streamPromise).resolves.toBe('partial');
+    await expect(streamPromise).resolves.toEqual({ text: 'partial' });
     expect(onAssistantMessage).not.toHaveBeenCalled();
   });
 

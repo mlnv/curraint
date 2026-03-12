@@ -4,6 +4,11 @@ export type CompletionResponse = {
     delta?: { content?: string };
     text?: string;
   }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
   error?: { message?: string };
 };
 

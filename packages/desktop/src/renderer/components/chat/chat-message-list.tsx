@@ -167,11 +167,18 @@ export function ChatMessageList({
               <span className="pl-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
                 {formatTime(getTimestamp(message, index, timestampsRef.current))}
               </span>
-              {message.durationMs !== undefined && !(isSending && index === messages.length - 1) ? (
-                <span className="pr-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" data-testid="response-duration">
-                  {formatDuration(message.durationMs)}
-                </span>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {message.usage !== undefined && !(isSending && index === messages.length - 1) ? (
+                  <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" data-testid="response-tokens">
+                    {message.usage.total_tokens.toLocaleString()} tokens
+                  </span>
+                ) : null}
+                {message.durationMs !== undefined && !(isSending && index === messages.length - 1) ? (
+                  <span className="pr-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" data-testid="response-duration">
+                    {formatDuration(message.durationMs)}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
         )

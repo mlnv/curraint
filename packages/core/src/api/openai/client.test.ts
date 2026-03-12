@@ -167,10 +167,12 @@ describe('chatCompletionStream', () => {
     expect(result).toEqual({ message: 'Hello' });
   });
 
-  it('throws on empty streaming payload', async () => {
+  it('captures usage from the final SSE chunk when present', async () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'));
+        controller.enqueue(encoder.encode('data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n'));
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       }
@@ -178,10 +180,56 @@ describe('chatCompletionStream', () => {
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
 
-    await expect(
-      chatCompletionStream(validSettings, [{ role: 'user', content: 'Hi' }], {
-        onDelta: () => undefined
-      })
-    ).rejects.toThrow('Endpoint returned an empty streaming response.');
+    const result = await chatCompletionStream(
+      validSettings,
+      [{ role: 'user', content: 'Hi' }],
+      { onDelta: () => undefined }
+    );
+
+    expect(result.usage).toEqual({ prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 });
+  });
+
+  it('returns undefined usage when SSE stream contains no usage chunk', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'));
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      }
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+    const result = await chatCompletionStream(
+      validSettings,
+      [{ role: 'user', content: 'Hi' }],
+      { onDelta: () => undefined }
+    );
+
+    expect(result.usage).toBeUndefined();
+  });
+
+  it('includes stream_options in the request body', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n'));
+        controller.close();
+      }
+    });
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+    await chatCompletionStream(
+      validSettings,
+      [{ role: 'user', content: 'Hi' }],
+      { onDelta: () => undefined }
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(requestInit.body as string) as Record<string, unknown>;
+    expect(body['stream_options']).toEqual({ include_usage: true });
   });
 });
+

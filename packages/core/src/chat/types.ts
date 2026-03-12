@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../types';
+import type { ChatMessage, TokenUsage } from '../types';
 
 export type ChatSessionState = {
   conversation: ChatMessage[];
@@ -7,12 +7,17 @@ export type ChatSessionState = {
   isStopping: boolean;
 };
 
+export type ChatStreamResult = {
+  text: string;
+  usage?: TokenUsage;
+};
+
 export type ChatSessionTransport = {
   streamChat: (
     messages: ChatMessage[],
     onDelta: (delta: string) => void,
     options?: { signal?: AbortSignal }
-  ) => Promise<string>;
+  ) => Promise<ChatStreamResult>;
   cancelChatStream?: () => Promise<void>;
   clearSession?: () => Promise<void>;
 };

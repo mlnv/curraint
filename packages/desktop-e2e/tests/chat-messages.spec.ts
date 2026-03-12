@@ -21,7 +21,7 @@ async function mockChatStream(
       ipcMain.handle(
         args.streamChannel,
         (event, payload: { requestId: string }) =>
-          new Promise<string>((resolve) => {
+          new Promise<{ text: string }>((resolve) => {
             let i = 0;
             const sendNext = (): void => {
               if (i < args.chunks.length) {
@@ -31,7 +31,7 @@ async function mockChatStream(
                 });
                 setTimeout(sendNext, args.delayMs);
               } else {
-                resolve(args.fullResponse);
+                resolve({ text: args.fullResponse });
               }
             };
             sendNext();
