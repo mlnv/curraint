@@ -61,7 +61,7 @@ export const test = base.extend<ElectronFixtures>({
     try {
       const app = await electronLauncher.launch({
         executablePath: electronExecutable,
-        args: [desktopMain],
+        args: [desktopMain, ...(process.env.CI ? ['--no-sandbox', '--disable-dev-shm-usage'] : [])],
         env: {
           ...process.env,
           NODE_ENV: 'test',
