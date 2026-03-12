@@ -11,6 +11,7 @@ type Props = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onContainerScroll?: () => void;
   onEditUserMessage?: (index: number, content: string) => void;
+  onRetryLastUserMessage?: () => void;
 };
 
 function formatTime(ts: number | undefined): string {
@@ -32,8 +33,13 @@ export function ChatMessageList({
   enableThinkTagFolding,
   containerRef,
   onContainerScroll,
-  onEditUserMessage
+  onEditUserMessage,
+  onRetryLastUserMessage
 }: Props): React.JSX.Element {
+  const lastUserIndex = messages.reduce(
+    (last, m, i) => (m.role === 'user' ? i : last),
+    -1
+  );
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const timestampsRef = useRef<Map<number, number>>(new Map());
@@ -113,7 +119,17 @@ export function ChatMessageList({
               ) : (
                 <div className="space-y-2">
                   <span className="whitespace-pre-wrap">{message.content}</span>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-1">
+                    {index === lastUserIndex && onRetryLastUserMessage && (
+                      <button
+                        type="button"
+                        onClick={onRetryLastUserMessage}
+                        disabled={isSending}
+                        className="rounded px-1.5 py-0.5 text-[10px] text-primary-foreground/60 opacity-0 transition-all hover:bg-black/10 hover:text-primary-foreground group-hover:opacity-100 disabled:pointer-events-none"
+                      >
+                        Retry
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => startEdit(index, message.content)}

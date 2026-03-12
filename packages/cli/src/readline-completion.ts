@@ -8,6 +8,7 @@ export const SLASH_COMMANDS: Array<{ command: string; description: string; requi
   { command: '/sessions', description: 'Browse and resume saved sessions' },
   { command: '/sessions-save', description: 'Enable or disable session saving (on/off)', requiresArg: true },
   { command: '/edit',     description: 'Edit a user message and regenerate', requiresArg: true },
+  { command: '/retry',    description: 'Retry the last message' },
   { command: '/provider', description: 'Switch the AI provider' },
   { command: '/model',    description: 'Change the model' },
   { command: '/version',  description: 'Show version' },

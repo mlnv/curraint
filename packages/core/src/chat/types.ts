@@ -27,6 +27,7 @@ export type ChatSessionCore = {
   subscribe: (subscriber: ChatSessionSubscriber) => () => void;
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => Promise<void>;
+  retryLastMessage: () => Promise<void>;
   stopResponse: () => Promise<void>;
   clearConversation: () => Promise<void>;
   loadConversation: (messages: ChatMessage[]) => void;

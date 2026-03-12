@@ -42,6 +42,15 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         .map((m, i) => (i === index ? { ...m, content: trimmed, timestamp: Date.now() } : m));
       await resend(next);
     },
+    retryLastMessage: async () => {
+      if (state.isSending) return;
+      let lastUserIndex = -1;
+      for (let i = state.conversation.length - 1; i >= 0; i--) {
+        if (state.conversation[i]!.role === 'user') { lastUserIndex = i; break; }
+      }
+      if (lastUserIndex === -1) return;
+      await resend(state.conversation.slice(0, lastUserIndex + 1));
+    },
     stopResponse: async () => {
       if (!state.isSending || state.isStopping) return;
       _isCancelling = true;

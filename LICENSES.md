@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-> Auto-generated on 2026-03-11 by `pnpm build`. Do not edit manually.
+> Auto-generated on 2026-03-12 by `pnpm build`. Do not edit manually.
 
 ## License summary
 

@@ -16,6 +16,7 @@ export function ChatApp(): React.JSX.Element {
     setPrompt,
     submitPrompt,
     editUserMessage,
+    retryLastMessage,
     stopResponse,
     clearConversation
   } = useChatSession();
@@ -165,6 +166,7 @@ export function ChatApp(): React.JSX.Element {
           containerRef={messagesContainerRef}
           onContainerScroll={onMessagesScroll}
           onEditUserMessage={editUserMessage}
+          onRetryLastUserMessage={retryLastMessage}
         />
 
         <form onSubmit={onSubmit} className="space-y-2 border-t p-3">

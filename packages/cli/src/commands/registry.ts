@@ -3,6 +3,7 @@ import { version } from '../../package.json';
 import { runHelp } from './help';
 import { runHistory } from './history';
 import { runEdit } from './edit';
+import { runRetry } from './retry';
 import { runProvider } from './provider';
 import { runModel } from './model';
 import { runSessions } from './sessions';
@@ -27,6 +28,7 @@ export async function dispatchSlashCommand(
   if (text === '/provider') return runProvider(ctx);
   if (text === '/model')    return runModel(ctx);
   if (text.startsWith('/edit')) return runEdit(text, ctx);
+  if (text === '/retry')    return runRetry(ctx);
   if (text.startsWith('/')) {
     output.write(`Unknown command "${text}". Type /help for available commands.\n`);
     return 'continue';

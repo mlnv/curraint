@@ -12,6 +12,7 @@ export type UseChatSessionResult = {
   setPrompt: (value: string) => void;
   submitPrompt: (content: string) => Promise<void>;
   editUserMessage: (index: number, editedContent: string) => void;
+  retryLastMessage: () => void;
   stopResponse: () => void;
   clearConversation: () => Promise<void>;
   loadSession: (session: SavedSession) => void;
@@ -225,6 +226,10 @@ export function useChatSession(): UseChatSessionResult {
     void activeSlot()?.core.editUserMessage(index, editedContent);
   };
 
+  const retryLastMessage = (): void => {
+    void activeSlot()?.core.retryLastMessage();
+  };
+
   const stopResponse = (): void => {
     void activeSlot()?.core.stopResponse();
   };
@@ -251,6 +256,7 @@ export function useChatSession(): UseChatSessionResult {
     setPrompt,
     submitPrompt,
     editUserMessage,
+    retryLastMessage,
     stopResponse,
     clearConversation,
     loadSession
