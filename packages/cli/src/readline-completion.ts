@@ -41,8 +41,20 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
 
     output.write(prompt);
 
+    // Strip ANSI escape codes to get the visual (display) length of the prompt.
+    const promptVisualLen = prompt.replace(/\x1b\[[0-9;]*m/g, '').length;
+    // Track the total visual length of what was last rendered so we can move
+    // the cursor back up to the first row when the input wraps to multiple rows.
+    let lastRenderedLen = promptVisualLen;
+
     const redraw = () => {
-      let out = '\r\x1b[J' + prompt + buf;
+      const cols = process.stdout.columns || 80;
+      // How many rows above the current cursor position is the start of the input?
+      const linesAbove = Math.floor(lastRenderedLen / cols);
+      const moveUp = linesAbove > 0 ? `\x1b[${linesAbove}A` : '';
+      lastRenderedLen = promptVisualLen + buf.length;
+
+      let out = moveUp + '\r\x1b[J' + prompt + buf;
 
       if (suggestions.length > 0) {
         out += '\n';
@@ -72,7 +84,10 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
     };
 
     const cleanup = () => {
-      output.write('\r\x1b[J');
+      const cols = process.stdout.columns || 80;
+      const linesAbove = Math.floor(lastRenderedLen / cols);
+      const moveUp = linesAbove > 0 ? `\x1b[${linesAbove}A` : '';
+      output.write(moveUp + '\r\x1b[J');
       output.write(prompt + buf + '\n');
       stdin.setRawMode(false);
       savedListeners.forEach(fn => stdin.on('data', fn));
@@ -128,11 +143,14 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
           break;
 
         case '\u0003': // Ctrl+C
-          stdin.removeListener('data', onData);
-          output.write('\r\x1b[J\n');
+          stdin.removeListener('data', onData); {
+          const cols = process.stdout.columns || 80;
+          const linesAbove = Math.floor(lastRenderedLen / cols);
+          const moveUp = linesAbove > 0 ? `\x1b[${linesAbove}A` : '';
+          output.write(moveUp + '\r\x1b[J\n');
           stdin.setRawMode(false);
           savedListeners.forEach(fn => stdin.on('data', fn));
-          process.exit(0);
+          process.exit(0); }
           break;
 
         case '\u007f': // Backspace
