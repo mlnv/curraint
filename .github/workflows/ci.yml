@@ -58,7 +58,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Electron binary
-        run: pnpm rebuild electron
+        run: node packages/desktop/node_modules/electron/install.js
 
       - name: Build core
         run: pnpm --filter @curraint/core build
