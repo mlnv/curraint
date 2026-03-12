@@ -57,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build core
+        run: pnpm --filter @curraint/core build
+
       - name: Build desktop
         run: pnpm --filter @curraint/desktop build
 
