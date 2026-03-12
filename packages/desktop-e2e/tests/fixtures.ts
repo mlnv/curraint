@@ -32,14 +32,14 @@ async function findWindowByUrl(
     const match = app.windows().find((p) => p.url().includes(fragment));
     if (match) return match;
     await new Promise<void>((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(`Window with URL fragment "${fragment}" not found after ${retries} retries`);
+}
 
 /**
  * Shows and focuses a BrowserWindow in the main process whose URL contains `urlFragment`.
  * The lookup is performed in the Electron main process via app.evaluate.
  */
-  throw new Error(`Window with URL fragment "${fragment}" not found after ${retries} retries`);
-}
-
 async function showWindow(app: ElectronApplication, urlFragment: string): Promise<void> {
   await app.evaluate(
     ({ BrowserWindow }, fragment) => {

@@ -124,4 +124,39 @@ test.describe('chat messages (mocked API)', () => {
       chatPage.locator('[class*="rounded-br-sm"]').filter({ hasText: 'Second question' }),
     ).toBeVisible();
   });
+
+  test('shows response duration after stream completes', async ({ chatPage, app }) => {
+    await mockChatStream(app, ['Hello ', 'world!'], 30);
+
+    const textarea = chatPage.getByPlaceholder('Ask anything...');
+    await textarea.fill('Duration test');
+    await textarea.press('Enter');
+
+    // Wait for stream to finish (Send button returns)
+    await expect(chatPage.getByRole('button', { name: 'Send' })).toBeVisible({ timeout: 10_000 });
+
+    // Hover over the assistant bubble to reveal the hover-only metadata row
+    const assistantBubble = chatPage.locator('[class*="rounded-bl-sm"]').filter({ hasText: 'Hello world!' });
+    await assistantBubble.hover();
+
+    // Duration label should be visible (opacity transitions on hover via group-hover:opacity-100)
+    const durationLabel = chatPage.locator('[data-testid="response-duration"]');
+    await expect(durationLabel).toBeVisible({ timeout: 5_000 });
+    // Should match e.g. "12ms" or "1.2s"
+    await expect(durationLabel).toHaveText(/^\d+(\.\d+)?(ms|s)$/);
+  });
+
+  test('does not show duration while stream is in progress', async ({ chatPage, app }) => {
+    await mockChatStream(app, ['chunk1 ', 'chunk2 ', 'chunk3'], 200);
+
+    const textarea = chatPage.getByPlaceholder('Ask anything...');
+    await textarea.fill('Slow stream');
+    await textarea.press('Enter');
+
+    // While streaming is happening, Stop button is visible
+    await expect(chatPage.getByRole('button', { name: 'Stop response' })).toBeVisible();
+
+    // Duration label should not yet be present
+    await expect(chatPage.locator('[data-testid="response-duration"]')).toBeHidden();
+  });
 });

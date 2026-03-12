@@ -18,6 +18,10 @@ function formatTime(ts: number | undefined): string {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDuration(ms: number): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+}
+
 function getTimestamp(msg: ChatMessage, index: number, fallback: Map<number, number>): number | undefined {
   return msg.timestamp ?? fallback.get(index);
 }
@@ -143,9 +147,16 @@ export function ChatMessageList({
                 />
               )}
             </div>
-            <span className="mt-0.5 pl-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-              {formatTime(getTimestamp(message, index, timestampsRef.current))}
-            </span>
+            <div className="mt-0.5 flex w-full max-w-[88%] items-center justify-between">
+              <span className="pl-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                {formatTime(getTimestamp(message, index, timestampsRef.current))}
+              </span>
+              {message.durationMs !== undefined && !(isSending && index === messages.length - 1) ? (
+                <span className="pr-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" data-testid="response-duration">
+                  {formatDuration(message.durationMs)}
+                </span>
+              ) : null}
+            </div>
           </div>
         )
       )}

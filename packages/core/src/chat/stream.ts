@@ -27,7 +27,7 @@ function handleDelta(ctx: StreamContext, delta: string): void {
   });
 }
 
-function handleSuccess(ctx: StreamContext, reply: string, wasCancelling: boolean): void {
+function handleSuccess(ctx: StreamContext, reply: string, wasCancelling: boolean, durationMs: number): void {
   const trimmedReply = reply.trim();
   const assistant = ctx.state.conversation[ctx.assistantIndex];
   if (wasCancelling && assistant?.role === 'assistant' && trimmedReply.length === 0) {
@@ -39,7 +39,9 @@ function handleSuccess(ctx: StreamContext, reply: string, wasCancelling: boolean
   }
   setState(ctx, {
     conversation: ctx.state.conversation.map((msg, i) =>
-      i === ctx.assistantIndex && msg.role === 'assistant' ? { ...msg, content: reply } : msg
+      i === ctx.assistantIndex && msg.role === 'assistant'
+        ? { ...msg, content: reply, durationMs: wasCancelling ? undefined : durationMs }
+        : msg
     ),
     status: wasCancelling ? 'Response stopped' : ''
   });
@@ -106,8 +108,9 @@ export async function runStream(
       },
       { signal: controller.signal }
     );
-    debugLog('PERF:renderer', `streamChat resolved +${(performance.now() - t0).toFixed(0)}ms`);
-    handleSuccess(ctx, reply, isCancelling());
+    const durationMs = Math.round(performance.now() - t0);
+    debugLog('PERF:renderer', `streamChat resolved +${durationMs}ms`);
+    handleSuccess(ctx, reply, isCancelling(), durationMs);
   } catch (error) {
     handleError(ctx, error, isCancelling());
   } finally {

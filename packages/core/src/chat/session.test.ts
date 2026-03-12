@@ -83,6 +83,49 @@ describe('chatSessionCore', () => {
     expect(latestState(states).status).toBe('Response stopped');
   });
 
+  it('sets durationMs on the assistant message after a completed stream', async () => {
+    const session = createChatSessionCore({
+      streamChat: async (_messages, onDelta) => {
+        onDelta('Hi');
+        return 'Hi';
+      }
+    });
+
+    await session.submitPrompt('Hello');
+
+    const { conversation } = session.getState();
+    const assistant = conversation.find((m) => m.role === 'assistant');
+    expect(assistant).toBeDefined();
+    expect(typeof assistant!.durationMs).toBe('number');
+    expect(assistant!.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('does not set durationMs when response is stopped', async () => {
+    let rejectPending: ((reason?: unknown) => void) | null = null;
+
+    const session = createChatSessionCore({
+      streamChat: (_messages, _onDelta, options) =>
+        new Promise<string>((_resolve, reject) => {
+          rejectPending = reject;
+          options?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'));
+          });
+        })
+    });
+
+    const pending = session.submitPrompt('long request');
+    await Promise.resolve();
+
+    await session.stopResponse();
+    rejectPending?.(new DOMException('aborted', 'AbortError'));
+    await pending;
+
+    const { conversation } = session.getState();
+    // Stopped with no content → assistant message is removed entirely
+    const assistant = conversation.find((m) => m.role === 'assistant');
+    expect(assistant).toBeUndefined();
+  });
+
   it('loads a conversation without calling the transport', () => {
     const streamChat = vi.fn();
     const session = createChatSessionCore({ streamChat });
