@@ -244,6 +244,6 @@ Third-party dependency licenses are listed in [LICENSES.md](LICENSES.md) (auto-g
 
 ## License
 
-Copyright (C) 2024 Maksym Yemelianov
+Copyright (C) 2026 Maksym Yemelianov
 
 This program is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
