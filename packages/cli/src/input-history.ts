@@ -1,5 +1,5 @@
 export class InputHistory {
-  private entries: string[] = [];
+  private readonly entries: string[] = [];
   private historyIndex = -1;
   private draftBuf = '';
 
