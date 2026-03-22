@@ -2,6 +2,11 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
+> [!CAUTION]
+> **Early alpha — expect breaking changes.** curraint is under active development.
+> APIs, configuration format, storage layout, and behaviour can change significantly
+> between releases without prior notice. Do not rely on it in production environments.
+
 curraint is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
 
 It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards.
