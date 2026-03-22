@@ -2,8 +2,13 @@
 
 All coding guidelines, commit conventions, architecture principles, and
 development workflows are documented in [`AGENTS.md`](../AGENTS.md) at the
-repo root. Please read that file for the full set of instructions.
+repo root. That file is the authoritative source for the full set of
+instructions.
 
+The remainder of this document is a curated quick-reference subset of
+those rules, optimized for Copilot and reviewers. It must be kept in
+sync with `AGENTS.md` and must not introduce any new or conflicting
+requirements.
 
 Format: `<type>(<optional scope>): <short imperative description>`
 
