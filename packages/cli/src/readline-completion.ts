@@ -1,6 +1,7 @@
 import readline from 'node:readline/promises';
 import { stdout as output } from 'node:process';
 import { c } from './theme';
+import type { InputHistory } from './input-history';
 
 export const SLASH_COMMANDS: Array<{ command: string; description: string; requiresArg?: boolean }> = [
   { command: '/help',     description: 'Show commands' },
@@ -22,7 +23,7 @@ export const SLASH_COMMANDS: Array<{ command: string; description: string; requi
  * keys and accepting with Tab or Enter. Falls back to plain readline in
  * non-TTY (piped) environments.
  */
-export async function readLineWithCompletion(rl: readline.Interface, prompt: string): Promise<string> {
+export async function readLineWithCompletion(rl: readline.Interface, prompt: string, history?: InputHistory): Promise<string> {
   const stdin = process.stdin as NodeJS.ReadStream;
   if (!stdin.isTTY) {
     return rl.question(prompt);
@@ -99,6 +100,12 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
         if (suggestions.length > 0) {
           selectedIdx = (selectedIdx - 1 + suggestions.length) % suggestions.length;
           redraw();
+        } else if (history) {
+          const entry = history.navigateBack(buf);
+          if (entry !== undefined) {
+            buf = entry;
+            redraw();
+          }
         }
         return;
       }
@@ -106,6 +113,12 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
         if (suggestions.length > 0) {
           selectedIdx = (selectedIdx + 1) % suggestions.length;
           redraw();
+        } else if (history) {
+          const entry = history.navigateForward();
+          if (entry !== undefined) {
+            buf = entry;
+            redraw();
+          }
         }
         return;
       }
@@ -124,6 +137,7 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
             }
           }
           stdin.removeListener('data', onData);
+          history?.reset();
           cleanup();
           resolve(buf);
           break;

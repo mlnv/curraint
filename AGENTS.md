@@ -1,14 +1,8 @@
-# Copilot instructions for curraint
+# Agent instructions for curraint
 
-All coding guidelines, commit conventions, architecture principles, and
-development workflows are documented in [`AGENTS.md`](../AGENTS.md) at the
-repo root. That file is the authoritative source for the full set of
-instructions.
+## Commit messages
 
-The remainder of this document is a curated quick-reference subset of
-those rules, optimized for Copilot and reviewers. It must be kept in
-sync with `AGENTS.md` and must not introduce any new or conflicting
-requirements.
+Always follow [Conventional Commits](https://www.conventionalcommits.org/).
 
 Format: `<type>(<optional scope>): <short imperative description>`
 
@@ -99,3 +93,28 @@ This is a pnpm monorepo. All packages live under `packages/`.
 - Small, single-purpose functions with descriptive names.
 - Unit tests live alongside source files as `*.test.ts`.
 - All tests must pass before a PR is merged (`pnpm test`).
+
+## Feature development workflow (Red - Green - Refactor)
+
+Follow the TDD red-green-refactor cycle for all new features and non-trivial bug fixes.
+
+**Red** - write failing tests first
+- Write all unit tests for the new behaviour before writing any implementation.
+- Tests must reference the not-yet-existing module/class/function so they fail with an import or "does not exist" error - confirming the test runner actually executes them.
+- Cover the happy path, edge cases, and any documented constraints (e.g. de-dup rules, boundary conditions).
+- Run the test suite and confirm every new test fails.
+
+**Green** - make the tests pass with the simplest correct implementation
+- Write only enough code to make all failing tests pass.
+- Do not add behaviour that has no corresponding test.
+- Re-run the suite after implementing - all tests (new and existing) must be green before moving on.
+
+**Refactor** - clean up without changing behaviour
+- Review all changed files for duplication, naming consistency, and unnecessary complexity.
+- Extract helpers or types only if they genuinely simplify the code - do not over-engineer.
+- Run the full test suite again after every refactor step to confirm nothing regressed.
+
+**Practical rules**
+- New logic that can be unit tested in isolation (e.g. a class, a pure function, a parser) must live in its own file and have a dedicated `*.test.ts` sibling.
+- Logic that only orchestrates side effects (wiring modules together in `run.ts`, IPC handlers, etc.) does not need unit tests but must be covered by the integration or e2e suite where feasible.
+- Never skip the Red phase - writing tests after the implementation defeats the purpose.
