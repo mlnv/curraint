@@ -22,6 +22,8 @@ Format: `<type>(<optional scope>): <short imperative description>`
 
 > **Important:** When the change is only to documentation or markdown files (`.md`, `README`, `CONTRIBUTING`, etc.), always use `docs` as the **type** — never as a scope on another type. For example, use `docs: update README` or `docs(ci): clarify workflow triggers`, never `feat(docs): ...`.
 
+> **Important:** Changes to tooling, editor, or config files (`.vscode/`, `.gitignore`, `.gitattributes`, `tsconfig.json`, `vitest.config.ts`, `tsup.config.ts`, `package.json` dev-dependency bumps, CI workflow files, etc.) must use `chore` — never `feat`. These are internal changes with no user-facing behaviour.
+
 **Rules:**
 - Use imperative mood — "add", not "added" or "adds"
 - Keep the subject line under 72 characters
