@@ -1,136 +1,234 @@
 # Contributing to curraint
 
-Thanks for contributing to curraint.
+Thank you for your interest in contributing. This guide covers everything you need to get started.
 
-## Development setup
+## Table of contents
 
-- Node.js 20+
-- pnpm 10+
+- [Prerequisites](#prerequisites)
+- [Getting started](#getting-started)
+- [Repository structure](#repository-structure)
+- [Branches and commits](#branches-and-commits)
+- [Code guidelines](#code-guidelines)
+- [Testing](#testing)
+- [Pull request checklist](#pull-request-checklist)
+- [Reporting issues](#reporting-issues)
+- [Security](#security)
+- [CI workflows](#ci-workflows)
 
-Install dependencies:
+---
+
+## Prerequisites
+
+- **Node.js** 22+
+- **pnpm** 10+
+
+## Getting started
+
+Install all workspace dependencies:
 
 ```bash
 pnpm install
 ```
 
-Run local checks before opening a PR:
+Build all packages:
 
 ```bash
 pnpm build
+```
+
+Run all tests:
+
+```bash
 pnpm test
 ```
 
-Run the app locally:
+Run a specific package in isolation:
 
 ```bash
-pnpm start
+pnpm --filter @curraint/core build
+pnpm --filter @curraint/desktop build
+pnpm --filter @curraint/cli build
 ```
 
-Optional focused commands:
+Start the desktop app or CLI locally:
 
 ```bash
-pnpm build:renderer
-pnpm build:main
-pnpm build:cli
+pnpm desktop
+pnpm cli
 ```
+
+---
+
+## Repository structure
+
+This is a **pnpm monorepo**. All packages live under `packages/`.
+
+| Package | Description |
+|---|---|
+| `packages/core` | Shared business logic: chat sessions, providers, settings, secrets, context management |
+| `packages/cli` | Terminal interface — depends on `@curraint/core` |
+| `packages/desktop` | Electron desktop app (main process + React renderer) — depends on `@curraint/core` |
+| `packages/desktop-e2e` | Playwright end-to-end tests for the desktop app |
+
+`@curraint/core` is the single source of truth for domain logic. Keep package-specific code in the relevant package; only promote logic to `core` when it is genuinely shared.
+
+---
 
 ## Branches and commits
 
-- Create feature/fix branches from `main`.
-- Keep each PR focused on one change set.
-- Use clear commit messages (imperative mood), for example:
-  - `feat: add LM Studio provider selector`
-  - `fix: guard destroyed BrowserWindow access`
-  - `refactor: extract tray manager`
+- Branch from `main`. Use `feature/`, `fix/`, or `chore/` prefixes (e.g. `feature/lm-studio-selector`).
+- Keep each branch and PR focused on a single concern.
+- Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<optional scope>): <short imperative description>
+```
+
+**Types:**
+
+| Type | When to use |
+|---|---|
+| `feat` | New user-facing feature |
+| `fix` | Bug fix |
+| `refactor` | Code restructure with no behavior change |
+| `test` | Adding or updating tests only |
+| `docs` | Documentation only |
+| `chore` | Tooling, deps, CI, config |
+| `perf` | Performance improvement |
+
+**Scopes** (optional) help narrow the change: `(core)`, `(cli)`, `(desktop)`, `(ci)`.
+
+**Examples:**
+
+```
+feat(core): add per-message token usage tracking
+fix(desktop): guard destroyed BrowserWindow before method calls
+refactor(cli): decompose session UI into focused modules
+chore(ci): pin Node.js to 22 across all workflows
+docs: update README setup instructions
+```
+
+Breaking changes must include `BREAKING CHANGE:` in the commit body or footer.
+
+---
 
 ## Code guidelines
 
-### TypeScript and architecture
+### General
 
-- Prefer small functions with clear names.
-- Keep modules single-purpose (SRP).
-- Reuse shared helpers from `src/common` when possible.
-- Avoid duplicating constants/strings across renderer/main/CLI.
-- Keep orchestration separate from policy and rendering concerns.
+- Write small, single-purpose functions with descriptive names.
+- Follow the Single Responsibility Principle — one module, one concern.
+- Separate orchestration logic from domain logic from rendering.
+- Avoid duplicating constants or types across packages; share via `@curraint/core`.
+- Prefer explicit types over `any`. Avoid type assertions unless unavoidable.
 
-### Shared domain modules
+### Package boundaries
 
-- Keep context policy in `src/common/contextSafety.ts`.
-- Keep settings normalization/composition in `src/common/settings.ts`.
-- Keep API transport behavior in `src/common/openaiCompatibleClient.ts`.
-- Add/update tests for any behavior change in these modules.
+- Domain logic (providers, settings, sessions, context, secrets) belongs in `packages/core`.
+- UI concerns (React components, IPC, tray, windows) belong in `packages/desktop`.
+- Terminal UX concerns belong in `packages/cli`.
+- Cross-cutting changes that touch multiple packages require extra care — test all affected packages.
 
-### Electron
+### Electron (desktop)
 
-- Keep `src/main/main.ts` as orchestration only.
-- Place tray/window/IPC logic in dedicated modules under `src/main`.
-- Guard `BrowserWindow` access (`isDestroyed`) before calling methods.
+- The main entry point is orchestration only — keep it thin.
+- IPC handlers, tray logic, and window management each live in their own dedicated module.
+- Always guard `BrowserWindow` access (check `isDestroyed()`) before calling methods.
+- Keep preload scripts minimal; expose only what the renderer strictly needs.
 
-### React renderer
+### React (desktop renderer)
 
-- Keep container components focused on state + orchestration.
-- Extract repeated UI blocks into presentational components.
-- Keep status/error messages user-friendly and actionable.
-- Prefer hooks for orchestration logic (for example `src/renderer/lib/use-chat-session.ts`).
-- Keep markdown/reasoning rendering logic modular and reusable.
+- Container components own state and orchestration; presentational components own rendering.
+- Extract repeated UI into reusable components.
+- Encapsulate complex orchestration logic in custom hooks.
+- Keep error and status messages user-facing and actionable.
 
-## Testing expectations
+### CLI
 
-For any functional change:
+- Keep the entry point as a thin command dispatcher.
+- Session I/O, markdown rendering, and settings UI are separate modules.
+- Avoid blocking the event loop; prefer streaming and async patterns throughout.
 
-- Add or update unit tests under `src/**/*.test.ts` when applicable.
-- Ensure all tests pass with:
+---
+
+## Testing
+
+Unit tests live alongside source files as `*.test.ts`. E2E tests live in `packages/desktop-e2e`.
+
+Run all unit tests:
 
 ```bash
 pnpm test
 ```
 
-For UI/main-process changes:
-
-- Ensure project builds:
+Run tests for a single package:
 
 ```bash
-pnpm build
+pnpm --filter @curraint/core test
+pnpm --filter @curraint/desktop test
+pnpm --filter @curraint/cli test
 ```
 
-For workflow/config changes:
+Run E2E tests (requires a built desktop app):
 
-- Ensure docs stay aligned with current `.github/workflows/*.yml` behavior.
-- Do not reintroduce conflicting pnpm version pinning in workflows.
+```bash
+pnpm --filter @curraint/desktop build
+pnpm test:e2e
+```
+
+**Expectations:**
+
+- Add or update unit tests for any change in `packages/core`.
+- Add or update unit tests for non-trivial logic in `packages/desktop` and `packages/cli`.
+- E2E tests cover critical user flows; update them when those flows change.
+- All tests must pass before a PR can be merged.
+
+---
 
 ## Pull request checklist
 
-- [ ] Code compiles (`pnpm build`)
-- [ ] Tests pass (`pnpm test`)
-- [ ] PR scope is focused and documented
-- [ ] README/docs updated if behavior changed
-- [ ] New settings fields include defaults + normalization + UI wiring
-- [ ] Shared logic changes include/adjust unit tests
+- [ ] `pnpm build` succeeds
+- [ ] `pnpm test` passes
+- [ ] PR is scoped to a single concern
+- [ ] Commit messages follow Conventional Commits
+- [ ] README or docs updated if user-facing behavior changed
+- [ ] New settings include defaults, normalization, and (where applicable) UI wiring
+- [ ] Breaking changes are documented in the PR description
+
+---
 
 ## Reporting issues
 
-When opening an issue, include:
+Please search existing issues before opening a new one.
+
+Include in your report:
 
 - OS and version
-- Node and pnpm versions
+- Node.js and pnpm versions
 - Steps to reproduce
-- Expected vs actual behavior
-- Logs/errors (if any)
+- Expected vs. actual behavior
+- Relevant logs or error output
 
-For chat regressions, also include:
+For chat or streaming regressions, also include:
 
-- Provider and model used
-- Whether streaming was enabled/supported
-- Whether reasoning tags (`<think>` / `<reasoning>`) appeared
+- Provider and model
+- Whether streaming was active
+- Whether `<think>` / `<reasoning>` tags appeared in the response
 
-## Security notes
+---
 
-- Do not commit secrets (API keys, tokens, certificates).
-- Use local env vars or private secrets in CI/CD settings.
-- For sensitive disclosures, contact maintainers privately instead of opening a public issue.
+## Security
 
-## CI workflow notes
+- Never commit secrets (API keys, tokens, certificates, private keys).
+- Use environment variables or CI secrets for sensitive configuration.
+- For security vulnerabilities, contact the maintainers privately rather than opening a public issue.
 
-- `CI` workflow is manual (`workflow_dispatch`).
-- `Package Test Artifacts` is manual and artifact-only.
-- `Package and Release` runs manually and on `v*` tags for release publishing.
+---
+
+## CI workflows
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `CI` | Push/PR to `main`, manual | Build, unit test, and E2E test |
+| `Package Test Artifacts` | Manual | Build installable packages for smoke testing; artifacts expire after 3 days |
+| `Package and Release` | `v*` tag push, manual | Build release packages and publish a GitHub Release |
