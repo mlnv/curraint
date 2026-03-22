@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "pnpm: build",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["build"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "pnpm: build:core",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["--filter", "@curraint/core", "build"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "pnpm: build:desktop",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["--filter", "@curraint/desktop", "build"],
+      "dependsOn": ["pnpm: build:core"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "pnpm: build:cli",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["--filter", "@curraint/cli", "build"],
+      "dependsOn": ["pnpm: build:core"],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
+

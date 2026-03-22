@@ -1,0 +1,77 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "curraint: Desktop",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/packages/desktop/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}\\packages\\desktop\\node_modules\\.bin\\electron.cmd"
+      },
+      "runtimeArgs": ["packages/desktop/dist/main/main.js"],
+      "preLaunchTask": "pnpm: build:desktop",
+      "console": "integratedTerminal",
+      "env": {
+        "CURRAINT_ENABLE_COPILOT": "1"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "curraint: Desktop (Debug)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/packages/desktop/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}\\packages\\desktop\\node_modules\\.bin\\electron.cmd"
+      },
+      "runtimeArgs": ["packages/desktop/dist/main/main.js"],
+      "preLaunchTask": "pnpm: build:desktop",
+      "console": "integratedTerminal",
+      "env": {
+        "CURRAINT_DEBUG": "1",
+        "CURRAINT_ENABLE_COPILOT": "1"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "curraint: CLI Chat",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/packages/cli/dist/index.js",
+      "preLaunchTask": "pnpm: build:cli",
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_NO_WARNINGS": "1",
+        "CURRAINT_ENABLE_COPILOT": "1"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "curraint: CLI Chat (Debug)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/packages/cli/dist/index.js",
+      "preLaunchTask": "pnpm: build:cli",
+      "console": "integratedTerminal",
+      "env": {
+        "CURRAINT_DEBUG": "1",
+        "CURRAINT_ENABLE_COPILOT": "1"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ]
+}
+
