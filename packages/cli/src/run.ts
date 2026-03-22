@@ -20,6 +20,7 @@ import { dispatchSlashCommand } from './commands/registry';
 import type { CommandContext } from './commands/types';
 import { InputHistory } from './input-history';
 
+/** Starts the interactive CLI chat loop. Returns an exit code (0 on clean exit, 1 on setup failure). */
 export async function run(): Promise<number> {
   let settings = loadSettings();
   const rl = readline.createInterface({ input, output });
