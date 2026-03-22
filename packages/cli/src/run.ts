@@ -18,6 +18,7 @@ import { readLineWithCompletion } from './readline-completion';
 import { SessionUI } from './session-ui';
 import { dispatchSlashCommand } from './commands/registry';
 import type { CommandContext } from './commands/types';
+import { InputHistory } from './input-history';
 
 export async function run(): Promise<number> {
   let settings = loadSettings();
@@ -79,10 +80,13 @@ export async function run(): Promise<number> {
   });
 
   try {
+    const history = new InputHistory();
     while (true) {
       output.write(`\n${divider()}\n`);
-      const text = (await readLineWithCompletion(rl, `${c.green}You:${c.reset} `)).trim();
+      const text = (await readLineWithCompletion(rl, `${c.green}You:${c.reset} `, history)).trim();
       if (!text) continue;
+
+      history.push(text);
 
       const slashResult = await dispatchSlashCommand(text, ctx);
       if (slashResult === 'break') break;
