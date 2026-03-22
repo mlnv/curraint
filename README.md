@@ -3,7 +3,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
 > [!CAUTION]
-> **Early alpha — expect breaking changes.** curraint is under active development.
+> **Early alpha: expect breaking changes.** curraint is under active development.
 > APIs, configuration format, storage layout, and behaviour can change significantly
 > between releases without prior notice. Do not rely on it in production environments.
 
