@@ -2,7 +2,8 @@
   "name": "curraint",
   "version": "0.1.0",
   "description": "Tray-first AI chat app for desktop and CLI using OpenAI-compatible chat completion endpoints.",
-  "author": "",
+  "author": "Maksym Yemelianov",
+  "license": "AGPL-3.0-only",
   "private": true,
   "scripts": {
     "prebuild": "node scripts/generate-licenses.mjs",
@@ -13,5 +14,9 @@
     "cli": "pnpm --filter @curraint/cli start",
     "test:e2e": "pnpm --filter @curraint/desktop-e2e e2e"
   },
-  "packageManager": "pnpm@10.32.0+sha512.9b2634bb3fed5601c33633f2d92593f506270a3963b8c51d2b2d6a828da615ce4e9deebef9614ccebbc13ac8d3c0f9c9ccceb583c69c8578436fa477dbb20d70"
+  "packageManager": "pnpm@10.32.0+sha512.9b2634bb3fed5601c33633f2d92593f506270a3963b8c51d2b2d6a828da615ce4e9deebef9614ccebbc13ac8d3c0f9c9ccceb583c69c8578436fa477dbb20d70",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  }
 }

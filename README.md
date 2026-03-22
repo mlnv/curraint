@@ -1,5 +1,7 @@
 # curraint
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+
 curraint is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
 
 It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards.
@@ -41,7 +43,7 @@ It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22+
 - pnpm 10+
 
 ## Quick start
@@ -61,7 +63,7 @@ pnpm build
 Run desktop app:
 
 ```bash
-pnpm start
+pnpm desktop
 ```
 
 ## Desktop usage
@@ -158,12 +160,12 @@ Watch mode:
 pnpm test:watch
 ```
 
-Build specific targets:
+Build specific packages:
 
 ```bash
-pnpm build:renderer
-pnpm build:main
-pnpm build:cli
+pnpm --filter @curraint/core build
+pnpm --filter @curraint/desktop build
+pnpm --filter @curraint/cli build
 ```
 
 ## Packaging and releases
@@ -171,7 +173,7 @@ pnpm build:cli
 Create packages with current host defaults:
 
 ```bash
-pnpm package
+pnpm --filter @curraint/desktop package
 ```
 
 Targets configured:
@@ -184,13 +186,13 @@ Platform-specific examples:
 
 ```bash
 # Windows installer (.exe via NSIS)
-pnpm package -- --win
+pnpm --filter @curraint/desktop package -- --win
 
 # macOS disk image (.dmg)
-pnpm package -- --mac
+pnpm --filter @curraint/desktop package -- --mac
 
 # Linux artifacts (.AppImage / .deb)
-pnpm package -- --linux
+pnpm --filter @curraint/desktop package -- --linux
 ```
 
 Notes:
@@ -234,3 +236,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding standards, and PR check
 ## Licenses
 
 Third-party dependency licenses are listed in [LICENSES.md](LICENSES.md) (auto-generated during `pnpm build`).
+
+## License
+
+Copyright (C) 2024 Maksym Yemelianov
+
+This program is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
