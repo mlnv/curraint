@@ -4,19 +4,21 @@
 
 ## Changes
 
-<!-- List the notable changes. Delete sections that are not applicable. -->
+<!-- List the notable changes per package. Remove sections that do not apply. -->
 
-### Core
-
-- 
-
-### CLI
+<!--
+### `packages/core`
 
 - 
 
-### Desktop
+### `packages/cli`
 
 - 
+
+### `packages/desktop`
+
+- 
+-->
 
 ## Testing
 
