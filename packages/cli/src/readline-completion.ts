@@ -115,8 +115,10 @@ export async function readLineWithCompletion(rl: readline.Interface, prompt: str
           redraw();
         } else if (history) {
           const entry = history.navigateForward();
-          buf = entry ?? '';
-          redraw();
+          if (entry !== undefined) {
+            buf = entry;
+            redraw();
+          }
         }
         return;
       }
