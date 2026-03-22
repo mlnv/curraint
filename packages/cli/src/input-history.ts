@@ -3,6 +3,7 @@ export class InputHistory {
   private historyIndex = -1;
   private draftBuf = '';
 
+  /** Appends entry to history. Ignores empty strings and consecutive duplicates. */
   push(entry: string): void {
     if (!entry) return;
     if (this.entries.length > 0 && this.entries[this.entries.length - 1] === entry) return;
@@ -48,6 +49,7 @@ export class InputHistory {
     this.draftBuf = '';
   }
 
+  /** True while the user is browsing history; false when at the live input position. */
   get isNavigating(): boolean {
     return this.historyIndex !== -1;
   }
