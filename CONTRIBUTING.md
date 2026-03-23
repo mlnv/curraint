@@ -48,6 +48,7 @@ Run a specific package in isolation:
 pnpm --filter @curraint/core build
 pnpm --filter @curraint/desktop build
 pnpm --filter @curraint/cli build
+pnpm --filter @curraint/obsidian-plugin build
 ```
 
 Start the desktop app or CLI locally:
@@ -96,7 +97,7 @@ This is a **pnpm monorepo**. All packages live under `packages/`.
 | `chore` | Tooling, deps, CI, config |
 | `perf` | Performance improvement |
 
-**Scopes** (optional) help narrow the change: `(core)`, `(cli)`, `(desktop)`, `(ci)`.
+**Scopes** (optional) help narrow the change: `(core)`, `(cli)`, `(desktop)`, `(obsidian)`, `(ci)`.
 
 **Examples:**
 
@@ -149,6 +150,32 @@ Breaking changes must include `BREAKING CHANGE:` in the commit body or footer.
 - Session I/O, markdown rendering, and settings UI are separate modules.
 - Avoid blocking the event loop; prefer streaming and async patterns throughout.
 
+### Obsidian plugin
+
+- The plugin is built with esbuild to a single `dist/main.js` bundle; `manifest.json` and `styles.css` are copied to `dist/` alongside it.
+- Use `pnpm --filter @curraint/obsidian-plugin dev` for watch mode during development.
+- To test locally, use the deploy task (see below) or copy `dist/` contents manually to `.obsidian/plugins/curraint/` inside a vault, then enable the plugin and use `Ctrl+Shift+I` to open the DevTools console.
+- The plugin owns its own encrypted API key in `data.json` (separate from the desktop/CLI secrets).
+- Do not add Obsidian-specific logic to `packages/core`; only promote logic there when it is genuinely shared across all consumers.
+
+#### One-click deploy to a local vault
+
+A deploy script copies the built plugin files directly into your local Obsidian vault for fast iteration:
+
+```bash
+pnpm --filter @curraint/obsidian-plugin run deploy
+```
+
+**One-time setup:** create `packages/obsidian-plugin/.vault-path` (this file is gitignored) containing the absolute path to your vault root - nothing else, just the path on a single line:
+
+```
+C:\Users\you\Documents\MyVault
+```
+
+Your vault root is the folder you open in Obsidian - the one that contains your notes and an `.obsidian/` subfolder. The script writes to `<vault>/.obsidian/plugins/curraint/` and prints each copied file. It will error with a clear message if the file is missing or the path does not exist.
+
+The VS Code task **"pnpm: deploy:obsidian-plugin"** (Terminal > Run Task) runs the build and deploy in one step.
+
 ---
 
 ## Testing
@@ -167,6 +194,7 @@ Run tests for a single package:
 pnpm --filter @curraint/core test
 pnpm --filter @curraint/desktop test
 pnpm --filter @curraint/cli test
+pnpm --filter @curraint/obsidian-plugin test
 ```
 
 Run E2E tests (requires a built desktop app):

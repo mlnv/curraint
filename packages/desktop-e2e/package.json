@@ -2,6 +2,7 @@
   "name": "@curraint/desktop-e2e",
   "version": "0.1.0",
   "description": "Playwright e2e tests for the curraint desktop app",
+  "author": "Maksym Yemelianov",
   "private": true,
   "scripts": {
     "e2e": "playwright test",

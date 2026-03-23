@@ -1,0 +1,11 @@
+{
+  "id": "curraint",
+  "name": "Curraint AI Chat",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Chat with AI from within Obsidian. Optionally include the current note as context.",
+  "author": "Maksym Yemelianov",
+  "authorUrl": "",
+  "isDesktopOnly": true
+}
+

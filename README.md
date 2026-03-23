@@ -127,6 +127,26 @@ Behavior notes:
 	- `/edit <number>`, edit a previous user message and regenerate from that point
 	- `Ctrl+C` while streaming, stop current response
 
+## Obsidian plugin
+
+The `packages/obsidian-plugin` package provides an Obsidian plugin that adds a chat sidebar to any Obsidian vault. It uses the same `@curraint/core` chat engine as the desktop and CLI.
+
+**Features:**
+- Chat sidebar powered by `@curraint/core` (streaming, stop, edit/regenerate)
+- Optional "include current note" toggle to inject the active note as context
+- Encrypted API key storage in `data.json` (AES-256-GCM, machine-bound)
+- Provider/model/system-prompt settings via the standard Obsidian settings tab
+
+**Build:**
+
+```bash
+pnpm --filter @curraint/obsidian-plugin build
+```
+
+Output is written to `packages/obsidian-plugin/dist/` (`main.js`, `manifest.json`, `styles.css`). Copy the contents of `dist/` to `.obsidian/plugins/curraint/` inside your vault, then enable the plugin in Obsidian settings.
+
+**Note:** The plugin stores its own encrypted API key separately from the desktop/CLI `secrets.json`. Keys are not shared between the plugin and the desktop/CLI apps.
+
 ## Security
 
 ### API key storage
@@ -171,6 +191,7 @@ Build specific packages:
 pnpm --filter @curraint/core build
 pnpm --filter @curraint/desktop build
 pnpm --filter @curraint/cli build
+pnpm --filter @curraint/obsidian-plugin build
 ```
 
 ## Packaging and releases

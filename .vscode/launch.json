@@ -71,6 +71,31 @@
       "skipFiles": [
         "<node_internals>/**"
       ]
+    },
+    {
+      "name": "curraint: Obsidian Plugin (Build)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/obsidian-plugin",
+      "program": "${workspaceFolder}/packages/obsidian-plugin/esbuild.config.mjs",
+      "preLaunchTask": "pnpm: build:core",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "curraint: Obsidian Plugin (Watch)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/obsidian-plugin",
+      "program": "${workspaceFolder}/packages/obsidian-plugin/esbuild.config.mjs",
+      "args": ["--watch"],
+      "preLaunchTask": "pnpm: build:core",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }

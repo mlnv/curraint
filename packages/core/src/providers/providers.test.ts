@@ -23,7 +23,7 @@ describe('provider configs', () => {
 
   it('returns provider config by id', () => {
     expect(getProviderConfig('openai').label).toBe('OpenAI (Cloud)');
-    expect(getProviderConfig('lmstudio').defaultBaseUrl).toBe('http://127.0.0.1:1234/v1');
+    expect(getProviderConfig('lmstudio').defaultBaseUrl).toBe('http://127.0.0.1:1234');
   });
 
   it('applies expected API key requirements', () => {

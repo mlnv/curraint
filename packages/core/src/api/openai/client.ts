@@ -30,7 +30,8 @@ export async function chatCompletion(
   const baseUrl = validateSettingsForRequest(settings);
   const url = `${baseUrl}/chat/completions`;
   const headers = createAuthHeaders(settings);
-  const body = { model: settings.model.trim(), messages };
+  const apiMessages = messages.map(({ role, content }) => ({ role, content }));
+  const body = { model: settings.model.trim(), messages: apiMessages };
   logRequest('', url, headers, body);
   const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
   logResponse(response);
@@ -51,7 +52,10 @@ export async function chatCompletionStream(
   const baseUrl = validateSettingsForRequest(settings);
   const url = `${baseUrl}/chat/completions`;
   const headers = createAuthHeaders(settings);
-  const body = { model: settings.model.trim(), messages, stream: true, stream_options: { include_usage: true } };
+  const apiMessages = messages.map(({ role, content }) => ({ role, content }));
+  const supportsStreamOptions = settings.provider === 'openai' || settings.provider === 'copilot';
+  const body: Record<string, unknown> = { model: settings.model.trim(), messages: apiMessages, stream: true };
+  if (supportsStreamOptions) body.stream_options = { include_usage: true };
   logRequest('(stream)', url, headers, body);
   const response = await fetch(url, { method: 'POST', headers, signal: options.signal, body: JSON.stringify(body) });
   logResponse(response);

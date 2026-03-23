@@ -34,6 +34,34 @@
       "dependsOn": ["pnpm: build:core"],
       "group": "build",
       "problemMatcher": []
+    },
+    {
+      "label": "pnpm: build:obsidian-plugin",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["--filter", "@curraint/obsidian-plugin", "build"],
+      "dependsOn": ["pnpm: build:core"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "pnpm: dev:obsidian-plugin",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["--filter", "@curraint/obsidian-plugin", "dev"],
+      "dependsOn": ["pnpm: build:core"],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "pnpm: deploy:obsidian-plugin",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["--filter", "@curraint/obsidian-plugin", "run", "deploy"],
+      "dependsOn": ["pnpm: build:obsidian-plugin"],
+      "group": "build",
+      "problemMatcher": []
     }
   ]
 }

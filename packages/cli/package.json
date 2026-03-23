@@ -2,6 +2,7 @@
   "name": "@curraint/cli",
   "version": "0.1.0",
   "description": "CLI application for curraint",
+  "author": "Maksym Yemelianov",
   "main": "dist/index.js",
   "bin": {
     "curraint": "dist/index.js"
