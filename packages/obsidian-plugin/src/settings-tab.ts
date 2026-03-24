@@ -1,7 +1,6 @@
-import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
+import { App, Platform, PluginSettingTab, Setting, Notice } from 'obsidian';
 import { PROVIDER_OPTIONS, testConnection } from '@curraint/core';
 import type CurraintPlugin from './main';
-import { encryptApiKey, decryptApiKey } from './secrets';
 import { testLmStudioConnection } from './transport';
 
 export class CurraintSettingTab extends PluginSettingTab {
@@ -12,15 +11,38 @@ export class CurraintSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  display(): void {
+  async display(): Promise<void> {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl)
+    // Pre-decrypt before rendering so the API key field can be populated
+    // synchronously inside the Obsidian Settings builder callbacks.
+    const decryptedApiKey = this.plugin.settings.apiKeyEncrypted
+      ? await this.plugin.secrets.decrypt(this.plugin.settings.apiKeyEncrypted)
+      : '';
+
+    // On mobile, local providers that require a server on the same machine
+    // are not reachable. Filter them out so users cannot accidentally select
+    // them and get confusing connection errors.
+    const providerOptions = Platform.isMobile
+      ? PROVIDER_OPTIONS.filter((p) => p.id !== 'lmstudio')
+      : PROVIDER_OPTIONS;
+
+    this.renderProviderSection(containerEl, providerOptions, decryptedApiKey);
+    this.renderContextLimitsSection(containerEl);
+    this.renderSessionsSection(containerEl);
+  }
+
+  private renderProviderSection(
+    el: HTMLElement,
+    providerOptions: typeof PROVIDER_OPTIONS,
+    decryptedApiKey: string,
+  ): void {
+    new Setting(el)
       .setName('Provider')
       .setDesc('AI provider to use for chat completions.')
       .addDropdown((drop) => {
-        for (const p of PROVIDER_OPTIONS) {
+        for (const p of providerOptions) {
           drop.addOption(p.id, p.label);
         }
         drop.setValue(this.plugin.settings.provider);
@@ -40,7 +62,7 @@ export class CurraintSettingTab extends PluginSettingTab {
     );
 
     if (selectedProvider?.requiresBaseUrl) {
-      new Setting(containerEl)
+      new Setting(el)
         .setName('Base URL')
         .setDesc('API base URL for the provider.')
         .addText((text) =>
@@ -54,7 +76,7 @@ export class CurraintSettingTab extends PluginSettingTab {
         );
     }
 
-    new Setting(containerEl)
+    new Setting(el)
       .setName('Model')
       .setDesc('Model name to use for completions.')
       .addText((text) =>
@@ -68,30 +90,26 @@ export class CurraintSettingTab extends PluginSettingTab {
       );
 
     if (selectedProvider?.requiresApiKey) {
-      new Setting(containerEl)
+      new Setting(el)
         .setName('API key')
         .setDesc(
-          'Your API key. Stored encrypted using your OS credentials — never synced in plain text.'
+          'Your API key. Stored encrypted - never synced in plain text.'
         )
         .addText((text) => {
           text.inputEl.type = 'password';
           text
             .setPlaceholder('sk-...')
-            .setValue(
-              this.plugin.settings.apiKeyEncrypted
-                ? decryptApiKey(this.plugin.settings.apiKeyEncrypted)
-                : ''
-            )
+            .setValue(decryptedApiKey)
             .onChange(async (value) => {
               this.plugin.settings.apiKeyEncrypted = value
-                ? encryptApiKey(value.trim())
+                ? await this.plugin.secrets.encrypt(value.trim())
                 : '';
               await this.plugin.saveSettings();
             });
         });
     }
 
-    new Setting(containerEl)
+    new Setting(el)
       .setName('System prompt')
       .setDesc('Default system prompt prepended to every conversation.')
       .addTextArea((text) =>
@@ -102,10 +120,12 @@ export class CurraintSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+  }
 
-    new Setting(containerEl).setName('Context limits').setHeading();
+  private renderContextLimitsSection(el: HTMLElement): void {
+    new Setting(el).setName('Context limits').setHeading();
 
-    new Setting(containerEl)
+    new Setting(el)
       .setName('Max messages')
       .setDesc('Maximum number of messages kept in context (4-120).')
       .addText((text) =>
@@ -120,7 +140,7 @@ export class CurraintSettingTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl)
+    new Setting(el)
       .setName('Max characters')
       .setDesc('Maximum total characters kept in context (4000-200000).')
       .addText((text) =>
@@ -134,10 +154,12 @@ export class CurraintSettingTab extends PluginSettingTab {
             }
           })
       );
+  }
 
-    new Setting(containerEl).setName('Sessions').setHeading();
+  private renderSessionsSection(el: HTMLElement): void {
+    new Setting(el).setName('Sessions').setHeading();
 
-    new Setting(containerEl)
+    new Setting(el)
       .setName('Save sessions')
       .setDesc(
         'Persist conversations so you can resume them later. ' +
@@ -152,7 +174,7 @@ export class CurraintSettingTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl)
+    new Setting(el)
       .setName('Test connection')
       .setDesc('Verify the current provider settings can reach the API.')
       .addButton((btn) =>
@@ -161,7 +183,7 @@ export class CurraintSettingTab extends PluginSettingTab {
           btn.setButtonText('Testing...');
           try {
             const apiKey = this.plugin.settings.apiKeyEncrypted
-              ? decryptApiKey(this.plugin.settings.apiKeyEncrypted)
+              ? await this.plugin.secrets.decrypt(this.plugin.settings.apiKeyEncrypted)
               : '';
             const endpointSettings = {
               provider: this.plugin.settings.provider,
@@ -173,9 +195,10 @@ export class CurraintSettingTab extends PluginSettingTab {
               contextMaxCharacters: this.plugin.settings.contextMaxCharacters,
               enableSessionSaving: this.plugin.settings.enableSessionSaving,
             };
-            const message = this.plugin.settings.provider === 'lmstudio'
-              ? await testLmStudioConnection(endpointSettings)
-              : await testConnection(endpointSettings);
+            const message =
+              this.plugin.settings.provider === 'lmstudio' && !Platform.isMobile
+                ? await testLmStudioConnection(endpointSettings)
+                : await testConnection(endpointSettings);
             new Notice(message);
           } catch (err) {
             new Notice(`Connection error: ${err instanceof Error ? err.message : String(err)}`);

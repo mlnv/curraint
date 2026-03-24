@@ -23,7 +23,7 @@ export async function getClient(): Promise<CopilotClientType> {
     const { CopilotClient } = await getSdk();
     stripConflictingEnvVars();
     // Use TCP instead of stdio so Electron's pipe interception doesn't break the channel.
-    clientInstance = new CopilotClient({ useLoggedInUser: true, autoRestart: true, useStdio: false });
+    clientInstance = new CopilotClient({ useLoggedInUser: true, useStdio: false });
   }
   return clientInstance;
 }

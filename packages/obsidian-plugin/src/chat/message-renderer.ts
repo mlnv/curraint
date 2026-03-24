@@ -1,7 +1,7 @@
 import { App, Component, MarkdownRenderer } from 'obsidian';
 import type { ChatMessage } from '@curraint/core';
 
-type StoredMessage = { role: ChatMessage['role']; content: string };
+type StoredMessage = { role: ChatMessage['role']; content: string; noteNames?: string[] };
 
 export class MessageRenderer {
   private readonly container: HTMLElement;
@@ -40,9 +40,9 @@ export class MessageRenderer {
     }
   }
 
-  appendMessage(role: ChatMessage['role'], content: string): HTMLElement {
-    this.storedMessages.push({ role, content });
-    return this.renderMessage(role, content);
+  appendMessage(role: ChatMessage['role'], content: string, noteNames?: string[]): HTMLElement {
+    this.storedMessages.push({ role, content, noteNames });
+    return this.renderMessage(role, content, noteNames);
   }
 
   beginAssistantMessage(initialContent = ''): void {
@@ -109,7 +109,7 @@ export class MessageRenderer {
     this.scrollToBottom();
   }
 
-  private renderMessage(role: ChatMessage['role'], content: string): HTMLElement {
+  private renderMessage(role: ChatMessage['role'], content: string, noteNames?: string[]): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = `curraint-message curraint-message--${role}`;
     const contentEl = document.createElement('div');
@@ -120,6 +120,17 @@ export class MessageRenderer {
       contentEl.textContent = content;
     }
     wrapper.appendChild(contentEl);
+    if (role === 'user' && noteNames && noteNames.length > 0) {
+      const tagsEl = document.createElement('div');
+      tagsEl.className = 'curraint-message__note-tags';
+      for (const name of noteNames) {
+        const tag = document.createElement('span');
+        tag.className = 'curraint-message__note-tag';
+        tag.textContent = name;
+        tagsEl.appendChild(tag);
+      }
+      wrapper.appendChild(tagsEl);
+    }
     this.container.appendChild(wrapper);
     this.scrollToBottom();
     return wrapper;
@@ -130,7 +141,7 @@ export class MessageRenderer {
     this.container.innerHTML = '';
     this.storedMessages = [];
     for (const msg of stored) {
-      this.appendMessage(msg.role, msg.content);
+      this.appendMessage(msg.role, msg.content, msg.noteNames);
     }
   }
 

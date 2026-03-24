@@ -21,6 +21,6 @@
     "electron-log": "^5.4.3"
   },
   "optionalDependencies": {
-    "@github/copilot-sdk": "^0.1.30"
+    "@github/copilot-sdk": "^0.2.0"
   }
 }

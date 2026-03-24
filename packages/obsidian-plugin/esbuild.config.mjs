@@ -4,6 +4,7 @@ import process from 'process';
 import fs from 'fs';
 
 const isWatch = process.argv.includes('--watch');
+const isDev = isWatch;
 
 function copyStaticFiles() {
   fs.mkdirSync('dist', { recursive: true });
@@ -35,6 +36,9 @@ const buildOptions = {
   logLevel: 'info',
   sourcemap: 'inline',
   treeShaking: true,
+  define: {
+    __DEV__: String(isDev),
+  },
   outfile: 'dist/main.js',
 };
 

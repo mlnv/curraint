@@ -1,11 +1,10 @@
-import { requestUrl } from 'obsidian';
+import { requestUrl, Platform } from 'obsidian';
 import {
   chatCompletionStream,
   composeConversation,
 } from '@curraint/core';
 import type { EndpointSettings, ChatSessionTransport } from '@curraint/core';
 import type CurraintPlugin from './main';
-import { decryptApiKey } from './secrets';
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -23,7 +22,7 @@ type LmsResponse = {
   error?: { message?: string };
 };
 
-function buildLmsUrl(baseUrl: string): string {
+export function buildLmsUrl(baseUrl: string): string {
   // Strip trailing slash and any /v1 suffix left over from the old default URL.
   const base = baseUrl.trim().replace(/\/v1\/?$/, '').replace(/\/$/, '');
   return `${base}/api/v1/chat`;
@@ -61,7 +60,7 @@ async function lmStudioChat(
 
 // --- OpenAI-compatible fallback (for openai / custom providers) -------------
 
-function buildCompletionsUrl(baseUrl: string): string {
+export function buildCompletionsUrl(baseUrl: string): string {
   const trimmed = baseUrl.trim().replace(/\/$/, '');
   const base = trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
   return `${base}/chat/completions`;
@@ -108,6 +107,94 @@ export async function testLmStudioConnection(settings: EndpointSettings): Promis
   return 'Connection successful.';
 }
 
+// --- LM Studio system prompt merge ------------------------------------------
+
+// Merges any conversation-level system messages (e.g. note context injected
+// per-turn) with the static system prompt from settings, returning a settings
+// object with the combined prompt. Returns the original settings unchanged
+// when no merge is needed.
+export function resolveEffectiveLmsSettings(
+  settings: EndpointSettings,
+  messages: { role: string; content: string }[]
+): EndpointSettings {
+  const conversationSystemParts = messages
+    .filter((m) => m.role === 'system')
+    .map((m) => m.content);
+  if (conversationSystemParts.length === 0) return settings;
+  const effectiveSystemPrompt =
+    [settings.systemPrompt, ...conversationSystemParts].filter(Boolean).join('\n\n') || undefined;
+  return effectiveSystemPrompt !== settings.systemPrompt
+    ? { ...settings, systemPrompt: effectiveSystemPrompt ?? '' }
+    : settings;
+}
+
+// --- LM Studio stream --------------------------------------------------------
+
+// Sends a single turn to LM Studio using its native stateful API and calls
+// onDelta with the full response text. Returns the updated response ID so the
+// caller can thread subsequent turns through the server-side conversation.
+async function streamLmStudio(
+  settings: EndpointSettings,
+  messages: { role: string; content: string }[],
+  onDelta: (delta: string) => void,
+  lmsResponseId: string | null,
+  signal?: AbortSignal
+): Promise<{ text: string; responseId: string | null }> {
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  if (!lastUser) throw new Error('No user message to send.');
+
+  const lmsSettings = resolveEffectiveLmsSettings(settings, messages);
+  const { text, responseId } = await lmStudioChat(lmsSettings, lastUser.content, lmsResponseId);
+
+  // requestUrl cannot be aborted - check if Stop was pressed while waiting
+  // and surface it as an AbortError so the core handles it as a cancellation.
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
+  onDelta(text);
+  return { text, responseId };
+}
+
+// --- OpenAI-compatible stream ------------------------------------------------
+
+// Streams a chat completion using the OpenAI-compatible API. Falls back to a
+// single non-streaming requestUrl call if SSE streaming fails before any
+// chunks arrive (e.g. providers that do not support streaming in all configs).
+async function streamOpenAiCompat(
+  settings: EndpointSettings,
+  messages: { role: string; content: string }[],
+  onDelta: (delta: string) => void,
+  signal?: AbortSignal
+): Promise<{ text: string; usage?: unknown }> {
+  const composed = composeConversation(settings, messages);
+  const apiMessages = composed.map(({ role, content }) => ({ role, content }));
+  let hasStreamedChunk = false;
+  let streamedMessage = '';
+
+  try {
+    const result = await chatCompletionStream(
+      settings,
+      composed,
+      {
+        onDelta: (delta) => {
+          hasStreamedChunk = true;
+          streamedMessage += delta;
+          onDelta(delta);
+        },
+      },
+      { signal }
+    );
+    return { text: result.message, usage: result.usage };
+  } catch (error) {
+    if (isAbortError(error)) return { text: streamedMessage };
+    if (hasStreamedChunk) throw error;
+    const text = await corsFreeChatCompletion(settings, apiMessages);
+    onDelta(text);
+    return { text };
+  }
+}
+
 // --- Transport factory -------------------------------------------------------
 
 export function buildTransport(plugin: CurraintPlugin): ChatSessionTransport {
@@ -115,92 +202,60 @@ export function buildTransport(plugin: CurraintPlugin): ChatSessionTransport {
   // need to be re-sent on every turn. Reset when the session is cleared.
   let lmsResponseId: string | null = null;
 
+  // Cache the last-decrypted API key so PBKDF2 and AES-GCM do not run on
+  // every message send. Invalidated automatically when the encrypted value
+  // changes (i.e. when the user updates their key in settings).
+  let cachedEncrypted: string | null = null;
+  let cachedApiKey = '';
+
+  async function resolveSettings(): Promise<EndpointSettings> {
+    const s = plugin.settings;
+    if (s.apiKeyEncrypted !== cachedEncrypted) {
+      cachedApiKey = s.apiKeyEncrypted ? await plugin.secrets.decrypt(s.apiKeyEncrypted) : '';
+      cachedEncrypted = s.apiKeyEncrypted;
+    }
+    return {
+      provider: s.provider,
+      apiKey: cachedApiKey,
+      baseUrl: s.baseUrl,
+      model: s.model,
+      systemPrompt: s.systemPrompt,
+      contextMaxMessages: s.contextMaxMessages,
+      contextMaxCharacters: s.contextMaxCharacters,
+      enableSessionSaving: s.enableSessionSaving,
+    };
+  }
+
   return {
     streamChat: async (messages, onDelta, options) => {
-      const settings = resolveSettings(plugin);
+      const settings = await resolveSettings();
 
-      // LM Studio native API - stateful, streaming over SSE.
-      // Only use the native API when server-side context exists (lmsResponseId set)
-      // or this is the very first message of a fresh conversation (no prior history).
-      // For sessions loaded from disk, lmsResponseId is null but there IS prior
-      // history - fall through to the OpenAI-compatible path below, which sends
-      // the full message history so the model has correct context.
+      // LM Studio requires a local server - it is not reachable on mobile.
+      if (settings.provider === 'lmstudio' && Platform.isMobile) {
+        throw new Error(
+          'LM Studio is not available on mobile. Switch to a cloud provider in Settings.'
+        );
+      }
+
+      // LM Studio native API - stateful, no full-history re-send.
+      // Only use the native API when server-side context exists (lmsResponseId
+      // set) or this is the very first message of a fresh conversation.
+      // For sessions loaded from disk, lmsResponseId is null but prior history
+      // exists - fall through to OpenAI-compatible path to send full history.
       const nonSystemMessages = messages.filter((m) => m.role !== 'system');
       if (settings.provider === 'lmstudio' && (lmsResponseId !== null || nonSystemMessages.length <= 1)) {
-        const lastUser = [...messages].reverse().find((m) => m.role === 'user');
-        if (!lastUser) throw new Error('No user message to send.');
-
-        // Merge any conversation-level system messages (e.g. note context)
-        // with the static system prompt from settings.
-        const conversationSystemParts = messages
-          .filter((m) => m.role === 'system')
-          .map((m) => m.content);
-        const effectiveSystemPrompt = [settings.systemPrompt, ...conversationSystemParts]
-          .filter(Boolean)
-          .join('\n\n') || undefined;
-
-        const lmsSettings = effectiveSystemPrompt !== settings.systemPrompt
-          ? { ...settings, systemPrompt: effectiveSystemPrompt ?? '' }
-          : settings;
-
-        const { text, responseId } = await lmStudioChat(lmsSettings, lastUser.content, lmsResponseId);
-
-        // requestUrl cannot be aborted - check if Stop was pressed while waiting
-        // and surface it as an AbortError so the core handles it as a cancellation.
-        if (options?.signal?.aborted) {
-          throw new DOMException('Aborted', 'AbortError');
-        }
-
-        lmsResponseId = responseId;
-        onDelta(text);
-        return { text };
-      }
-
-      // OpenAI-compatible providers.
-      const composed = composeConversation(settings, messages);
-      const apiMessages = composed.map(({ role, content }) => ({ role, content }));
-      let hasStreamedChunk = false;
-      let streamedMessage = '';
-
-      try {
-        const result = await chatCompletionStream(
-          settings,
-          composed,
-          {
-            onDelta: (delta) => {
-              hasStreamedChunk = true;
-              streamedMessage += delta;
-              onDelta(delta);
-            },
-          },
-          { signal: options?.signal }
+        const { text, responseId } = await streamLmStudio(
+          settings, messages, onDelta, lmsResponseId, options?.signal
         );
-        return { text: result.message, usage: result.usage };
-      } catch (error) {
-        if (isAbortError(error)) return { text: streamedMessage };
-        if (hasStreamedChunk) throw error;
-        const text = await corsFreeChatCompletion(settings, apiMessages);
-        onDelta(text);
+        lmsResponseId = responseId;
         return { text };
       }
+
+      return streamOpenAiCompat(settings, messages, onDelta, options?.signal);
     },
 
     clearSession: async () => {
       lmsResponseId = null;
     },
-  };
-}
-
-function resolveSettings(plugin: CurraintPlugin): EndpointSettings {
-  const s = plugin.settings;
-  return {
-    provider: s.provider,
-    apiKey: s.apiKeyEncrypted ? decryptApiKey(s.apiKeyEncrypted) : '',
-    baseUrl: s.baseUrl,
-    model: s.model,
-    systemPrompt: s.systemPrompt,
-    contextMaxMessages: s.contextMaxMessages,
-    contextMaxCharacters: s.contextMaxCharacters,
-    enableSessionSaving: s.enableSessionSaving,
   };
 }

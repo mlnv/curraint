@@ -7,35 +7,95 @@
 > APIs, configuration format, storage layout, and behaviour can change significantly
 > between releases without prior notice. Do not rely on it in production environments.
 
-curraint is a tray-first desktop and CLI AI chat client built with Electron + TypeScript.
+curraint is a tray-first desktop, CLI, and Obsidian AI chat client built with Electron + TypeScript.
 
-It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards.
+It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards, all powered by a shared `@curraint/core` library.
 
 ## Why curraint
 
-- Fast tray-first workflow for quick prompts
+- Fast tray-first workflow for quick prompts without switching apps
 - Cross-platform desktop support (Windows, macOS, Linux)
 - Optional local-model workflow through LM Studio
 - Provider-aware settings (OpenAI, LM Studio, Custom)
 - CLI mode for scripting and terminal-based usage
+- Obsidian plugin for in-vault AI chat with note context injection
 - Streaming-first UX with stop/cancel controls
-- Context safety with truncation + summary fallback
+- Context safety with automatic truncation and summary fallback
 
-## Features
+## Apps and packages
 
-- Always-on tray app with popover chat window
-- Settings window with provider selection and connection testing
-- Unread message indicator in tray icon + tooltip count
-- Enter to send, Shift+Enter for newline
-- OpenAI-compatible `/chat/completions` integration
-- Streaming responses with graceful non-stream fallback
-- Stop current response while preserving partial output
-- Edit user messages and regenerate from that point in history
-- Markdown rendering for assistant responses (tables, code, lists, headings)
-- Copy buttons for code blocks in responses
-- Configurable context safety limits (`max messages`, `max characters`)
-- Automatic history truncation with compact summary of removed context
-- Packaging support via `electron-builder`
+### 🖥️ Desktop (`@curraint/desktop`)
+
+The tray-first Electron app for quick, always-available AI chat.
+
+- Always-on tray app: left-click to open or close the chat popover
+- Right-click tray menu: `Open Chat`, `Settings`, `Quit`
+- **Quick Input**: a configurable global keyboard shortcut that opens a floating input bar from anywhere on the desktop
+- Unread message indicator with count in the tray icon tooltip
+- Settings window with provider selection, connection testing, and saved connections
+- Streaming responses with one-click stop that preserves partial output
+- Edit any user message and regenerate the conversation from that point
+- Markdown rendering: tables, code blocks with copy button, lists, and headings
+- Show or hide `<think>` / `<reasoning>` blocks from models that emit reasoning traces
+- Configurable context safety limits (max messages, max characters)
+- Automatic history truncation with a compact summary of removed context
+- Session saving: persist and resume named conversations across restarts (off by default)
+- Light and dark theme
+- Cross-platform packaging: Windows NSIS installer, macOS DMG, Linux AppImage and DEB
+
+### 💻 CLI (`@curraint/cli`)
+
+A terminal interface that shares the same chat engine as the desktop app.
+
+- Configure fully through environment variables, no config file required
+- Streaming, stop (`Ctrl+C`), and edit/regenerate flow identical to the desktop
+- Markdown rendering in the terminal via marked-terminal
+- Input history with up-arrow recall
+- Session saving with `/sessions-save on` and interactive session browser with `/sessions`
+- Slash commands:
+
+  | Command | Description |
+  |---|---|
+  | `/help` | Show available commands |
+  | `/history` | Print the current conversation history |
+  | `/sessions` | Browse and resume saved sessions interactively |
+  | `/sessions-save on\|off` | Enable or disable session saving |
+  | `/edit <number>` | Edit a previous user message and regenerate from that point |
+  | `/retry` | Regenerate the last assistant response |
+  | `/provider` | Change the active provider interactively |
+  | `/model` | Change the active model interactively |
+  | `/version` | Print the CLI version |
+  | `/clear` | Clear the screen and reset the current session |
+  | `/exit` | Exit the CLI |
+
+### 🔌 Obsidian plugin (`@curraint/obsidian-plugin`)
+
+A chat sidebar for any Obsidian vault, powered by `@curraint/core`.
+
+- Chat sidebar with full streaming, stop, and edit/regenerate support
+- Inject the active note as context with one click
+- Note picker: a multi-select, searchable modal to add any vault notes as context
+- Multiple simultaneous conversations with background streaming while switching between them
+- Editable conversation titles and a sessions modal to browse, rename, and delete saved conversations
+- Optional session saving (off by default) with configurable context limits (max messages, max characters)
+- Markdown/plain mode toggle per conversation
+- Encrypted API key storage (AES-256-GCM, machine-bound on desktop; Web Crypto AES-GCM on mobile)
+- Provider, model, and system prompt settings via the standard Obsidian settings tab
+
+> **Note:** The plugin stores its own encrypted API key separately from the desktop/CLI `secrets.json`. Keys are not shared between the plugin and the desktop/CLI apps.
+
+### 📦 Core (`@curraint/core`)
+
+The shared domain logic used by all apps and the plugin.
+
+- Streaming chat sessions: start, stop, and resume with a consistent API
+- Edit/regenerate flow: trim conversation history to any message and re-run from there
+- OpenAI-compatible provider abstraction supporting OpenAI, LM Studio, and Custom endpoints
+- Context safety: truncate history and generate a compact summary when limits are reached
+- AES-256-GCM encrypted secret storage with a per-machine key derived via PBKDF2-SHA256 (100,000 iterations)
+- Session persistence: save and restore named conversations
+- Settings management with normalisation and file-based persistence
+- Think-tag parsing: extract and show or hide `<think>` / `<reasoning>` blocks
 
 ## Tech stack
 
@@ -43,7 +103,7 @@ It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints
 - TypeScript
 - React + Vite
 - Tailwind/shadcn-style UI primitives
-- pnpm
+- pnpm monorepo
 - Vitest
 
 ## Requirements
@@ -65,7 +125,7 @@ Build:
 pnpm build
 ```
 
-Run desktop app:
+Run the desktop app:
 
 ```bash
 pnpm desktop
@@ -73,8 +133,8 @@ pnpm desktop
 
 ## Desktop usage
 
-- Left click tray icon: open/close chat popover
-- Right click tray icon: `Open Chat`, `Settings`, `Quit`
+- Left-click tray icon: open/close the chat popover
+- Right-click tray icon: `Open Chat`, `Settings`, `Quit`
 
 ### Settings
 
@@ -85,9 +145,9 @@ Configure:
 - API Base URL
 - Model
 - System Prompt
-- Reasoning block handling (`<think>` / `<reasoning>` show-hide)
-- Context safety limits in Advanced section
-- **Save sessions**, persist conversations so you can resume them later (off by default)
+- Reasoning block handling (`<think>` / `<reasoning>` show/hide)
+- Context safety limits in the Advanced section
+- **Save sessions**: persist conversations so you can resume them later (off by default)
 
 Use **Test Connection** to validate endpoint access before saving.
 
@@ -115,27 +175,12 @@ pnpm cli
 
 Behavior notes:
 
-- Uses the same shared chat-session core as desktop chat (streaming, stop, edit/regenerate flow).
-- Uses the same shared context-safety composition logic as desktop chat.
-- Works with OpenAI-compatible endpoints configured via environment variables.
-- Conversation history is **not saved by default**. To persist sessions across runs, use `/sessions-save on` (saved to `settings.json`). Once enabled, use `/sessions` to browse and resume past conversations.
-- CLI commands:
-	- `/help`, show available commands
-	- `/history`, print conversation history
-	- `/sessions`, browse and resume saved sessions
-	- `/sessions-save on|off`, enable or disable session saving
-	- `/edit <number>`, edit a previous user message and regenerate from that point
-	- `Ctrl+C` while streaming, stop current response
+- Uses the same shared chat-session core as the desktop (streaming, stop, edit/regenerate flow).
+- Works with any OpenAI-compatible endpoint configured via environment variables.
+- Conversation history is **not saved by default**. Use `/sessions-save on` to enable persistence; sessions are saved to `settings.json`. Use `/sessions` to browse and resume past conversations once saving is on.
+- Use `Ctrl+C` while streaming to stop the current response.
 
 ## Obsidian plugin
-
-The `packages/obsidian-plugin` package provides an Obsidian plugin that adds a chat sidebar to any Obsidian vault. It uses the same `@curraint/core` chat engine as the desktop and CLI.
-
-**Features:**
-- Chat sidebar powered by `@curraint/core` (streaming, stop, edit/regenerate)
-- Optional "include current note" toggle to inject the active note as context
-- Encrypted API key storage in `data.json` (AES-256-GCM, machine-bound)
-- Provider/model/system-prompt settings via the standard Obsidian settings tab
 
 **Build:**
 
@@ -144,8 +189,6 @@ pnpm --filter @curraint/obsidian-plugin build
 ```
 
 Output is written to `packages/obsidian-plugin/dist/` (`main.js`, `manifest.json`, `styles.css`). Copy the contents of `dist/` to `.obsidian/plugins/curraint/` inside your vault, then enable the plugin in Obsidian settings.
-
-**Note:** The plugin stores its own encrypted API key separately from the desktop/CLI `secrets.json`. Keys are not shared between the plugin and the desktop/CLI apps.
 
 ## Security
 
@@ -241,7 +284,7 @@ Then open the app normally. This is safe, the flag is added automatically by mac
 ## CI/CD pipelines
 
 - `CI` ([.github/workflows/ci.yml](.github/workflows/ci.yml))
-	- Manual trigger only (`workflow_dispatch`)
+	- Push or PR to `main`, and manual (`workflow_dispatch`)
 	- Runs `pnpm build` and `pnpm test`
 
 - `Package and Release` ([.github/workflows/package-release.yml](.github/workflows/package-release.yml))

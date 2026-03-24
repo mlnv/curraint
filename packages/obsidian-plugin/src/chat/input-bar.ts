@@ -1,8 +1,11 @@
 import { setIcon } from 'obsidian';
+import type { TFile } from 'obsidian';
 
 export type InputBarCallbacks = {
   onSubmit: (text: string) => void;
-  onNoteToggle: (active: boolean) => void;
+  onAddCurrentNote: () => void;
+  onNoteAdd: () => void;
+  onNoteRemove: (path: string) => void;
   onStop: () => void;
 };
 
@@ -10,45 +13,32 @@ export class InputBar {
   private readonly textarea: HTMLTextAreaElement;
   private readonly sendButton: HTMLButtonElement;
   private readonly stopButton: HTMLButtonElement;
+  private readonly addCurrentNoteButton: HTMLButtonElement;
   private readonly noteAddButton: HTMLButtonElement;
   private readonly contextBar: HTMLElement;
-  private readonly noteChip: HTMLElement;
-  private readonly noteChipLabel: HTMLSpanElement;
-  private _noteActive = false;
+  private readonly noteChipMap = new Map<string, HTMLElement>();
+  private callbacks: InputBarCallbacks;
 
   constructor(container: HTMLElement, callbacks: InputBarCallbacks) {
+    this.callbacks = callbacks;
+
     const wrapper = document.createElement('div');
     wrapper.className = 'curraint-input-wrapper';
 
-    // Context bar - always visible; shows note-add button or note chip
+    // Top bar - quick-add current note button (always leftmost) + chips
     this.contextBar = document.createElement('div');
     this.contextBar.className = 'curraint-context-bar';
 
-    this.noteChip = document.createElement('span');
-    this.noteChip.className = 'curraint-note-chip';
-    this.noteChip.style.display = 'none';
-
-    const noteChipIcon = document.createElement('span');
-    noteChipIcon.className = 'curraint-note-chip__icon';
-    noteChipIcon.textContent = '\uD83D\uDCC4';
-
-    this.noteChipLabel = document.createElement('span');
-    this.noteChipLabel.className = 'curraint-note-chip__label';
-    this.noteChipLabel.textContent = 'Note';
-
-    const noteChipRemove = document.createElement('button');
-    noteChipRemove.className = 'curraint-note-chip__remove';
-    noteChipRemove.textContent = '\u00D7';
-    noteChipRemove.title = 'Remove note from context';
-    noteChipRemove.addEventListener('click', () => {
-      this.setNoteActive(false);
-      callbacks.onNoteToggle(false);
+    this.addCurrentNoteButton = this.createButton(
+      'curraint-input-bar__add-current-note',
+      '+ Note',
+      'Add current note to context'
+    );
+    this.addCurrentNoteButton.addEventListener('click', () => {
+      callbacks.onAddCurrentNote();
     });
+    this.contextBar.appendChild(this.addCurrentNoteButton);
 
-    this.noteChip.appendChild(noteChipIcon);
-    this.noteChip.appendChild(this.noteChipLabel);
-    this.noteChip.appendChild(noteChipRemove);
-    this.contextBar.appendChild(this.noteChip);
 
     // Main input row
     const bar = document.createElement('div');
@@ -66,16 +56,6 @@ export class InputBar {
       }
     });
     this.textarea.addEventListener('input', () => this.autoResize());
-
-    this.noteAddButton = this.createButton(
-      'curraint-input-bar__note-add',
-      '+ Include note',
-      'Include current note as context'
-    );
-    this.noteAddButton.addEventListener('click', () => {
-      callbacks.onNoteToggle(true);
-    });
-    this.contextBar.appendChild(this.noteAddButton);
 
     this.sendButton = this.createButton(
       'curraint-input-bar__send',
@@ -99,31 +79,110 @@ export class InputBar {
     bar.appendChild(this.sendButton);
     bar.appendChild(this.stopButton);
 
+    // Bottom bar - browse-and-add-notes button
+    const bottomBar = document.createElement('div');
+    bottomBar.className = 'curraint-input-bottom-bar';
+
+    this.noteAddButton = this.createButton(
+      'curraint-input-bar__note-add',
+      '+ Add notes',
+      'Browse and add notes to context'
+    );
+    this.noteAddButton.addEventListener('click', () => {
+      callbacks.onNoteAdd();
+    });
+    bottomBar.appendChild(this.noteAddButton);
+
     wrapper.appendChild(this.contextBar);
     wrapper.appendChild(bar);
+    wrapper.appendChild(bottomBar);
     container.appendChild(wrapper);
+  }
+
+  /** Update the label on the quick-add button to reflect the active note title. */
+  setCurrentNoteTitle(title: string | null): void {
+    this.addCurrentNoteButton.textContent = title ? `+ ${title}` : '+ Note';
+    this.addCurrentNoteButton.title = title
+      ? `Add "${title}" to context`
+      : 'Add current note to context';
   }
 
   setLoading(loading: boolean): void {
     this.textarea.disabled = loading;
+    this.addCurrentNoteButton.disabled = loading;
+    this.noteAddButton.disabled = loading;
     this.sendButton.style.display = loading ? 'none' : '';
     this.stopButton.style.display = loading ? '' : 'none';
   }
 
-  setNoteActive(active: boolean, noteName?: string): void {
-    this._noteActive = active;
-    if (noteName) this.noteChipLabel.textContent = noteName;
-    this.noteChip.style.display = active ? '' : 'none';
-    this.noteAddButton.style.display = active ? 'none' : '';
-    this.noteAddButton.setAttribute('aria-pressed', String(active));
+  /** Replace the full set of note chips with the given files. */
+  setNoteChips(files: TFile[]): void {
+    // Remove chips that are no longer in the list.
+    for (const [path, el] of this.noteChipMap) {
+      if (!files.some((f) => f.path === path)) {
+        el.remove();
+        this.noteChipMap.delete(path);
+      }
+    }
+    // Add chips for newly selected files (preserve existing ones).
+    for (const file of files) {
+      if (!this.noteChipMap.has(file.path)) {
+        const chip = this.createChip(file);
+        this.contextBar.appendChild(chip);
+        this.noteChipMap.set(file.path, chip);
+      }
+    }
   }
 
-  get isNoteActive(): boolean {
-    return this._noteActive;
+  /** Remove a single chip by file path. */
+  removeOneChip(path: string): void {
+    const el = this.noteChipMap.get(path);
+    if (el) {
+      el.remove();
+      this.noteChipMap.delete(path);
+    }
+  }
+
+  /** Remove all chips (e.g. after a message is sent). */
+  clearNoteChips(): void {
+    for (const el of this.noteChipMap.values()) el.remove();
+    this.noteChipMap.clear();
+  }
+
+  /** Returns paths of all currently displayed chips. */
+  getSelectedPaths(): string[] {
+    return Array.from(this.noteChipMap.keys());
   }
 
   focus(): void {
     this.textarea.focus();
+  }
+
+  private createChip(file: TFile): HTMLElement {
+    const chip = document.createElement('span');
+    chip.className = 'curraint-note-chip';
+
+    const icon = document.createElement('span');
+    icon.className = 'curraint-note-chip__icon';
+    icon.textContent = '\uD83D\uDCC4';
+
+    const label = document.createElement('span');
+    label.className = 'curraint-note-chip__label';
+    label.textContent = file.basename;
+
+    const remove = document.createElement('button');
+    remove.className = 'curraint-note-chip__remove';
+    remove.textContent = '\u00D7';
+    remove.title = 'Remove note from context';
+    remove.addEventListener('click', () => {
+      this.removeOneChip(file.path);
+      this.callbacks.onNoteRemove(file.path);
+    });
+
+    chip.appendChild(icon);
+    chip.appendChild(label);
+    chip.appendChild(remove);
+    return chip;
   }
 
   private trySubmit(onSubmit: (text: string) => void): void {
@@ -151,3 +210,4 @@ export class InputBar {
     return btn;
   }
 }
+

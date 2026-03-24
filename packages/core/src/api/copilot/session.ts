@@ -32,7 +32,7 @@ async function createNewSession(
 
 export async function destroyActiveSession(): Promise<void> {
   if (activeSession) {
-    await activeSession.session.destroy().catch(() => {});
+    await activeSession.session.disconnect().catch(() => {});
     activeSession = null;
   }
 }
@@ -53,7 +53,7 @@ export async function getOrCreateSession(
 /** Invalidates the active session if it matches the given session instance. */
 export async function invalidateSession(session: CopilotSessionType): Promise<void> {
   if (activeSession?.session === session) {
-    await session.destroy().catch(() => {});
+    await session.disconnect().catch(() => {});
     activeSession = null;
   }
 }

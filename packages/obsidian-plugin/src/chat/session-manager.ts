@@ -3,6 +3,7 @@ import {
   generateSessionId,
   deriveTitle,
   saveSession,
+  getSession,
 } from '@curraint/core';
 import type { ChatSessionCore, ChatSessionTransport, ChatMessage, SavedSession } from '@curraint/core';
 
@@ -100,6 +101,20 @@ export class ConversationRegistry {
   /** Stop the active slot's stream if it is sending. */
   stopActive(): void {
     void this.slots.get(this._activeKey)?.core.stopResponse();
+  }
+
+  /** Rename the active conversation, persisting to storage if already saved. */
+  renameActive(title: string): void {
+    const slot = this.slots.get(this._activeKey);
+    if (!slot) return;
+    const trimmed = title.trim();
+    slot.title = trimmed || null;
+    if (slot.sessionId && trimmed) {
+      const saved = getSession(slot.sessionId);
+      if (saved) {
+        saveSession({ ...saved, title: trimmed });
+      }
+    }
   }
 
   /** Release all slots and their core subscriptions. */

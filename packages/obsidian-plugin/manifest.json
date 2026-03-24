@@ -6,6 +6,6 @@
   "description": "Chat with AI from within Obsidian. Optionally include the current note as context.",
   "author": "Maksym Yemelianov",
   "authorUrl": "",
-  "isDesktopOnly": true
+  "isDesktopOnly": false
 }
 

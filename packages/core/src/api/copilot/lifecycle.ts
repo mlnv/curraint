@@ -32,10 +32,10 @@ export async function copilotTestConnection(model: string): Promise<string> {
   });
   try {
     await session.sendAndWait({ prompt: 'Say "OK" and nothing else.' }, 15000);
-    await session.destroy();
+    await session.disconnect();
     return 'Connection successful. GitHub Copilot is ready.';
   } catch (error) {
-    await session.destroy().catch(() => {});
+    await session.disconnect().catch(() => {});
     throw error;
   }
 }

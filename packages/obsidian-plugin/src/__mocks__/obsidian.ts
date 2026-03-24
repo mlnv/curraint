@@ -25,3 +25,10 @@ export class Modal {}
 export class Setting {}
 export class PluginSettingTab {}
 export function setIcon(_el: HTMLElement, _icon: string): void {}
+
+export const Platform = {
+  isMobile: false,
+  isDesktop: true,
+  isPhone: false,
+  isTablet: false,
+};

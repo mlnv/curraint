@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@curraint/core": "workspace:*",
-    "@github/copilot-sdk": "^0.1.30",
+    "@github/copilot-sdk": "^0.2.0",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0"
   },
