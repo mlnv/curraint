@@ -123,9 +123,9 @@ export function resolveEffectiveLmsSettings(
   if (conversationSystemParts.length === 0) return settings;
   const effectiveSystemPrompt =
     [settings.systemPrompt, ...conversationSystemParts].filter(Boolean).join('\n\n') || undefined;
-  return effectiveSystemPrompt !== settings.systemPrompt
-    ? { ...settings, systemPrompt: effectiveSystemPrompt ?? '' }
-    : settings;
+  return effectiveSystemPrompt === settings.systemPrompt
+    ? settings
+    : { ...settings, systemPrompt: effectiveSystemPrompt ?? '' };
 }
 
 // --- LM Studio stream --------------------------------------------------------

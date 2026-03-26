@@ -74,7 +74,10 @@ export default class CurraintPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_PLUGIN_SETTINGS, await this.loadData());
+    this.settings = {
+      ...DEFAULT_PLUGIN_SETTINGS,
+      ...(await this.loadData()),
+    };
   }
 
   async saveSettings(): Promise<void> {
@@ -93,7 +96,7 @@ export default class CurraintPlugin extends Plugin {
     workspace.revealLeaf(leaf);
 
     if (options?.injectNote && leaf.view instanceof ChatView) {
-      await (leaf.view as ChatView).injectCurrentNote();
+      leaf.view.injectCurrentNote();
     }
   }
 }

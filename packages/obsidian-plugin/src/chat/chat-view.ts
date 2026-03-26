@@ -2,7 +2,7 @@ import { ItemView, Notice, WorkspaceLeaf, setIcon } from 'obsidian';
 import type { TFile } from 'obsidian';
 import type CurraintPlugin from '../main';
 import { buildTransport } from '../transport';
-import { buildNoteContextMessageForFile } from '../note-context';
+import { buildNoteContextMessageForFile, NOTE_CONTEXT_PREFIX } from '../note-context';
 import { ConversationRegistry } from './session-manager';
 import { MessageRenderer } from './message-renderer';
 import { InputBar } from './input-bar';
@@ -64,7 +64,7 @@ export class ChatView extends ItemView {
     this.registry.init();
 
     this.inputBar = new InputBar(inputEl, {
-      onSubmit: (text) => { void this.handleSubmit(text); },
+      onSubmit: (text) => { this.handleSubmit(text).catch(() => {}); },
       onAddCurrentNote: () => { this.injectCurrentNote(); },
       onNoteAdd: () => { this.handleOpenNotePicker(); },
       onNoteRemove: (path) => { this.handleNoteRemove(path); },
@@ -337,7 +337,7 @@ export class ChatView extends ItemView {
     while (
       base.length > 0 &&
       base[0].role === 'system' &&
-      base[0].content.startsWith('The user has shared the following note')
+      base[0].content.startsWith(NOTE_CONTEXT_PREFIX)
     ) {
       base = base.slice(1);
     }

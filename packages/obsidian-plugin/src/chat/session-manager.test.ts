@@ -19,7 +19,6 @@ import {
 } from '@curraint/core';
 import type { ChatSessionCore, ChatSessionSubscriber, ChatSessionTransport } from '@curraint/core';
 import { ConversationRegistry } from './session-manager';
-import type { ConversationSlot } from './session-manager';
 
 // ---------------------------------------------------------------------------
 // Helpers

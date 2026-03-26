@@ -1,6 +1,8 @@
 import type { App, TFile } from 'obsidian';
 import type { ChatMessage } from '@curraint/core';
 
+export const NOTE_CONTEXT_PREFIX = 'The user has shared the following note';
+
 /**
  * Builds a system ChatMessage for the given note file. Returns null when
  * the file content is blank.
@@ -14,7 +16,7 @@ export async function buildNoteContextMessageForFile(
 
   return {
     role: 'system',
-    content: `The user has shared the following note for context. Its title is "${file.basename}".\n\n---\n\n${content}`,
+    content: `${NOTE_CONTEXT_PREFIX} for context. Its title is "${file.basename}".\n\n---\n\n${content}`,
   };
 }
 

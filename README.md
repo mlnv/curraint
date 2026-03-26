@@ -154,7 +154,7 @@ Use **Test Connection** to validate endpoint access before saving.
 ### LM Studio quick setup
 
 - Provider: `LM Studio (Local)`
-- Default base URL: `http://127.0.0.1:1234/v1`
+- Default base URL: `http://127.0.0.1:1234`
 - API key: optional
 
 ## CLI usage
@@ -177,7 +177,7 @@ Behavior notes:
 
 - Uses the same shared chat-session core as the desktop (streaming, stop, edit/regenerate flow).
 - Works with any OpenAI-compatible endpoint configured via environment variables.
-- Conversation history is **not saved by default**. Use `/sessions-save on` to enable persistence; sessions are saved to `settings.json`. Use `/sessions` to browse and resume past conversations once saving is on.
+- Conversation history is **not saved by default**. Use `/sessions-save on` to enable persistence; sessions are stored by the SessionsManager as dedicated JSON files in the app user-data `sessions/` directory, using `<session-id>.json` filenames, while `settings.json` remains config-only. Use `/sessions` to browse and resume saved conversations.
 - Use `Ctrl+C` while streaming to stop the current response.
 
 ## Obsidian plugin

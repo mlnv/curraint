@@ -79,7 +79,7 @@ export class MessageRenderer {
       el.textContent = raw;
     } else {
       el.textContent = '';
-      void MarkdownRenderer.render(this.app, raw, el, '', this.component);
+      this.renderMarkdown(raw, el);
     }
     this.activeContentEl = null;
     this.activeRawContent = '';
@@ -115,7 +115,7 @@ export class MessageRenderer {
     const contentEl = document.createElement('div');
     contentEl.className = 'curraint-message__content';
     if (role === 'assistant' && !this.plainMode) {
-      void MarkdownRenderer.render(this.app, content, contentEl, '', this.component);
+      this.renderMarkdown(content, contentEl);
     } else {
       contentEl.textContent = content;
     }
@@ -147,5 +147,11 @@ export class MessageRenderer {
 
   private scrollToBottom(): void {
     this.container.scrollTop = this.container.scrollHeight;
+  }
+
+  private renderMarkdown(raw: string, el: HTMLElement): void {
+    MarkdownRenderer.render(this.app, raw, el, '', this.component).catch((error: unknown) => {
+      console.error('Curraint: Failed to render markdown.', error);
+    });
   }
 }

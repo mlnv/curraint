@@ -100,7 +100,7 @@ export class ConversationRegistry {
 
   /** Stop the active slot's stream if it is sending. */
   stopActive(): void {
-    void this.slots.get(this._activeKey)?.core.stopResponse();
+    this.slots.get(this._activeKey)?.core.stopResponse()?.catch(() => {});
   }
 
   /** Rename the active conversation, persisting to storage if already saved. */

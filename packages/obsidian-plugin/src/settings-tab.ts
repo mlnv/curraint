@@ -132,11 +132,16 @@ export class CurraintSettingTab extends PluginSettingTab {
         text
           .setValue(String(this.plugin.settings.contextMaxMessages))
           .onChange(async (value) => {
-            const num = parseInt(value, 10);
-            if (!isNaN(num) && num >= 4 && num <= 120) {
-              this.plugin.settings.contextMaxMessages = num;
-              await this.plugin.saveSettings();
+            const previousValue = this.plugin.settings.contextMaxMessages;
+            if (value === String(previousValue)) return;
+            const num = Number.parseInt(value, 10);
+            if (Number.isNaN(num) || num < 4 || num > 120) {
+              new Notice('Max messages must be between 4 and 120.');
+              text.setValue(String(previousValue));
+              return;
             }
+            this.plugin.settings.contextMaxMessages = num;
+            await this.plugin.saveSettings();
           })
       );
 
@@ -147,11 +152,16 @@ export class CurraintSettingTab extends PluginSettingTab {
         text
           .setValue(String(this.plugin.settings.contextMaxCharacters))
           .onChange(async (value) => {
-            const num = parseInt(value, 10);
-            if (!isNaN(num) && num >= 4000 && num <= 200000) {
-              this.plugin.settings.contextMaxCharacters = num;
-              await this.plugin.saveSettings();
+            const previousValue = this.plugin.settings.contextMaxCharacters;
+            if (value === String(previousValue)) return;
+            const num = Number.parseInt(value, 10);
+            if (Number.isNaN(num) || num < 4000 || num > 200000) {
+              new Notice('Max characters must be between 4000 and 200000.');
+              text.setValue(String(previousValue));
+              return;
             }
+            this.plugin.settings.contextMaxCharacters = num;
+            await this.plugin.saveSettings();
           })
       );
   }

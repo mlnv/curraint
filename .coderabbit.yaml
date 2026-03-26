@@ -30,9 +30,9 @@ reviews:
         and correct teardown of event listeners and commands.
     - path: "packages/**/*.test.ts"
       instructions: >
-        Verify tests follow the red-green-refactor TDD workflow. Flag tests
-        that only cover the happy path, missing edge cases, or boundary
-        conditions. Ensure each test has a clear arrange-act-assert structure.
+        Flag tests that only cover the happy path, miss edge cases or
+        boundary conditions, use non-deterministic assertions, or lack a
+        clear arrange-act-assert structure.
 
 tone_instructions: >
   Provide architectural insights on system design, scalability, and

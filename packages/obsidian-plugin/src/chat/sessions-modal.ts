@@ -1,15 +1,8 @@
-import { App, Modal, setIcon } from 'obsidian';
+import { App, Modal, Notice, setIcon } from 'obsidian';
 import { DeleteConfirmModal } from './delete-confirm-modal';
 import { listSessions, getSession, deleteSession, saveSession } from '@curraint/core';
 import type { SavedSession, SessionSummary } from '@curraint/core';
-
-function relativeDate(updatedAt: number): string {
-  const diff = Math.floor((Date.now() - updatedAt) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
+import { relativeDate } from './relative-date';
 
 export class SessionsModal extends Modal {
   private readonly onLoad: (session: SavedSession) => void;
@@ -77,8 +70,10 @@ export class SessionsModal extends Modal {
       const session = getSession(summary.id);
       if (session) {
         this.onLoad(session);
+        this.close();
+        return;
       }
-      this.close();
+      new Notice('Could not load session.');
     });
 
     const deleteBtn = actions.createEl('button', {

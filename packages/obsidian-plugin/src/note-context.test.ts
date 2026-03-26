@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildNoteContextMessage } from './note-context';
+import { buildNoteContextMessage, NOTE_CONTEXT_PREFIX } from './note-context';
 import type { App } from 'obsidian';
 
 function makeApp(file: { basename: string } | null, content: string): App {
@@ -25,6 +25,7 @@ describe('buildNoteContextMessage', () => {
     const msg = await buildNoteContextMessage(app);
     expect(msg).not.toBeNull();
     expect(msg?.role).toBe('system');
+    expect(msg?.content.startsWith(NOTE_CONTEXT_PREFIX)).toBe(true);
     expect(msg?.content).toContain('My Note');
   });
 
