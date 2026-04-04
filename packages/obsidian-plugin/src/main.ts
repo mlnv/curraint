@@ -29,16 +29,22 @@ export default class CurraintPlugin extends Plugin {
     await this.loadSettings();
 
     if (Platform.isMobile) {
+      let shouldSaveSettings = false;
+
       // Generate a device key on first mobile run - used by MobileSecretsStrategy.
       if (!this.settings.mobileDeviceKey) {
         this.settings.mobileDeviceKey = generateMobileDeviceKey();
-        await this.saveSettings();
+        shouldSaveSettings = true;
       }
       // LM Studio requires a local server, which is not reachable from mobile.
       // Reset to OpenAI if the provider was synced from a desktop vault.
       if (this.settings.provider === 'lmstudio') {
         this.settings.provider = 'openai';
         this.settings.baseUrl = PROVIDER_CONFIGS.openai.defaultBaseUrl;
+        shouldSaveSettings = true;
+      }
+
+      if (shouldSaveSettings) {
         await this.saveSettings();
       }
     }
