@@ -99,6 +99,12 @@
   cursor: text;
 }
 
+.curraint-message::selection,
+.curraint-message *::selection {
+  background-color: var(--text-selection, var(--text-highlight-bg));
+  color: inherit;
+}
+
 .curraint-message--user {
   background-color: var(--interactive-accent);
   color: var(--text-on-accent);
