@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   DesktopSecretsStrategy,
   InvalidMobileDeviceKeyError,
@@ -81,6 +81,22 @@ describe('MobileSecretsStrategy', () => {
     expect(() => new MobileSecretsStrategy(wrongLengthKey)).toThrow(
       'Mobile device key must decode to exactly 32 bytes'
     );
+  });
+
+  it('defers CryptoKey import until first use', async () => {
+    const importKeySpy = vi.spyOn(globalThis.crypto.subtle, 'importKey');
+
+    try {
+      const strategy = new MobileSecretsStrategy(generateMobileDeviceKey());
+
+      expect(importKeySpy).not.toHaveBeenCalled();
+
+      await strategy.encrypt('secret-value');
+
+      expect(importKeySpy).toHaveBeenCalledTimes(1);
+    } finally {
+      importKeySpy.mockRestore();
+    }
   });
 
   it('rejects import failures with a typed error', async () => {

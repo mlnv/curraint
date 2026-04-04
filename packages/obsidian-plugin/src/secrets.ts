@@ -93,11 +93,11 @@ export class DesktopSecretsStrategy implements SecretsStrategy {
 type MobileBlob = { iv: string; data: string };
 
 export class MobileSecretsStrategy implements SecretsStrategy {
-  private readonly keyPromise: Promise<CryptoKey>;
+  private readonly rawKey: Uint8Array;
+  private keyPromise: Promise<CryptoKey> | null = null;
 
   constructor(deviceKey: string) {
-    this.decodeDeviceKey(deviceKey);
-    this.keyPromise = this.importKey(deviceKey);
+    this.rawKey = this.decodeDeviceKey(deviceKey);
   }
 
   private decodeDeviceKey(deviceKey: string): Uint8Array {
@@ -129,15 +129,11 @@ export class MobileSecretsStrategy implements SecretsStrategy {
     }
   }
 
-  private async importKey(deviceKey: string): Promise<CryptoKey> {
-    const keyBytes = this.decodeDeviceKey(deviceKey);
-    const rawKey = new Uint8Array(keyBytes.length);
-    rawKey.set(keyBytes);
-
+  private async importKey(): Promise<CryptoKey> {
     try {
       return await globalThis.crypto.subtle.importKey(
         'raw',
-        rawKey,
+        this.rawKey,
         { name: 'AES-GCM' },
         false,
         ['encrypt', 'decrypt']
@@ -154,8 +150,16 @@ export class MobileSecretsStrategy implements SecretsStrategy {
     }
   }
 
+  private getKey(): Promise<CryptoKey> {
+    if (!this.keyPromise) {
+      this.keyPromise = this.importKey();
+    }
+
+    return this.keyPromise;
+  }
+
   async encrypt(plaintext: string): Promise<string> {
-    const key = await this.keyPromise;
+    const key = await this.getKey();
     const iv = new Uint8Array(IV_LEN);
     globalThis.crypto.getRandomValues(iv);
     const ciphertext = await globalThis.crypto.subtle.encrypt(
@@ -174,7 +178,7 @@ export class MobileSecretsStrategy implements SecretsStrategy {
     try {
       const blob = JSON.parse(stored) as MobileBlob;
       if (!blob.iv || !blob.data) return '';
-      const key = await this.keyPromise;
+      const key = await this.getKey();
       const iv = Uint8Array.from(atob(blob.iv), (c) => c.charCodeAt(0));
       const ciphertext = Uint8Array.from(atob(blob.data), (c) => c.charCodeAt(0));
       const plaintext = await globalThis.crypto.subtle.decrypt(
