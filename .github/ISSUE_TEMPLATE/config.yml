@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contribution guide
+    url: https://github.com/curraint/curraint/blob/main/CONTRIBUTING.md
+    about: Review local setup, testing expectations, and pull request guidance.
+  - name: Security reporting guidance
+    url: https://github.com/curraint/curraint/blob/main/CONTRIBUTING.md#security
+    about: Do not open public issues for vulnerabilities or sensitive disclosures.
