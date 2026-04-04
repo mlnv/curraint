@@ -15,7 +15,24 @@
 
 curraint is an AI chat client built around a shared TypeScript core. Use the desktop app when you want a fast tray workflow, the CLI when you want scripting and terminal control, and the Obsidian plugin when your work already lives in notes. All three surfaces share the same chat engine, so streaming, edit and regenerate, context safety, provider behavior, and session handling stay consistent.
 
-[Why curraint](#why-curraint) · [Choose your interface](#choose-your-interface) · [Quick start](#quick-start) · [How it works](#how-curraint-works) · [Security](#security-and-storage) · [Development](#development)
+[Why curraint](#why-curraint) · [Alpha status](#alpha-status) · [Choose your interface](#choose-your-interface) · [Quick start](#quick-start) · [How it works](#how-curraint-works) · [Security](#security-and-storage) · [Development](#development)
+
+## Alpha status
+
+curraint is still in early alpha. The user-facing packages in this repo are not all equally validated across platforms yet, and some combinations have not been tested at all.
+
+| Interface | Windows | macOS | Mobile |
+|---|---|---|---|
+| Desktop | Verified | Not yet verified | Not applicable |
+| CLI | Verified | Verified | Not applicable |
+| Obsidian plugin | Verified | Not yet verified | Not yet tested |
+
+Status legend:
+
+- **Verified**: known usable based on current manual testing.
+- **Not yet verified**: may work, but has not been confirmed yet in this alpha.
+- **Not yet tested**: no validation has been done yet.
+- **Not applicable**: that interface is not intended for that platform.
 
 ## Why curraint
 
