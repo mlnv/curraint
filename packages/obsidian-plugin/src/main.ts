@@ -70,6 +70,11 @@ export default class CurraintPlugin extends Plugin {
   }
 
   onunload(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)) {
+      if (leaf.view instanceof ChatView) {
+        leaf.view.destroyRegistry();
+      }
+    }
     this.app.workspace.detachLeavesOfType(CHAT_VIEW_TYPE);
   }
 

@@ -93,7 +93,11 @@ export class ChatView extends ItemView {
   }
 
   async onClose(): Promise<void> {
-    this.registry.destroy();
+    this.destroyRegistry();
+  }
+
+  destroyRegistry(): void {
+    this.registry?.destroy();
   }
 
   injectCurrentNote(): void {
