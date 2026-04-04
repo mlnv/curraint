@@ -69,6 +69,7 @@ This is a **pnpm monorepo**. All packages live under `packages/`.
 | `packages/core` | Shared business logic: chat sessions, providers, settings, secrets, context management |
 | `packages/cli` | Terminal interface — depends on `@curraint/core` |
 | `packages/desktop` | Electron desktop app (main process + React renderer) — depends on `@curraint/core` |
+| `packages/obsidian-plugin` | Obsidian plugin for vault-aware chat workflows — depends on `@curraint/core` |
 | `packages/desktop-e2e` | Playwright end-to-end tests for the desktop app |
 
 `@curraint/core` is the single source of truth for domain logic. Keep package-specific code in the relevant package; only promote logic to `core` when it is genuinely shared.
