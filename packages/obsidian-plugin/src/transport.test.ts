@@ -65,6 +65,12 @@ describe('buildCompletionsUrl', () => {
       'https://api.openai.com/v1/chat/completions'
     );
   });
+
+  it('does not double /v1 when the base URL already ends with /v1/', () => {
+    expect(buildCompletionsUrl('https://api.openai.com/v1/')).toBe(
+      'https://api.openai.com/v1/chat/completions'
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -138,10 +138,15 @@ export class MessageRenderer {
 
   private rerender(): void {
     const stored = this.storedMessages.slice();
+    const activeRaw = this.activeContentEl ? this.activeRawContent : null;
     this.container.innerHTML = '';
+    this.activeContentEl = null;
     this.storedMessages = [];
     for (const msg of stored) {
       this.appendMessage(msg.role, msg.content, msg.noteNames);
+    }
+    if (activeRaw !== null) {
+      this.beginAssistantMessage(activeRaw);
     }
   }
 

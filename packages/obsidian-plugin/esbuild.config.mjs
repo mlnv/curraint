@@ -4,7 +4,7 @@ import process from 'node:process';
 import fs from 'node:fs';
 
 const isWatch = process.argv.includes('--watch');
-const isDev = isWatch;
+const isDev = process.argv.includes('--dev') || isWatch;
 
 function copyStaticFiles() {
   fs.mkdirSync('dist', { recursive: true });

@@ -16,6 +16,7 @@ import {
   generateSessionId,
   deriveTitle,
   saveSession,
+  getSession,
 } from '@curraint/core';
 import type { ChatSessionCore, ChatSessionSubscriber, ChatSessionTransport } from '@curraint/core';
 import { ConversationRegistry } from './session-manager';
@@ -240,6 +241,61 @@ describe('ConversationRegistry - loadSession', () => {
     const secondCore = reg.getOrCreateActive();
 
     expect(secondCore).not.toBe(firstCore);
+  });
+
+  it('removes a mismatched idle slot key before loading the canonical saved session key', () => {
+    const reg = new ConversationRegistry(() => makeTransport(), () => false);
+    reg.init();
+    reg.newConversation();
+
+    const oldKey = reg.activeKey;
+    const oldCore = reg.getOrCreateActive();
+    const oldSlot = reg.getActiveSlot()!;
+    oldSlot.sessionId = saved.id;
+
+    reg.loadSession(saved);
+
+    const newCore = reg.getOrCreateActive();
+    const slots = (reg as unknown as { slots: Map<string, unknown> }).slots;
+
+    expect(reg.activeKey).toBe(saved.id);
+    expect(newCore).not.toBe(oldCore);
+    expect(slots.has(oldKey)).toBe(false);
+    expect(slots.has(saved.id)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renameActive
+// ---------------------------------------------------------------------------
+
+describe('ConversationRegistry - renameActive', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createChatSessionCore).mockImplementation(() => makeMockCore());
+  });
+
+  it('persists clearing the title for a saved session', () => {
+    const reg = new ConversationRegistry(() => makeTransport(), () => false);
+    reg.init();
+
+    const savedSession = {
+      id: 'saved-123',
+      title: 'Existing title',
+      createdAt: 1000,
+      updatedAt: 2000,
+      messages: [{ role: 'user' as const, content: 'Hello' }],
+    };
+    vi.mocked(getSession).mockReturnValue(savedSession);
+
+    reg.loadSession(savedSession);
+    reg.renameActive('   ');
+
+    expect(reg.getActiveSlot()?.title).toBe('');
+    expect(saveSession).toHaveBeenCalledWith({
+      ...savedSession,
+      title: '',
+    });
   });
 });
 

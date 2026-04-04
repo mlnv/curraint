@@ -15,6 +15,19 @@ describe('buildNoteContextMessage', () => {
     expect(await buildNoteContextMessage(app)).toBeNull();
   });
 
+  it('returns null when reading the active file fails', async () => {
+    const app = {
+      workspace: { getActiveFile: () => ({ basename: 'Broken Note' }) },
+      vault: {
+        read: async () => {
+          throw new Error('Read failed');
+        },
+      },
+    } as unknown as App;
+
+    expect(await buildNoteContextMessage(app)).toBeNull();
+  });
+
   it('returns null when the note is blank', async () => {
     const app = makeApp({ basename: 'My Note' }, '   \n  ');
     expect(await buildNoteContextMessage(app)).toBeNull();

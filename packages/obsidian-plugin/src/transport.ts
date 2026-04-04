@@ -4,6 +4,7 @@ import {
   composeConversation,
 } from '@curraint/core';
 import type { EndpointSettings, ChatSessionTransport } from '@curraint/core';
+import type { ChatMessage, TokenUsage } from '@curraint/core';
 import type CurraintPlugin from './main';
 
 function isAbortError(error: unknown): boolean {
@@ -163,10 +164,10 @@ async function streamLmStudio(
 // chunks arrive (e.g. providers that do not support streaming in all configs).
 async function streamOpenAiCompat(
   settings: EndpointSettings,
-  messages: { role: string; content: string }[],
+  messages: ChatMessage[],
   onDelta: (delta: string) => void,
   signal?: AbortSignal
-): Promise<{ text: string; usage?: unknown }> {
+): Promise<{ text: string; usage?: TokenUsage }> {
   const composed = composeConversation(settings, messages);
   const apiMessages = composed.map(({ role, content }) => ({ role, content }));
   let hasStreamedChunk = false;
@@ -189,7 +190,13 @@ async function streamOpenAiCompat(
   } catch (error) {
     if (isAbortError(error)) return { text: streamedMessage };
     if (hasStreamedChunk) throw error;
+
+    if (signal?.aborted) return { text: streamedMessage };
+
     const text = await corsFreeChatCompletion(settings, apiMessages);
+
+    if (signal?.aborted) return { text: streamedMessage };
+
     onDelta(text);
     return { text };
   }

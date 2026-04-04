@@ -156,5 +156,19 @@ describe('MessageRenderer', () => {
       renderer.setPlainMode(false);
       expect(container.children.length).toBe(initialCount);
     });
+
+    it('keeps streaming deltas attached to the visible bubble when plain mode changes mid-stream', async () => {
+      renderer.beginAssistantMessage();
+      renderer.appendDelta('Hello');
+
+      renderer.setPlainMode(true);
+      renderer.appendDelta(' world');
+      renderer.finalizeAssistantMessage();
+      await Promise.resolve();
+
+      const el = container.querySelector('.curraint-message__content');
+      expect(el?.textContent).toBe('Hello world');
+      expect(container.querySelector('.curraint-message--streaming')).toBeNull();
+    });
   });
 });

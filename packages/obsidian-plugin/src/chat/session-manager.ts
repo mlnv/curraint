@@ -83,12 +83,12 @@ export class ConversationRegistry {
       }
     }
 
-    // Replace a stale idle slot under the same key if one exists.
     const key = saved.id;
-    const existing = this.slots.get(key);
-    if (existing) {
-      existing.unsubscribe();
-      this.slots.delete(key);
+    for (const [existingKey, existingSlot] of Array.from(this.slots.entries())) {
+      if (existingSlot.sessionId === saved.id) {
+        existingSlot.unsubscribe();
+        this.slots.delete(existingKey);
+      }
     }
 
     const slot = this.createSlot(key, saved.id, saved.createdAt);
@@ -108,8 +108,8 @@ export class ConversationRegistry {
     const slot = this.slots.get(this._activeKey);
     if (!slot) return;
     const trimmed = title.trim();
-    slot.title = trimmed || null;
-    if (slot.sessionId && trimmed) {
+    slot.title = trimmed || '';
+    if (slot.sessionId) {
       const saved = getSession(slot.sessionId);
       if (saved) {
         saveSession({ ...saved, title: trimmed });
@@ -140,7 +140,7 @@ export class ConversationRegistry {
       slot.sessionCreatedAt = Date.now();
     }
     const firstUserContent = msgs.find((m) => m.role === 'user')!.content;
-    if (!slot.title) {
+    if (slot.title === null) {
       slot.title = deriveTitle(firstUserContent);
     }
     saveSession({

@@ -11,13 +11,17 @@ export async function buildNoteContextMessageForFile(
   app: App,
   file: TFile
 ): Promise<ChatMessage | null> {
-  const content = await app.vault.read(file);
-  if (!content.trim()) return null;
+  try {
+    const content = await app.vault.read(file);
+    if (!content.trim()) return null;
 
-  return {
-    role: 'system',
-    content: `${NOTE_CONTEXT_PREFIX} for context. Its title is "${file.basename}".\n\n---\n\n${content}`,
-  };
+    return {
+      role: 'system',
+      content: `${NOTE_CONTEXT_PREFIX} for context. Its title is "${file.basename}".\n\n---\n\n${content}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

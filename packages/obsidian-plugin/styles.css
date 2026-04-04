@@ -513,6 +513,12 @@
   opacity: 1;
 }
 
+.curraint-sessions-modal__item:focus-within .curraint-sessions-modal__rename,
+.curraint-sessions-modal__rename:focus,
+.curraint-sessions-modal__rename:focus-visible {
+  opacity: 1;
+}
+
 .curraint-sessions-modal__rename:hover {
   color: var(--interactive-accent);
 }

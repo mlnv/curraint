@@ -5,6 +5,7 @@ import { testLmStudioConnection } from './transport';
 
 export class CurraintSettingTab extends PluginSettingTab {
   plugin: CurraintPlugin;
+  private apiKeyRequestId = 0;
 
   constructor(app: App, plugin: CurraintPlugin) {
     super(app, plugin);
@@ -17,9 +18,14 @@ export class CurraintSettingTab extends PluginSettingTab {
 
     // Pre-decrypt before rendering so the API key field can be populated
     // synchronously inside the Obsidian Settings builder callbacks.
-    const decryptedApiKey = this.plugin.settings.apiKeyEncrypted
-      ? await this.plugin.secrets.decrypt(this.plugin.settings.apiKeyEncrypted)
-      : '';
+    let decryptedApiKey = '';
+    if (this.plugin.settings.apiKeyEncrypted) {
+      try {
+        decryptedApiKey = await this.plugin.secrets.decrypt(this.plugin.settings.apiKeyEncrypted);
+      } catch {
+        new Notice('Failed to decrypt the stored API key. Re-enter it to continue.');
+      }
+    }
 
     // On mobile, local providers that require a server on the same machine
     // are not reachable. Filter them out so users cannot accidentally select
@@ -101,9 +107,12 @@ export class CurraintSettingTab extends PluginSettingTab {
             .setPlaceholder('sk-...')
             .setValue(decryptedApiKey)
             .onChange(async (value) => {
-              this.plugin.settings.apiKeyEncrypted = value
+              const requestId = ++this.apiKeyRequestId;
+              const encrypted = value
                 ? await this.plugin.secrets.encrypt(value.trim())
                 : '';
+              if (requestId !== this.apiKeyRequestId) return;
+              this.plugin.settings.apiKeyEncrypted = encrypted;
               await this.plugin.saveSettings();
             });
         });
