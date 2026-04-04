@@ -8,6 +8,18 @@ export interface SecretsStrategy {
 
 const IV_LEN = 12;
 const KEY_LEN = 32;
+const MOBILE_DEVICE_KEY_BASE64_LEN = 44;
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+export class InvalidMobileDeviceKeyError extends Error {
+  readonly cause?: unknown;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = 'InvalidMobileDeviceKeyError';
+    this.cause = options?.cause;
+  }
+}
 
 // --- Desktop strategy (Node.js crypto, machine-bound) -----------------------
 // Uses AES-256-GCM with a PBKDF2 key derived from the machine's hostname and
@@ -21,7 +33,8 @@ const KEY_LEN = 32;
 type DesktopBlob = { iv: string; tag: string; data: string };
 
 const KDF_SALT = 'curraint-obsidian-v1';
-const KDF_ITERATIONS = 100_000;
+// Keep PBKDF2 cost aligned with current OWASP guidance for password-based KDFs.
+const KDF_ITERATIONS = 600_000;
 
 export class DesktopSecretsStrategy implements SecretsStrategy {
   private readonly _key: Buffer;
@@ -83,18 +96,62 @@ export class MobileSecretsStrategy implements SecretsStrategy {
   private readonly keyPromise: Promise<CryptoKey>;
 
   constructor(deviceKey: string) {
+    this.decodeDeviceKey(deviceKey);
     this.keyPromise = this.importKey(deviceKey);
   }
 
+  private decodeDeviceKey(deviceKey: string): Uint8Array {
+    if (!BASE64_PATTERN.test(deviceKey) || deviceKey.length !== MOBILE_DEVICE_KEY_BASE64_LEN) {
+      throw new InvalidMobileDeviceKeyError(
+        'Mobile device key must be a valid base64-encoded 32-byte AES key'
+      );
+    }
+
+    try {
+      const keyBytes = Uint8Array.from(atob(deviceKey), (c) => c.charCodeAt(0));
+
+      if (keyBytes.length !== KEY_LEN) {
+        throw new InvalidMobileDeviceKeyError(
+          'Mobile device key must decode to exactly 32 bytes'
+        );
+      }
+
+      return keyBytes;
+    } catch (error) {
+      if (error instanceof InvalidMobileDeviceKeyError) {
+        throw error;
+      }
+
+      throw new InvalidMobileDeviceKeyError(
+        'Mobile device key must be a valid base64-encoded 32-byte AES key',
+        { cause: error }
+      );
+    }
+  }
+
   private async importKey(deviceKey: string): Promise<CryptoKey> {
-    const keyBytes = Uint8Array.from(atob(deviceKey), (c) => c.charCodeAt(0));
-    return globalThis.crypto.subtle.importKey(
-      'raw',
-      keyBytes,
-      { name: 'AES-GCM' },
-      false,
-      ['encrypt', 'decrypt']
-    );
+    const keyBytes = this.decodeDeviceKey(deviceKey);
+    const rawKey = new Uint8Array(keyBytes.length);
+    rawKey.set(keyBytes);
+
+    try {
+      return await globalThis.crypto.subtle.importKey(
+        'raw',
+        rawKey,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    } catch (error) {
+      if (error instanceof InvalidMobileDeviceKeyError) {
+        throw error;
+      }
+
+      throw new InvalidMobileDeviceKeyError(
+        'Failed to import mobile device key for AES-GCM encryption',
+        { cause: error }
+      );
+    }
   }
 
   async encrypt(plaintext: string): Promise<string> {

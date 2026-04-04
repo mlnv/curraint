@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DesktopSecretsStrategy,
+  InvalidMobileDeviceKeyError,
   MobileSecretsStrategy,
   generateMobileDeviceKey,
 } from './secrets';
@@ -61,5 +62,54 @@ describe('MobileSecretsStrategy', () => {
     const strategy2 = new MobileSecretsStrategy(generateMobileDeviceKey());
     const encrypted = await strategy1.encrypt('secret-value');
     expect(await strategy2.decrypt(encrypted)).toBe('');
+  });
+
+  it('rejects malformed base64 device keys with a typed error', async () => {
+    expect(() => new MobileSecretsStrategy('not base64!!!')).toThrowError(
+      InvalidMobileDeviceKeyError
+    );
+    expect(() => new MobileSecretsStrategy('not base64!!!')).toThrow(
+      'Mobile device key must be a valid base64-encoded 32-byte AES key'
+    );
+  });
+
+  it('rejects device keys that decode to the wrong length', async () => {
+    const wrongLengthKey = btoa(String.fromCharCode(...Array.from(new Uint8Array(33))));
+    expect(() => new MobileSecretsStrategy(wrongLengthKey)).toThrowError(
+      InvalidMobileDeviceKeyError
+    );
+    expect(() => new MobileSecretsStrategy(wrongLengthKey)).toThrow(
+      'Mobile device key must decode to exactly 32 bytes'
+    );
+  });
+
+  it('rejects import failures with a typed error', async () => {
+    const originalSubtle = globalThis.crypto.subtle;
+    const importFailure = new DOMException('import failed', 'OperationError');
+
+    Object.defineProperty(globalThis.crypto, 'subtle', {
+      configurable: true,
+      value: {
+        ...originalSubtle,
+        importKey: async () => {
+          throw importFailure;
+        },
+      } satisfies SubtleCrypto,
+    });
+
+    try {
+      const strategy = new MobileSecretsStrategy(generateMobileDeviceKey());
+      await expect(strategy.encrypt('secret-value')).rejects.toBeInstanceOf(
+        InvalidMobileDeviceKeyError
+      );
+      await expect(strategy.encrypt('secret-value')).rejects.toThrow(
+        'Failed to import mobile device key for AES-GCM encryption'
+      );
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'subtle', {
+        configurable: true,
+        value: originalSubtle,
+      });
+    }
   });
 });
