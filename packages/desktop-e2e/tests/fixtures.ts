@@ -53,6 +53,18 @@ async function showWindow(app: ElectronApplication, urlFragment: string): Promis
   );
 }
 
+async function closeElectronApp(app: ElectronApplication): Promise<void> {
+  try {
+    const closed = app.waitForEvent('close', { timeout: 5_000 });
+    await app.evaluate(({ app: electronApp }) => {
+      electronApp.quit();
+    });
+    await closed;
+  } catch {
+    await app.close();
+  }
+}
+
 export const test = base.extend<ElectronFixtures>({
   app: async ({}, use) => {
     // Redirect APPDATA to a fresh temp dir so the app never touches the
@@ -74,7 +86,7 @@ export const test = base.extend<ElectronFixtures>({
       // Wait until the first window is ready before any fixture can proceed
       await app.firstWindow();
       await use(app);
-      await app.close();
+      await closeElectronApp(app);
     } finally {
       rmSync(tempAppData, { recursive: true, force: true });
     }
