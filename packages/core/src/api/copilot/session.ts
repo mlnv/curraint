@@ -15,11 +15,11 @@ function isSessionStale(model: string, systemPrompt: string, forceNew: boolean):
 }
 
 async function createNewSession(
+  client: Awaited<ReturnType<typeof getClient>>,
   model: string,
   systemPrompt: string
 ): Promise<CopilotSessionType> {
   const { approveAll } = await getSdk();
-  const client = await getClient();
   return client.createSession({
     model: model || 'gpt-4o',
     streaming: true,
@@ -42,10 +42,17 @@ export async function getOrCreateSession(
   systemPrompt: string,
   forceNew: boolean
 ): Promise<CopilotSessionType> {
+  const client = await getClient();
+
+  if (activeSession?.client !== client) {
+    await destroyActiveSession();
+  }
+
   if (isSessionStale(model, systemPrompt, forceNew)) await destroyActiveSession();
+
   if (!activeSession) {
-    const session = await createNewSession(model, systemPrompt);
-    activeSession = { session, model, systemPrompt, messageCount: 0 };
+    const session = await createNewSession(client, model, systemPrompt);
+    activeSession = { client, session, model, systemPrompt, messageCount: 0 };
   }
   return activeSession.session;
 }
