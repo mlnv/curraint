@@ -1,6 +1,6 @@
 import { getClient, stopClient } from './client';
 import { getSdk } from './sdk';
-import { destroyActiveSession, getOrCreateSession } from './session';
+import { disconnectActiveSession, getOrCreateSession } from './session';
 
 /** Pre-warm: eagerly start the CLI and create the session to reduce cold-start overhead. */
 export async function warmupCopilotSession(
@@ -19,7 +19,7 @@ export async function resetCopilotSession(
   model: string,
   systemPrompt: string
 ): Promise<void> {
-  await destroyActiveSession();
+  await disconnectActiveSession();
   await warmupCopilotSession(model, systemPrompt);
 }
 
@@ -32,15 +32,15 @@ export async function copilotTestConnection(model: string): Promise<string> {
   });
   try {
     await session.sendAndWait({ prompt: 'Say "OK" and nothing else.' }, 15000);
-    await session.destroy();
+    await session.disconnect().catch(() => {});
     return 'Connection successful. GitHub Copilot is ready.';
   } catch (error) {
-    await session.destroy().catch(() => {});
+    await session.disconnect().catch(() => {});
     throw error;
   }
 }
 
 export async function stopCopilotClient(): Promise<void> {
-  await destroyActiveSession();
+  await disconnectActiveSession();
   await stopClient();
 }

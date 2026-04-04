@@ -9,7 +9,8 @@ const validSettings: EndpointSettings = {
   model: 'test-model',
   systemPrompt: '',
   contextMaxMessages: 40,
-  contextMaxCharacters: 24000
+  contextMaxCharacters: 24000,
+  enableSessionSaving: false,
 };
 
 afterEach(() => {

@@ -18,7 +18,7 @@ Format: `<type>(<optional scope>): <short imperative description>`
 | `chore` | Tooling, deps, CI, config |
 | `perf` | Performance improvement |
 
-**Scopes** (optional): `core`, `cli`, `desktop`, `ci`
+**Scopes** (optional): `core`, `cli`, `desktop`, `obsidian`, `ci`
 
 > **Important:** When the change is only to documentation or markdown files (`.md`, `README`, `CONTRIBUTING`, etc.), always use `docs` as the **type** — never as a scope on another type. For example, use `docs: update README` or `docs(ci): clarify workflow triggers`, never `feat(docs): ...`.
 
@@ -79,6 +79,7 @@ This is a pnpm monorepo. All packages live under `packages/`.
 | `packages/cli` (`@curraint/cli`) | Terminal interface — depends on `@curraint/core` |
 | `packages/desktop` (`@curraint/desktop`) | Electron desktop app (main process + React renderer) — depends on `@curraint/core` |
 | `packages/desktop-e2e` (`@curraint/desktop-e2e`) | Playwright end-to-end tests for the desktop app |
+| `packages/obsidian-plugin` (`@curraint/obsidian-plugin`) | Obsidian plugin - adds a chat sidebar to any vault — depends on `@curraint/core` |
 
 ## Architecture principles
 

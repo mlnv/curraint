@@ -11,6 +11,7 @@ export type Sdk = {
 };
 
 export type SessionState = {
+  client: CopilotClientType;
   session: CopilotSessionType;
   model: string;
   systemPrompt: string;

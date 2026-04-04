@@ -3,7 +3,7 @@ import os from 'os';
 
 const KEY_LEN = 32;
 const KDF_SALT = 'curraint-secrets-v1';
-const KDF_ITERATIONS = 100_000;
+const KDF_ITERATIONS = 600_000;
 
 let _cachedKey: Buffer | undefined;
 

@@ -1,0 +1,41 @@
+reviews:
+  profile: assertive
+  sequence_diagrams: true
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  related_issues: true
+  related_prs: true
+  assess_linked_issues: true
+  estimate_code_review_effort: true
+  review_details: true
+  path_instructions:
+    - path: "packages/core/src/**/*.ts"
+      instructions: >
+        Focus on architectural patterns, dependency management, and system
+        design impact. This is shared domain logic - flag anything that
+        couples core to a specific consumer (cli, desktop, obsidian-plugin).
+    - path: "packages/cli/src/**/*.ts"
+      instructions: >
+        Focus on separation of concerns between orchestration, rendering, and
+        domain logic. CLI should delegate to core; flag any domain logic that
+        belongs in @curraint/core instead.
+    - path: "packages/desktop/src/**/*.ts"
+      instructions: >
+        Focus on Electron main/renderer process boundaries, IPC safety, and
+        BrowserWindow lifecycle management. Flag direct DOM access from main
+        or any use of remote module.
+    - path: "packages/obsidian-plugin/src/**/*.ts"
+      instructions: >
+        Focus on Obsidian API usage, plugin lifecycle (onload/onunload),
+        and correct teardown of event listeners and commands.
+    - path: "packages/**/*.test.ts"
+      instructions: >
+        Flag tests that only cover the happy path, miss edge cases or
+        boundary conditions, use non-deterministic assertions, or lack a
+        clear arrange-act-assert structure.
+
+tone_instructions: >
+  Provide architectural insights on system design, scalability, and
+  long-term maintainability. Flag violations of the monorepo's core
+  principle: domain logic in @curraint/core, consumer-specific code in
+  the respective package.

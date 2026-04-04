@@ -7,6 +7,17 @@ import type { SessionState } from './types';
 // Recreated when model/system prompt changes or when explicitly reset.
 export let activeSession: SessionState | null = null;
 
+/**
+ * Gently disconnects the current SDK session before clearing the local cache.
+ * The SDK handles the underlying teardown and any reconnectable state.
+ */
+export async function disconnectActiveSession(): Promise<void> {
+  if (activeSession) {
+    await activeSession.session.disconnect().catch(() => {});
+    activeSession = null;
+  }
+}
+
 function isSessionStale(model: string, systemPrompt: string, forceNew: boolean): boolean {
   if (!activeSession) return true;
   const settingsChanged =
@@ -15,11 +26,11 @@ function isSessionStale(model: string, systemPrompt: string, forceNew: boolean):
 }
 
 async function createNewSession(
+  client: Awaited<ReturnType<typeof getClient>>,
   model: string,
   systemPrompt: string
 ): Promise<CopilotSessionType> {
   const { approveAll } = await getSdk();
-  const client = await getClient();
   return client.createSession({
     model: model || 'gpt-4o',
     streaming: true,
@@ -30,22 +41,22 @@ async function createNewSession(
   });
 }
 
-export async function destroyActiveSession(): Promise<void> {
-  if (activeSession) {
-    await activeSession.session.destroy().catch(() => {});
-    activeSession = null;
-  }
-}
-
 export async function getOrCreateSession(
   model: string,
   systemPrompt: string,
   forceNew: boolean
 ): Promise<CopilotSessionType> {
-  if (isSessionStale(model, systemPrompt, forceNew)) await destroyActiveSession();
+  const client = await getClient();
+
+  if (activeSession?.client !== client) {
+    await disconnectActiveSession();
+  }
+
+  if (isSessionStale(model, systemPrompt, forceNew)) await disconnectActiveSession();
+
   if (!activeSession) {
-    const session = await createNewSession(model, systemPrompt);
-    activeSession = { session, model, systemPrompt, messageCount: 0 };
+    const session = await createNewSession(client, model, systemPrompt);
+    activeSession = { client, session, model, systemPrompt, messageCount: 0 };
   }
   return activeSession.session;
 }
@@ -53,7 +64,7 @@ export async function getOrCreateSession(
 /** Invalidates the active session if it matches the given session instance. */
 export async function invalidateSession(session: CopilotSessionType): Promise<void> {
   if (activeSession?.session === session) {
-    await session.destroy().catch(() => {});
+    await session.disconnect().catch(() => {});
     activeSession = null;
   }
 }

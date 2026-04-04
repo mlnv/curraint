@@ -14,7 +14,7 @@ export const PROVIDER_CONFIGS: Record<ProviderId, ProviderConfig> = {
   lmstudio: {
     id: 'lmstudio',
     label: 'LM Studio (Local)',
-    defaultBaseUrl: 'http://127.0.0.1:1234/v1',
+    defaultBaseUrl: 'http://127.0.0.1:1234',
     defaultModel: 'local-model',
     requiresApiKey: false,
     requiresBaseUrl: true

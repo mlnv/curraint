@@ -1,0 +1,26 @@
+{
+  "name": "@curraint/obsidian-plugin",
+  "version": "0.1.0",
+  "description": "Obsidian plugin for curraint AI chat",
+  "author": "Maksym Yemelianov",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "deploy": "node esbuild.config.mjs && node scripts/deploy.mjs",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@curraint/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "obsidian": "^1.7.7",
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.8"
+  }
+}

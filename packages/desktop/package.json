@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Desktop application for curraint (macOS/Linux/Windows)",
   "author": {
-    "name": "curraint",
+    "name": "Maksym Yemelianov",
     "email": "curraint@users.noreply.github.com"
   },
   "homepage": "https://github.com/curraint/curraint",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@curraint/core": "workspace:*",
-    "@github/copilot-sdk": "^0.1.30",
+    "@github/copilot-sdk": "^0.2.0",
     "electron-log": "^5.4.3",
     "highlight.js": "^11.11.1",
     "react-markdown": "^10.1.0",
@@ -64,7 +64,13 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "identity": null
     },

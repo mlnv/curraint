@@ -24,7 +24,7 @@ Format: `<type>(<optional scope>): <short imperative description>`
 | `chore` | Tooling, deps, CI, config |
 | `perf` | Performance improvement |
 
-**Scopes** (optional): `core`, `cli`, `desktop`, `ci`
+**Scopes** (optional): `core`, `cli`, `desktop`, `obsidian`, `ci`
 
 > **Important:** When the change is only to documentation or markdown files (`.md`, `README`, `CONTRIBUTING`, etc.), always use `docs` as the **type** — never as a scope on another type. For example, use `docs: update README` or `docs(ci): clarify workflow triggers`, never `feat(docs): ...`.
 

@@ -1,0 +1,81 @@
+name: Feature request
+description: Propose a user-facing improvement, workflow change, or new capability.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement.
+
+        High-signal requests explain the problem first, then the proposed solution.
+  - type: checkboxes
+    id: affected-areas
+    attributes:
+      label: Target areas
+      description: Select every package or surface this request would affect.
+      options:
+        - label: Core
+        - label: CLI
+        - label: Desktop app
+        - label: Desktop E2E coverage
+        - label: Obsidian plugin
+        - label: Docs, CI, or tooling
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What is missing, difficult, or frustrating today?
+      placeholder: Describe the user problem or workflow gap.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the behavior, UX, or API you want.
+      placeholder: Describe the change you want to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or alternative ideas you evaluated.
+      placeholder: Optional, but helpful for trade-off discussion.
+  - type: textarea
+    id: impact
+    attributes:
+      label: User impact
+      description: Who benefits, and how often does this come up?
+      placeholder: Explain the practical value of this change.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: If this shipped, what would "done" look like?
+      placeholder: |
+        - Users can ...
+        - Settings allow ...
+        - Docs cover ...
+    validations:
+      required: true
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups, screenshots, or examples
+      description: Add references to existing tools, screenshots, or UI sketches if helpful.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched for existing requests.
+          required: true
+        - label: This request describes a user problem, not only an implementation detail.
+          required: true

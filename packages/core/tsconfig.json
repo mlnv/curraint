@@ -10,8 +10,9 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "declarationDir": "dist",
+    "composite": true,
     "declaration": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/*.ts", "src/**/*.ts"]
 }

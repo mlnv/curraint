@@ -1,0 +1,114 @@
+name: Bug report
+description: Report broken behavior, regressions, or incorrect results.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+
+        Please search existing issues before opening a new one. Include a small reproduction when possible.
+  - type: checkboxes
+    id: affected-areas
+    attributes:
+      label: Affected areas
+      description: Select every package or surface where you can reproduce the problem.
+      options:
+        - label: Core
+        - label: CLI
+        - label: Desktop app
+        - label: Desktop E2E coverage
+        - label: Obsidian plugin
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the broken behavior or regression.
+      placeholder: A short description of the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest reliable reproduction you have.
+      placeholder: |
+        1. Open ...
+        2. Run ...
+        3. Click ...
+        4. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include versions and platform details.
+      placeholder: |
+        OS:
+        Node.js:
+        pnpm:
+        App/package version or commit:
+    validations:
+      required: true
+  - type: input
+    id: provider-model
+    attributes:
+      label: Provider and model
+      description: For chat, streaming, or response issues, note the provider and model.
+      placeholder: openai / gpt-4o-mini
+  - type: dropdown
+    id: streaming
+    attributes:
+      label: Was streaming active?
+      options:
+        - Not applicable
+        - Yes
+        - No
+    validations:
+      required: true
+  - type: dropdown
+    id: reasoning-tags
+    attributes:
+      label: Did the response include <think> or <reasoning> tags?
+      options:
+        - Not applicable
+        - Yes
+        - No
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs, stack traces, or screenshots. Redact secrets first.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched for existing issues.
+          required: true
+        - label: I removed secrets, tokens, and private data from logs and screenshots.
+          required: true
+        - label: I can still reproduce this issue on the current main branch or latest build.
