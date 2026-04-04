@@ -1,234 +1,281 @@
 # curraint
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+![Node 22+](https://img.shields.io/badge/Node-22%2B-43853d)
+![pnpm 10+](https://img.shields.io/badge/pnpm-10%2B-f69220)
+![Status Alpha](https://img.shields.io/badge/status-alpha-c98a00)
 
 > [!CAUTION]
 > **Early alpha: expect breaking changes.** curraint is under active development.
-> APIs, configuration format, storage layout, and behaviour can change significantly
+> APIs, configuration format, storage layout, and behavior can change significantly
 > between releases without prior notice. Do not rely on it in production environments.
 
-curraint is a tray-first desktop, CLI, and Obsidian AI chat client built with Electron + TypeScript.
+> [!TIP]
+> **One core. Three interfaces.** curraint keeps the same chat flow across a tray-first desktop app, a terminal CLI, and an Obsidian sidebar.
 
-It supports OpenAI-compatible chat APIs (OpenAI, LM Studio, and custom endpoints) with streaming, reasoning-block controls, markdown rendering, and robust chat flow safeguards, all powered by a shared `@curraint/core` library.
+curraint is an AI chat client built around a shared TypeScript core. Use the desktop app when you want a fast tray workflow, the CLI when you want scripting and terminal control, and the Obsidian plugin when your work already lives in notes. All three surfaces share the same chat engine, so streaming, edit and regenerate, context safety, provider behavior, and session handling stay consistent.
+
+[Why curraint](#why-curraint) · [Choose your interface](#choose-your-interface) · [Quick start](#quick-start) · [How it works](#how-curraint-works) · [Security](#security-and-storage) · [Development](#development)
 
 ## Why curraint
 
-- Fast tray-first workflow for quick prompts without switching apps
-- Cross-platform desktop support (Windows, macOS, Linux)
-- Optional local-model workflow through LM Studio
-- Provider-aware settings (OpenAI, LM Studio, Custom)
-- CLI mode for scripting and terminal-based usage
-- Obsidian plugin for in-vault AI chat with note context injection
-- Streaming-first UX with stop/cancel controls
-- Context safety with automatic truncation and summary fallback
+Most AI chat tools make you choose one surface and live with its tradeoffs. curraint is built around a different idea: the interface can change, but the chat behavior should not.
 
-## Apps and packages
+- **Tray-first when speed matters.** Open chat without hunting for a window.
+- **Terminal-first when automation matters.** Keep prompts and results in the same place as the rest of your workflow.
+- **Vault-aware when notes matter.** Pull active or selected Obsidian notes directly into the conversation.
+- **Same conversation controls everywhere.** Stream responses, stop mid-generation, edit earlier messages, and regenerate from that point.
+- **Hosted or local models.** Use OpenAI, LM Studio, or any OpenAI-compatible endpoint.
+- **Context safety built in.** Long chats are truncated safely with a summary fallback instead of failing abruptly.
 
-### 🖥️ Desktop (`@curraint/desktop`)
+## Choose your interface
 
-The tray-first Electron app for quick, always-available AI chat.
+| Interface | Best for | Highlights | Package |
+|---|---|---|---|
+| Desktop | Fast day-to-day chat from anywhere on your machine | Tray popover, global quick input, settings UI, unread indicator, packaged app builds | `@curraint/desktop` |
+| CLI | Terminal sessions, scripting, and keyboard-driven workflows | Streaming terminal output, slash commands, edit and retry flow, environment-based config | `@curraint/cli` |
+| Obsidian | Conversations tied to notes and vault context | Sidebar chat, active note injection, note picker, concurrent conversations, Obsidian-native settings | `@curraint/obsidian-plugin` |
+| Core | Shared chat behavior across every surface | Providers, sessions, settings, encryption, context truncation, think-tag parsing | `@curraint/core` |
 
-- Always-on tray app: left-click to open or close the chat popover
-- Right-click tray menu: `Open Chat`, `Settings`, `Quit`
-- **Quick Input**: a configurable global keyboard shortcut that opens a floating input bar from anywhere on the desktop
-- Unread message indicator with count in the tray icon tooltip
-- Settings window with provider selection, connection testing, and saved connections
-- Streaming responses with one-click stop that preserves partial output
-- Edit any user message and regenerate the conversation from that point
-- Markdown rendering: tables, code blocks with copy button, lists, and headings
-- Show or hide `<think>` / `<reasoning>` blocks from models that emit reasoning traces
-- Configurable context safety limits (max messages, max characters)
-- Automatic history truncation with a compact summary of removed context
-- Session saving: persist and resume named conversations across restarts (off by default)
-- Light and dark theme
-- Cross-platform packaging: Windows NSIS installer, macOS DMG, Linux AppImage and DEB
+## Architecture
 
-### 💻 CLI (`@curraint/cli`)
+Yes. GitHub renders Mermaid in README files, and this is a good fit for curraint because the structure is simple and important.
 
-A terminal interface that shares the same chat engine as the desktop app.
+```mermaid
+flowchart TD
+    Desktop["Desktop app<br/>@curraint/desktop"]
+    CLI["CLI<br/>@curraint/cli"]
+    Obsidian["Obsidian plugin<br/>@curraint/obsidian-plugin"]
 
-- Configure fully through environment variables, no config file required
-- Streaming, stop (`Ctrl+C`), and edit/regenerate flow identical to the desktop
-- Markdown rendering in the terminal via marked-terminal
-- Input history with up-arrow recall
-- Session saving with `/sessions-save on` and interactive session browser with `/sessions`
-- Slash commands:
+    Core["@curraint/core<br/>shared chat engine"]
 
-  | Command | Description |
-  |---|---|
-  | `/help` | Show available commands |
-  | `/history` | Print the current conversation history |
-  | `/sessions` | Browse and resume saved sessions interactively |
-  | `/sessions-save on\|off` | Enable or disable session saving |
-  | `/edit <number>` | Edit a previous user message and regenerate from that point |
-  | `/retry` | Regenerate the last assistant response |
-  | `/provider` | Change the active provider interactively |
-  | `/model` | Change the active model interactively |
-  | `/version` | Print the CLI version |
-  | `/clear` | Clear the screen and reset the current session |
-  | `/exit` | Exit the CLI |
+    Desktop --> Core
+    CLI --> Core
+    Obsidian --> Core
 
-### 🔌 Obsidian plugin (`@curraint/obsidian-plugin`)
+    Core --> Providers["Providers<br/>OpenAI, LM Studio, Custom"]
+    Core --> Sessions["Sessions and settings"]
+    Core --> Context["Context truncation and summaries"]
+```
 
-A chat sidebar for any Obsidian vault, powered by `@curraint/core`.
+## Shared behavior across interfaces
 
-- Chat sidebar with full streaming, stop, and edit/regenerate support
-- Inject the active note as context with one click
-- Note picker: a multi-select, searchable modal to add any vault notes as context
-- Multiple simultaneous conversations with background streaming while switching between them
-- Editable conversation titles and a sessions modal to browse, rename, and delete saved conversations
-- Optional session saving (off by default) with configurable context limits (max messages, max characters)
-- Markdown/plain mode toggle per conversation
-- Encrypted API key storage (AES-256-GCM, machine-bound on desktop; Web Crypto AES-GCM on mobile)
-- Provider, model, and system prompt settings via the standard Obsidian settings tab
-
-> **Note:** The plugin stores its own encrypted API key separately from the desktop/CLI `secrets.json`. Keys are not shared between the plugin and the desktop/CLI apps.
-
-### 📦 Core (`@curraint/core`)
-
-The shared domain logic used by all apps and the plugin.
-
-- Streaming chat sessions: start, stop, and resume with a consistent API
-- Edit/regenerate flow: trim conversation history to any message and re-run from there
-- OpenAI-compatible provider abstraction supporting OpenAI, LM Studio, and Custom endpoints
-- Context safety: truncate history and generate a compact summary when limits are reached
-- AES-256-GCM encrypted secret storage with a per-machine key derived via PBKDF2-SHA256 (100,000 iterations)
-- Session persistence: save and restore named conversations
-- Settings management with normalisation and file-based persistence
-- Think-tag parsing: extract and show or hide `<think>` / `<reasoning>` blocks
-
-## Tech stack
-
-- Electron
-- TypeScript
-- React + Vite
-- Tailwind/shadcn-style UI primitives
-- pnpm monorepo
-- Vitest
-
-## Requirements
-
-- Node.js 22+
-- pnpm 10+
+| Capability | Desktop | CLI | Obsidian |
+|---|---|---|---|
+| Streaming responses | Yes | Yes | Yes |
+| Stop and keep partial output | Yes | Yes | Yes |
+| Edit a previous user message and regenerate | Yes | Yes | Yes |
+| Optional session saving | Yes | Yes | Yes |
+| Context truncation with summary fallback | Yes | Yes | Yes |
+| OpenAI-compatible providers | Yes | Yes | Yes |
+| Markdown rendering | Yes | Yes | Yes |
+| LM Studio local models | Yes | Yes | Yes |
+| Note context injection | No | No | Yes |
 
 ## Quick start
 
-Install:
+### Requirements
+
+- Node.js 22+
+- pnpm 10+
+- Obsidian, if you want to use the plugin
+
+### Install dependencies
 
 ```bash
 pnpm install
 ```
 
-Build:
+### Build everything
 
 ```bash
 pnpm build
 ```
 
-Run the desktop app:
+### Run the desktop app
 
 ```bash
 pnpm desktop
 ```
 
-## Desktop usage
+Desktop highlights:
 
-- Left-click tray icon: open/close the chat popover
-- Right-click tray icon: `Open Chat`, `Settings`, `Quit`
+- Left-click the tray icon to open or close the chat popover.
+- Right-click the tray icon for `Open Chat`, `Settings`, and `Quit`.
+- Use the optional global quick input shortcut to open a floating input bar from anywhere.
 
-### Settings
+### Run the CLI
 
-Configure:
+Set environment variables:
 
-- Provider (`OpenAI`, `LM Studio`, `Custom OpenAI-compatible`)
-- API Key
-- API Base URL
-- Model
-- System Prompt
-- Reasoning block handling (`<think>` / `<reasoning>` show/hide)
-- Context safety limits in the Advanced section
-- **Save sessions**: persist conversations so you can resume them later (off by default)
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `CURRAINT_PROVIDER` | No | `openai` | `openai`, `lmstudio`, or `custom` |
+| `CURRAINT_API_KEY` | OpenAI only | None | Optional for LM Studio and custom endpoints |
+| `CURRAINT_BASE_URL` | No | `https://api.openai.com/v1` | Point to LM Studio or any OpenAI-compatible API |
+| `CURRAINT_MODEL` | No | `gpt-4o-mini` | Any model your endpoint supports |
+| `CURRAINT_SYSTEM_PROMPT` | No | None | Optional system prompt |
 
-Use **Test Connection** to validate endpoint access before saving.
-
-### LM Studio quick setup
-
-- Provider: `LM Studio (Local)`
-- Default base URL: `http://127.0.0.1:1234`
-- API key: optional
-
-## CLI usage
-
-Environment variables:
-
-- `CURRAINT_PROVIDER` (optional: `openai`, `lmstudio`, `custom`; default `openai`)
-- `CURRAINT_API_KEY` (required for `openai`, optional for `lmstudio` and `custom`)
-- `CURRAINT_BASE_URL` (optional, default `https://api.openai.com/v1`)
-- `CURRAINT_MODEL` (optional, default `gpt-4o-mini`)
-- `CURRAINT_SYSTEM_PROMPT` (optional)
-
-Run:
+Run the CLI:
 
 ```bash
 pnpm cli
 ```
 
-Behavior notes:
+CLI behavior:
 
-- Uses the same shared chat-session core as the desktop (streaming, stop, edit/regenerate flow).
-- Works with any OpenAI-compatible endpoint configured via environment variables.
-- Conversation history is **not saved by default**. Use `/sessions-save on` to enable persistence; sessions are stored by the SessionsManager as dedicated JSON files in the app user-data `sessions/` directory, using `<session-id>.json` filenames, while `settings.json` remains config-only. Use `/sessions` to browse and resume saved conversations.
-- Use `Ctrl+C` while streaming to stop the current response.
+- Streaming, stop, edit, and regenerate use the same core behavior as desktop.
+- Conversation history is not saved by default.
+- Use `/sessions-save on` to persist sessions and `/sessions` to browse and resume them.
+- Press `Ctrl+C` while streaming to stop the current response.
 
-## Obsidian plugin
+<details>
+<summary><strong>CLI commands</strong></summary>
 
-**Build:**
+| Command | Description |
+|---|---|
+| `/help` | Show available commands |
+| `/history` | Print the current conversation history |
+| `/sessions` | Browse and resume saved sessions interactively |
+| `/sessions-save on\|off` | Enable or disable session saving |
+| `/edit <number>` | Edit a previous user message and regenerate from that point |
+| `/retry` | Regenerate the last assistant response |
+| `/provider` | Change the active provider interactively |
+| `/model` | Change the active model interactively |
+| `/version` | Print the CLI version |
+| `/clear` | Clear the screen and reset the current session |
+| `/exit` | Exit the CLI |
+
+</details>
+
+### Build the Obsidian plugin
 
 ```bash
 pnpm --filter @curraint/obsidian-plugin build
 ```
 
-Output is written to `packages/obsidian-plugin/dist/` (`main.js`, `manifest.json`, `styles.css`). Copy the contents of `dist/` to `.obsidian/plugins/curraint/` inside your vault, then enable the plugin in Obsidian settings.
+The build output is written to `packages/obsidian-plugin/dist/`.
 
-## Security
+To install it in a vault:
+
+1. Copy `main.js`, `manifest.json`, and `styles.css` from `packages/obsidian-plugin/dist/` into `.obsidian/plugins/curraint/` in your vault.
+2. Open Obsidian settings.
+3. Enable the plugin.
+
+Plugin highlights:
+
+- Chat sidebar with streaming, stop, and edit or regenerate support.
+- Add the active note as context with one click.
+- Search and select any vault notes as additional context.
+- Keep multiple conversations open and continue streaming in the background while switching between them.
+
+### LM Studio local setup
+
+Use these settings in desktop, CLI, or Obsidian:
+
+- Provider: `LM Studio (Local)` or `lmstudio`
+- Base URL: `http://127.0.0.1:1234`
+- API key: optional
+
+## How curraint works
+
+1. **Choose a provider.** curraint connects to OpenAI, LM Studio, or any OpenAI-compatible endpoint.
+2. **Start streaming immediately.** Responses arrive incrementally, and you can stop generation without losing the partial result.
+3. **Fix the conversation in place.** Edit any earlier user message and regenerate the thread from that point instead of starting over.
+4. **Protect long-running chats.** When conversations get too large, curraint trims older history and inserts a compact summary.
+5. **Save sessions only when you want to.** Session persistence is optional and remains off by default.
+
+## Desktop details
+
+The desktop app is designed for fast, low-friction chat from the system tray.
+
+- Always-on tray app with unread count in the tooltip
+- Settings window with provider selection, connection testing, and saved connections
+- Markdown rendering with tables, headings, lists, code blocks, and copy buttons
+- Show or hide `<think>` and `<reasoning>` blocks from models that emit reasoning traces
+- Configurable context limits for max messages and max characters
+- Light and dark theme
+- Cross-platform packaging for Windows, macOS, and Linux
+
+## Obsidian details
+
+The plugin is designed for conversations that should stay close to your notes.
+
+- Sidebar chat that uses the shared core behavior instead of a separate implementation
+- Note picker for multi-select context injection from anywhere in the vault
+- Editable conversation titles and a sessions modal to browse, rename, and delete saved sessions
+- Markdown or plain text mode per conversation
+- Optional session saving with configurable context limits
+
+> **Note:** The plugin stores its own encrypted API key separately from the desktop and CLI `secrets.json`. Keys are not shared between the plugin and the desktop or CLI apps.
+
+## Security and storage
 
 ### API key storage
 
-API keys are **never written to `settings.json`** in plain text.  They are stored in a separate encrypted file:
+API keys are never written to `settings.json` in plain text. Desktop and CLI secrets are stored in a separate encrypted file:
 
 | Platform | Path |
-|----------|------|
-| Windows  | `%APPDATA%\curraint\secrets.json` |
-| macOS    | `~/Library/Application Support/curraint/secrets.json` |
-| Linux    | `~/.config/curraint/secrets.json` |
+|---|---|
+| Windows | `%APPDATA%\curraint\secrets.json` |
+| macOS | `~/Library/Application Support/curraint/secrets.json` |
+| Linux | `~/.config/curraint/secrets.json` |
 
-Each value is individually encrypted with **AES-256-GCM**.  The encryption key is derived from the current machine's hostname and OS username using PBKDF2-SHA256 (100 000 iterations), making the secrets file unreadable on any other machine or user account without access to the same credentials.
+Each value is encrypted with AES-256-GCM. The encryption key is derived from the current machine hostname and OS username using PBKDF2-SHA256 with 600,000 iterations.
 
-On Unix systems the file is created with `0600` permissions (owner read/write only).
+Additional details:
 
-The Desktop and CLI share the same `secrets.json`, so API keys entered in either app are immediately available in the other, no re-entry needed.
+- On Unix systems, the file is created with `0600` permissions.
+- Desktop and CLI share the same `secrets.json`.
+- The `CURRAINT_API_KEY` environment variable always takes precedence over the stored secret.
+- The desktop, CLI, and Obsidian desktop code paths now use PBKDF2-SHA256 with 600,000 iterations.
+- The Obsidian plugin uses separate encrypted storage on mobile via Web Crypto AES-GCM.
 
-The `CURRAINT_API_KEY` environment variable always takes precedence over the stored secret when set.
+### settings.json
 
-### `settings.json`
+Non-sensitive settings such as provider, base URL, model, system prompt, theme, and shortcuts remain in plain JSON in `settings.json`.
 
-Non-sensitive settings (provider, base URL, model, system prompt, theme, shortcuts) continue to be stored in plain JSON in `settings.json` alongside `secrets.json`.
+## Development
 
-## Testing
+### Monorepo layout
 
-Run unit tests:
+This repository is a pnpm monorepo with packages under `packages/`.
+
+| Package | Description |
+|---|---|
+| `packages/core` | Shared domain logic for chat sessions, providers, settings, secrets, context management, and session persistence |
+| `packages/desktop` | Electron desktop app |
+| `packages/cli` | Terminal interface |
+| `packages/obsidian-plugin` | Obsidian plugin |
+| `packages/desktop-e2e` | Playwright end-to-end tests for the desktop app |
+
+### Common commands
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Build all packages:
+
+```bash
+pnpm build
+```
+
+Run all tests:
 
 ```bash
 pnpm test
 ```
 
-Watch mode:
+Run desktop end-to-end tests:
 
 ```bash
-pnpm test:watch
+pnpm test:e2e
 ```
 
-Build specific packages:
+Run package-specific builds:
 
 ```bash
 pnpm --filter @curraint/core build
@@ -237,77 +284,61 @@ pnpm --filter @curraint/cli build
 pnpm --filter @curraint/obsidian-plugin build
 ```
 
-## Packaging and releases
+### Packaging desktop releases
 
-Create packages with current host defaults:
+Create desktop packages with host defaults:
 
 ```bash
 pnpm --filter @curraint/desktop package
 ```
 
-Targets configured:
+Targets:
 
+- Windows: NSIS installer
 - macOS: DMG
-- Windows: NSIS (`.exe`)
-- Linux: AppImage + DEB
+- Linux: AppImage and DEB
 
 Platform-specific examples:
 
 ```bash
-# Windows installer (.exe via NSIS)
+# Windows
 pnpm --filter @curraint/desktop package -- --win
 
-# macOS disk image (.dmg)
+# macOS
 pnpm --filter @curraint/desktop package -- --mac
 
-# Linux artifacts (.AppImage / .deb)
+# Linux
 pnpm --filter @curraint/desktop package -- --linux
 ```
 
-Notes:
+#### macOS quarantine warning
 
-- Build `.exe` on Windows for best compatibility.
-- Build `.dmg` on macOS for best compatibility and signing/notarization workflows.
+Because the DMG is not code-signed or notarized, macOS Gatekeeper may show an "app is damaged" warning after installation.
 
-### macOS, "app is damaged" warning
-
-Because the DMG is not code-signed or notarized (no Apple Developer account), macOS Gatekeeper may block the app with a _"curraint is damaged and can't be opened"_ error after installation.
-
-Run this command once to remove the quarantine attribute:
+Remove the quarantine attribute once:
 
 ```bash
 xattr -cr /Applications/curraint.app
 ```
 
-Then open the app normally. This is safe, the flag is added automatically by macOS to any app downloaded via a browser and is unrelated to the actual integrity of the binary.
+### CI/CD
 
-## CI/CD pipelines
+The repository includes these GitHub Actions workflows:
 
-- `CI` ([.github/workflows/ci.yml](.github/workflows/ci.yml))
-	- Push or PR to `main`, and manual (`workflow_dispatch`)
-	- Runs `pnpm build` and `pnpm test`
-
-- `Package and Release` ([.github/workflows/package-release.yml](.github/workflows/package-release.yml))
-	- Manual trigger and version tags (`v*`)
-	- Builds packages across Windows/macOS/Linux
-	- Uploads artifacts
-	- On tag builds, creates GitHub Release with attached assets
-
-- `Package Test Artifacts` ([.github/workflows/package-test.yml](.github/workflows/package-test.yml))
-	- Manual trigger with `target` input (`all`, `windows`, `macos`, `linux`)
-	- Builds selected platform packages
-	- Uploads artifacts only (no release)
+- `CI` in `.github/workflows/ci.yml`: runs `pnpm build` and `pnpm test` for pushes, pull requests, and manual triggers.
+- `Package and Release` in `.github/workflows/package-release.yml`: builds release artifacts across Windows, macOS, and Linux, then creates a GitHub release on version tags.
+- `Package Test Artifacts` in `.github/workflows/package-test.yml`: builds selected platform artifacts without creating a release.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding standards, and PR checklist.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding standards, and the PR checklist.
 
 ## Licenses
 
-Third-party dependency licenses are listed in [LICENSES.md](LICENSES.md) (auto-generated during `pnpm build`).
+Third-party dependency licenses are listed in [LICENSES.md](LICENSES.md). The file is generated during `pnpm build`.
 
 ## License
 
 Copyright (C) 2026 Maksym Yemelianov
 
-This program is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is free software. You can redistribute it or modify it under the terms of the [GNU Affero General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or, at your option, any later version.
