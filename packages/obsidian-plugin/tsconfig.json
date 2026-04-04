@@ -9,9 +9,10 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "outDir": "dist",
+    "composite": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/*.ts", "src/**/*.ts"],
   "references": [
     { "path": "../core" }
   ]
