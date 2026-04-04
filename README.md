@@ -39,8 +39,6 @@ Most AI chat tools make you choose one surface and live with its tradeoffs. curr
 
 ## Architecture
 
-Yes. GitHub renders Mermaid in README files, and this is a good fit for curraint because the structure is simple and important.
-
 ```mermaid
 flowchart TD
     Desktop["Desktop app<br/>@curraint/desktop"]
