@@ -180,6 +180,16 @@
   width: 100%;
 }
 
+.curraint-message__content[data-markdown-render-failed='true'] {
+  white-space: pre-wrap;
+}
+
+.curraint-message__render-warning {
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: var(--text-warning);
+}
+
 .curraint-message--assistant .curraint-message__content th,
 .curraint-message--assistant .curraint-message__content td {
   border: 1px solid var(--background-modifier-border);
@@ -291,8 +301,10 @@
 }
 
 .curraint-input-bar__textarea:focus {
-  outline: none;
   border-color: var(--interactive-accent);
+  outline: 2px solid var(--background-modifier-border-focus, var(--interactive-accent));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--background-secondary);
 }
 
 .curraint-input-bar__stop {

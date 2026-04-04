@@ -157,6 +157,26 @@ describe('MessageRenderer', () => {
       expect(container.children.length).toBe(initialCount);
     });
 
+    it('keeps raw text visible and shows a warning when markdown rendering fails', async () => {
+      const { MarkdownRenderer } = await import('obsidian');
+      const renderSpy = vi.mocked(MarkdownRenderer.render);
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      renderSpy.mockRejectedValueOnce(new Error('boom'));
+
+      renderer.appendMessage('assistant', '**bold**');
+      await Promise.resolve();
+
+      const el = container.querySelector('.curraint-message__content') as HTMLElement | null;
+      const warning = container.querySelector('.curraint-message__render-warning') as HTMLElement | null;
+
+      expect(el?.dataset.markdownRenderFailed).toBe('true');
+      expect(el?.textContent).toContain('**bold**');
+      expect(warning?.textContent).toBe('Failed to render markdown');
+      expect(warning?.title).toBe('boom');
+
+      errorSpy.mockRestore();
+    });
+
     it('keeps streaming deltas attached to the visible bubble when plain mode changes mid-stream', async () => {
       renderer.beginAssistantMessage();
       renderer.appendDelta('Hello');

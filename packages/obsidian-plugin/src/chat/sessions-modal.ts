@@ -95,12 +95,16 @@ export class SessionsModal extends Modal {
       }).open();
     });
 
-    renameBtn.addEventListener('click', () => {
-      this.beginInlineRename(summary, titleSpan);
-    });
+    renameBtn.onclick = () => {
+      this.beginInlineRename(summary, titleSpan, renameBtn);
+    };
   }
 
-  private beginInlineRename(summary: SessionSummary, titleSpan: HTMLElement): void {
+  private beginInlineRename(
+    summary: SessionSummary,
+    titleSpan: HTMLElement,
+    renameBtn: HTMLElement | null = null
+  ): void {
     const current = titleSpan.textContent ?? '';
     const input = document.createElement('input');
     input.type = 'text';
@@ -111,13 +115,17 @@ export class SessionsModal extends Modal {
 
     let committed = false;
 
-    const restoreSpan = (text: string): void => {
+    const restoreSpan = (text: string, nextRenameBtn: HTMLElement | null): void => {
       const span = createEl('span', { text, cls: 'curraint-sessions-modal__title' });
       input.replaceWith(span);
-      const renameBtn = span.parentElement?.querySelector(
+      const button = nextRenameBtn ?? span.parentElement?.querySelector(
         '.curraint-sessions-modal__rename'
       ) as HTMLElement | null;
-      renameBtn?.addEventListener('click', () => this.beginInlineRename(summary, span));
+      if (button) {
+        button.onclick = () => {
+          this.beginInlineRename(summary, span, button);
+        };
+      }
     };
 
     const commit = (): void => {
@@ -130,14 +138,14 @@ export class SessionsModal extends Modal {
       if (saved) {
         saveSession({ ...saved, title: newTitle });
       }
-      restoreSpan(newTitle);
+      restoreSpan(newTitle, renameBtn);
     };
 
     input.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter') { e.preventDefault(); commit(); }
       if (e.key === 'Escape') {
         committed = true;
-        restoreSpan(current);
+        restoreSpan(current, renameBtn);
       }
     });
     input.addEventListener('blur', commit);

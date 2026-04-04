@@ -157,6 +157,16 @@ export class MessageRenderer {
   private renderMarkdown(raw: string, el: HTMLElement): void {
     MarkdownRenderer.render(this.app, raw, el, '', this.component).catch((error: unknown) => {
       console.error('Curraint: Failed to render markdown.', error);
+      el.dataset.markdownRenderFailed = 'true';
+      el.textContent = raw;
+
+      const warning = document.createElement('div');
+      warning.className = 'curraint-message__render-warning';
+      warning.textContent = 'Failed to render markdown';
+      warning.title = error instanceof Error ? error.message : String(error);
+      warning.setAttribute('role', 'status');
+      warning.setAttribute('aria-label', `Failed to render markdown: ${warning.title}`);
+      el.appendChild(warning);
     });
   }
 }

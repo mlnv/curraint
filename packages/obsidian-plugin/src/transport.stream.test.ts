@@ -17,6 +17,7 @@ vi.mock('@curraint/core', () => ({
 }));
 
 import { buildTransport } from './transport';
+import type CurraintPlugin from './main';
 
 describe('buildTransport abort handling', () => {
   beforeEach(() => {
@@ -29,7 +30,7 @@ describe('buildTransport abort handling', () => {
     controller.abort();
     chatCompletionStream.mockRejectedValueOnce(new Error('stream failed'));
 
-    const transport = buildTransport({
+    const plugin = {
       settings: {
         provider: 'openai',
         apiKeyEncrypted: '',
@@ -39,9 +40,12 @@ describe('buildTransport abort handling', () => {
         contextMaxMessages: 40,
         contextMaxCharacters: 24000,
         enableSessionSaving: false,
+        mobileDeviceKey: '',
       },
-      secrets: { decrypt: vi.fn() },
-    } as never);
+      secrets: { decrypt: vi.fn(), encrypt: vi.fn() },
+    } satisfies Pick<CurraintPlugin, 'settings' | 'secrets'>;
+
+    const transport = buildTransport(plugin);
 
     const onDelta = vi.fn();
     const result = await transport.streamChat(
@@ -69,7 +73,7 @@ describe('buildTransport abort handling', () => {
       };
     });
 
-    const transport = buildTransport({
+    const plugin = {
       settings: {
         provider: 'openai',
         apiKeyEncrypted: '',
@@ -79,9 +83,12 @@ describe('buildTransport abort handling', () => {
         contextMaxMessages: 40,
         contextMaxCharacters: 24000,
         enableSessionSaving: false,
+        mobileDeviceKey: '',
       },
-      secrets: { decrypt: vi.fn() },
-    } as never);
+      secrets: { decrypt: vi.fn(), encrypt: vi.fn() },
+    } satisfies Pick<CurraintPlugin, 'settings' | 'secrets'>;
+
+    const transport = buildTransport(plugin);
 
     const onDelta = vi.fn();
     const result = await transport.streamChat(

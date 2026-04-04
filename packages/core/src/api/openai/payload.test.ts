@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ChatMessage } from '../../types';
 import type { EndpointSettings } from '../../settings/types';
 import { buildOpenAiPayload, sanitizeOpenAiMessages, supportsOpenAiStreamOptions } from './payload';
 
@@ -26,6 +27,18 @@ describe('sanitizeOpenAiMessages', () => {
         },
       ])
     ).toEqual([{ role: 'user', content: 'Hello' }]);
+  });
+
+  it('preserves empty strings and normalizes undefined content to empty strings', () => {
+    const messages = [
+      { role: 'user', content: '', timestamp: 123 },
+      { role: 'assistant', content: undefined, usage: { total_tokens: 1 } },
+    ] as unknown as ChatMessage[];
+
+    expect(sanitizeOpenAiMessages(messages)).toEqual([
+      { role: 'user', content: '' },
+      { role: 'assistant', content: '' },
+    ]);
   });
 });
 

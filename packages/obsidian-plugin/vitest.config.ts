@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   test: {
+    // Default to node, but keep jsdom installed for per-file DOM test overrides.
     environment: 'node',
     passWithNoTests: true,
   },

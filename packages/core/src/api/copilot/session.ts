@@ -7,6 +7,17 @@ import type { SessionState } from './types';
 // Recreated when model/system prompt changes or when explicitly reset.
 export let activeSession: SessionState | null = null;
 
+/**
+ * Gently disconnects the current SDK session before clearing the local cache.
+ * The SDK handles the underlying teardown and any reconnectable state.
+ */
+export async function disconnectActiveSession(): Promise<void> {
+  if (activeSession) {
+    await activeSession.session.disconnect().catch(() => {});
+    activeSession = null;
+  }
+}
+
 function isSessionStale(model: string, systemPrompt: string, forceNew: boolean): boolean {
   if (!activeSession) return true;
   const settingsChanged =
@@ -30,13 +41,6 @@ async function createNewSession(
   });
 }
 
-export async function destroyActiveSession(): Promise<void> {
-  if (activeSession) {
-    await activeSession.session.disconnect().catch(() => {});
-    activeSession = null;
-  }
-}
-
 export async function getOrCreateSession(
   model: string,
   systemPrompt: string,
@@ -45,10 +49,10 @@ export async function getOrCreateSession(
   const client = await getClient();
 
   if (activeSession?.client !== client) {
-    await destroyActiveSession();
+    await disconnectActiveSession();
   }
 
-  if (isSessionStale(model, systemPrompt, forceNew)) await destroyActiveSession();
+  if (isSessionStale(model, systemPrompt, forceNew)) await disconnectActiveSession();
 
   if (!activeSession) {
     const session = await createNewSession(client, model, systemPrompt);

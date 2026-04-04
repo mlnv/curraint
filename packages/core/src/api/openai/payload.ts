@@ -16,12 +16,14 @@ type OpenAiPayloadOptions = {
   stream?: boolean;
 };
 
+const STREAM_OPTIONS_PROVIDERS = new Set<EndpointSettings['provider']>(['openai', 'copilot']);
+
 export function sanitizeOpenAiMessages(messages: ChatMessage[]): OpenAiApiMessage[] {
-  return messages.map(({ role, content }) => ({ role, content }));
+  return messages.map(({ role, content }) => ({ role, content: content ?? '' }));
 }
 
 export function supportsOpenAiStreamOptions(provider: EndpointSettings['provider']): boolean {
-  return provider === 'openai' || provider === 'copilot';
+  return STREAM_OPTIONS_PROVIDERS.has(provider);
 }
 
 export function buildOpenAiPayload(

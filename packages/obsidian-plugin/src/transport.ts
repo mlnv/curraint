@@ -7,6 +7,8 @@ import type { EndpointSettings, ChatSessionTransport } from '@curraint/core';
 import type { ChatMessage, TokenUsage } from '@curraint/core';
 import type CurraintPlugin from './main';
 
+type TransportPlugin = Pick<CurraintPlugin, 'settings' | 'secrets'>;
+
 function isAbortError(error: unknown): boolean {
   return (
     (error instanceof DOMException && error.name === 'AbortError') ||
@@ -204,7 +206,7 @@ async function streamOpenAiCompat(
 
 // --- Transport factory -------------------------------------------------------
 
-export function buildTransport(plugin: CurraintPlugin): ChatSessionTransport {
+export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
   // Tracks the LM Studio server-side conversation so the full history does not
   // need to be re-sent on every turn. Reset when the session is cleared.
   let lmsResponseId: string | null = null;

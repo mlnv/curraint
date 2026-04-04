@@ -38,8 +38,8 @@ export class ChatView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    const root = this.containerEl.children[1] as HTMLElement;
-    root.className = 'curraint-chat-view';
+    const root = this.resolveRootElement();
+    root.classList.add('curraint-chat-view');
 
     const header = document.createElement('div');
     header.className = 'curraint-chat-header';
@@ -93,6 +93,8 @@ export class ChatView extends ItemView {
   }
 
   async onClose(): Promise<void> {
+    this.inputBar?.destroy();
+    this.pendingNoteFiles = [];
     this.destroyRegistry();
   }
 
@@ -336,7 +338,8 @@ export class ChatView extends ItemView {
 
   private applyNoteContextAll(core: ChatSessionCore, noteMsgs: ChatMessage[]): void {
     const { conversation } = core.getState();
-    // Strip all leading note-context system messages inserted by previous sends.
+    // Replace only the current leading note context and preserve any later
+    // note-context injections that are part of the actual conversation history.
     let base = conversation;
     while (
       base.length > 0 &&
@@ -346,5 +349,24 @@ export class ChatView extends ItemView {
       base = base.slice(1);
     }
     core.loadConversation([...noteMsgs, ...base]);
+  }
+
+  private resolveRootElement(): HTMLElement {
+    const indexedRoot = this.containerEl.children.item(1);
+    if (indexedRoot instanceof HTMLElement) {
+      return indexedRoot;
+    }
+
+    const fallbackRoot = this.containerEl.querySelector('.view-content');
+    if (fallbackRoot instanceof HTMLElement) {
+      console.warn('Curraint: Chat view root fallback used because containerEl.children[1] was unavailable.');
+      return fallbackRoot;
+    }
+
+    const createdRoot = document.createElement('div');
+    createdRoot.className = 'view-content';
+    this.containerEl.appendChild(createdRoot);
+    console.warn('Curraint: Chat view root was missing; created a fallback view-content container.');
+    return createdRoot;
   }
 }

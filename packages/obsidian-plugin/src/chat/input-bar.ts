@@ -9,21 +9,58 @@ export type InputBarCallbacks = {
   onStop: () => void;
 };
 
+type NoteChipEntry = {
+  element: HTMLElement;
+  removeButton: HTMLButtonElement;
+  removeHandler: () => void;
+};
+
+const NOOP_CALLBACKS: InputBarCallbacks = {
+  onSubmit: () => {},
+  onAddCurrentNote: () => {},
+  onNoteAdd: () => {},
+  onNoteRemove: () => {},
+  onStop: () => {},
+};
+
 export class InputBar {
-  private readonly textarea: HTMLTextAreaElement;
-  private readonly sendButton: HTMLButtonElement;
-  private readonly stopButton: HTMLButtonElement;
-  private readonly addCurrentNoteButton: HTMLButtonElement;
-  private readonly noteAddButton: HTMLButtonElement;
-  private readonly contextBar: HTMLElement;
-  private readonly noteChipMap = new Map<string, HTMLElement>();
+  private wrapper: HTMLElement | null;
+  private textarea: HTMLTextAreaElement | null;
+  private sendButton: HTMLButtonElement | null;
+  private stopButton: HTMLButtonElement | null;
+  private addCurrentNoteButton: HTMLButtonElement | null;
+  private noteAddButton: HTMLButtonElement | null;
+  private contextBar: HTMLElement | null;
+  private readonly noteChipMap = new Map<string, NoteChipEntry>();
   private callbacks: InputBarCallbacks;
+  private readonly handleTextareaKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.trySubmit();
+    }
+  };
+  private readonly handleTextareaInput = (): void => {
+    this.autoResize();
+  };
+  private readonly handleSendClick = (): void => {
+    this.trySubmit();
+  };
+  private readonly handleStopClick = (): void => {
+    this.callbacks.onStop();
+  };
+  private readonly handleAddCurrentNoteClick = (): void => {
+    this.callbacks.onAddCurrentNote();
+  };
+  private readonly handleNoteAddClick = (): void => {
+    this.callbacks.onNoteAdd();
+  };
 
   constructor(container: HTMLElement, callbacks: InputBarCallbacks) {
     this.callbacks = callbacks;
 
     const wrapper = document.createElement('div');
     wrapper.className = 'curraint-input-wrapper';
+    this.wrapper = wrapper;
 
     // Top bar - quick-add current note button (always leftmost) + chips
     this.contextBar = document.createElement('div');
@@ -34,9 +71,7 @@ export class InputBar {
       '+ Note',
       'Add current note to context'
     );
-    this.addCurrentNoteButton.addEventListener('click', () => {
-      callbacks.onAddCurrentNote();
-    });
+    this.addCurrentNoteButton.addEventListener('click', this.handleAddCurrentNoteClick);
     this.contextBar.appendChild(this.addCurrentNoteButton);
 
 
@@ -49,22 +84,15 @@ export class InputBar {
     this.textarea.placeholder =
       'Ask anything\u2026 (Enter to send, Shift+Enter for newline)';
     this.textarea.rows = 1;
-    this.textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.trySubmit(callbacks.onSubmit);
-      }
-    });
-    this.textarea.addEventListener('input', () => this.autoResize());
+    this.textarea.addEventListener('keydown', this.handleTextareaKeydown);
+    this.textarea.addEventListener('input', this.handleTextareaInput);
 
     this.sendButton = this.createButton(
       'curraint-input-bar__send',
       '\u2191',
       'Send message'
     );
-    this.sendButton.addEventListener('click', () =>
-      this.trySubmit(callbacks.onSubmit)
-    );
+    this.sendButton.addEventListener('click', this.handleSendClick);
 
     this.stopButton = this.createButton(
       'curraint-input-bar__stop',
@@ -73,7 +101,7 @@ export class InputBar {
     );
     setIcon(this.stopButton, 'square');
     this.stopButton.style.display = 'none';
-    this.stopButton.addEventListener('click', () => callbacks.onStop());
+    this.stopButton.addEventListener('click', this.handleStopClick);
 
     bar.appendChild(this.textarea);
     bar.appendChild(this.sendButton);
@@ -88,9 +116,7 @@ export class InputBar {
       '+ Add notes',
       'Browse and add notes to context'
     );
-    this.noteAddButton.addEventListener('click', () => {
-      callbacks.onNoteAdd();
-    });
+    this.noteAddButton.addEventListener('click', this.handleNoteAddClick);
     bottomBar.appendChild(this.noteAddButton);
 
     wrapper.appendChild(this.contextBar);
@@ -101,6 +127,8 @@ export class InputBar {
 
   /** Update the label on the quick-add button to reflect the active note title. */
   setCurrentNoteTitle(title: string | null): void {
+    if (!this.addCurrentNoteButton) return;
+
     this.addCurrentNoteButton.textContent = title ? `+ ${title}` : '+ Note';
     this.addCurrentNoteButton.title = title
       ? `Add "${title}" to context`
@@ -108,6 +136,16 @@ export class InputBar {
   }
 
   setLoading(loading: boolean): void {
+    if (
+      !this.textarea ||
+      !this.addCurrentNoteButton ||
+      !this.noteAddButton ||
+      !this.sendButton ||
+      !this.stopButton
+    ) {
+      return;
+    }
+
     this.textarea.disabled = loading;
     this.addCurrentNoteButton.disabled = loading;
     this.noteAddButton.disabled = loading;
@@ -117,18 +155,20 @@ export class InputBar {
 
   /** Replace the full set of note chips with the given files. */
   setNoteChips(files: TFile[]): void {
+    if (!this.contextBar) return;
+
     // Remove chips that are no longer in the list.
-    for (const [path, el] of this.noteChipMap) {
+    for (const [path] of this.noteChipMap) {
       if (!files.some((f) => f.path === path)) {
-        el.remove();
-        this.noteChipMap.delete(path);
+        this.removeOneChip(path);
       }
     }
+
     // Add chips for newly selected files (preserve existing ones).
     for (const file of files) {
       if (!this.noteChipMap.has(file.path)) {
         const chip = this.createChip(file);
-        this.contextBar.appendChild(chip);
+        this.contextBar.appendChild(chip.element);
         this.noteChipMap.set(file.path, chip);
       }
     }
@@ -136,16 +176,19 @@ export class InputBar {
 
   /** Remove a single chip by file path. */
   removeOneChip(path: string): void {
-    const el = this.noteChipMap.get(path);
-    if (el) {
-      el.remove();
+    const chip = this.noteChipMap.get(path);
+    if (chip) {
+      chip.removeButton.removeEventListener('click', chip.removeHandler);
+      chip.element.remove();
       this.noteChipMap.delete(path);
     }
   }
 
   /** Remove all chips (e.g. after a message is sent). */
   clearNoteChips(): void {
-    for (const el of this.noteChipMap.values()) el.remove();
+    for (const path of [...this.noteChipMap.keys()]) {
+      this.removeOneChip(path);
+    }
     this.noteChipMap.clear();
   }
 
@@ -155,10 +198,33 @@ export class InputBar {
   }
 
   focus(): void {
-    this.textarea.focus();
+    this.textarea?.focus();
   }
 
-  private createChip(file: TFile): HTMLElement {
+  destroy(): void {
+    if (!this.wrapper) return;
+
+    this.textarea?.removeEventListener('keydown', this.handleTextareaKeydown);
+    this.textarea?.removeEventListener('input', this.handleTextareaInput);
+    this.sendButton?.removeEventListener('click', this.handleSendClick);
+    this.stopButton?.removeEventListener('click', this.handleStopClick);
+    this.addCurrentNoteButton?.removeEventListener('click', this.handleAddCurrentNoteClick);
+    this.noteAddButton?.removeEventListener('click', this.handleNoteAddClick);
+
+    this.clearNoteChips();
+    this.contextBar?.replaceChildren();
+    this.wrapper.remove();
+    this.callbacks = NOOP_CALLBACKS;
+    this.textarea = null;
+    this.sendButton = null;
+    this.stopButton = null;
+    this.addCurrentNoteButton = null;
+    this.noteAddButton = null;
+    this.contextBar = null;
+    this.wrapper = null;
+  }
+
+  private createChip(file: TFile): NoteChipEntry {
     const chip = document.createElement('span');
     chip.className = 'curraint-note-chip';
 
@@ -174,26 +240,31 @@ export class InputBar {
     remove.className = 'curraint-note-chip__remove';
     remove.textContent = '\u00D7';
     remove.title = 'Remove note from context';
-    remove.addEventListener('click', () => {
+    const removeHandler = (): void => {
       this.removeOneChip(file.path);
       this.callbacks.onNoteRemove(file.path);
-    });
+    };
+    remove.addEventListener('click', removeHandler);
 
     chip.appendChild(icon);
     chip.appendChild(label);
     chip.appendChild(remove);
-    return chip;
+    return { element: chip, removeButton: remove, removeHandler };
   }
 
-  private trySubmit(onSubmit: (text: string) => void): void {
+  private trySubmit(): void {
+    if (!this.textarea) return;
+
     const text = this.textarea.value.trim();
     if (!text) return;
     this.textarea.value = '';
     this.autoResize();
-    onSubmit(text);
+    this.callbacks.onSubmit(text);
   }
 
   private autoResize(): void {
+    if (!this.textarea) return;
+
     this.textarea.style.height = 'auto';
     this.textarea.style.height = `${this.textarea.scrollHeight}px`;
   }

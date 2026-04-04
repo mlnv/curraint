@@ -8,8 +8,14 @@ const isDev = process.argv.includes('--dev') || isWatch;
 
 function copyStaticFiles() {
   fs.mkdirSync('dist', { recursive: true });
-  fs.copyFileSync('manifest.json', 'dist/manifest.json');
-  fs.copyFileSync('styles.css', 'dist/styles.css');
+  for (const fileName of ['manifest.json', 'styles.css']) {
+    if (!fs.existsSync(fileName)) {
+      console.warn(`Curraint: Skipping missing static file ${fileName}`);
+      continue;
+    }
+
+    fs.copyFileSync(fileName, `dist/${fileName}`);
+  }
 }
 
 const buildOptions = {

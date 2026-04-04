@@ -7,9 +7,12 @@ export class NotePickerModal extends Modal {
   private readonly onConfirm: (files: TFile[]) => void;
   private checked: Set<string>;
   private allFiles: TFile[] = [];
-  private listEl!: HTMLElement;
-  private searchInput!: HTMLInputElement;
-  private confirmBtn!: HTMLButtonElement;
+  private listEl: HTMLElement | null = null;
+  private searchInput: HTMLInputElement | null = null;
+  private confirmBtn: HTMLButtonElement | null = null;
+  private focusTimeoutId: number | null = null;
+  private readonly modalDisposers: Array<() => void> = [];
+  private readonly listDisposers: Array<() => void> = [];
 
   constructor(
     app: App,
@@ -32,7 +35,13 @@ export class NotePickerModal extends Modal {
       cls: 'curraint-note-picker-modal__search',
       attr: { type: 'text', placeholder: 'Search notes\u2026', autocomplete: 'off' },
     });
-    this.searchInput.addEventListener('input', () => this.renderList());
+    const handleSearchInput = (): void => {
+      this.renderList();
+    };
+    this.searchInput.addEventListener('input', handleSearchInput);
+    this.modalDisposers.push(() => {
+      this.searchInput?.removeEventListener('input', handleSearchInput);
+    });
 
     this.listEl = contentEl.createEl('ul', {
       cls: 'curraint-note-picker-modal__list',
@@ -52,30 +61,53 @@ export class NotePickerModal extends Modal {
       text: 'Cancel',
       cls: 'curraint-note-picker-modal__cancel',
     });
-    cancelBtn.addEventListener('click', () => this.close());
+    const handleCancelClick = (): void => {
+      this.close();
+    };
+    cancelBtn.addEventListener('click', handleCancelClick);
+    this.modalDisposers.push(() => {
+      cancelBtn.removeEventListener('click', handleCancelClick);
+    });
 
     this.confirmBtn = footer.createEl('button', {
       text: 'Add to context',
       cls: 'mod-cta curraint-note-picker-modal__confirm',
     });
-    this.confirmBtn.addEventListener('click', () => {
+    const handleConfirmClick = (): void => {
       const files = this.allFiles.filter((f) => this.checked.has(f.path));
       this.onConfirm(files);
       this.close();
+    };
+    this.confirmBtn.addEventListener('click', handleConfirmClick);
+    this.modalDisposers.push(() => {
+      this.confirmBtn?.removeEventListener('click', handleConfirmClick);
     });
 
     this.updateConfirmLabel();
 
     // Focus search after the modal renders.
-    window.setTimeout(() => this.searchInput.focus(), 0);
+    this.focusTimeoutId = window.setTimeout(() => this.searchInput?.focus(), 0);
   }
 
   onClose(): void {
+    this.clearDisposers(this.listDisposers);
+    this.clearDisposers(this.modalDisposers);
+    if (this.focusTimeoutId !== null) {
+      window.clearTimeout(this.focusTimeoutId);
+      this.focusTimeoutId = null;
+    }
+    this.listEl = null;
+    this.searchInput = null;
+    this.confirmBtn = null;
+    this.allFiles = [];
     this.contentEl.empty();
   }
 
   private renderList(): void {
+    if (!this.listEl) return;
+
     const query = this.searchInput?.value.toLowerCase() ?? '';
+    this.clearDisposers(this.listDisposers);
     this.listEl.empty();
 
     const filtered = query
@@ -90,7 +122,7 @@ export class NotePickerModal extends Modal {
 
     if (filtered.length > MAX_VISIBLE) {
       this.listEl.createEl('li', {
-        text: `\u2026 ${filtered.length - MAX_VISIBLE} more \u2014 refine the search to narrow results`,
+        text: `\u2026 ${filtered.length - MAX_VISIBLE} more - refine the search to narrow results`,
         cls: 'curraint-note-picker-modal__overflow',
       });
     }
@@ -105,8 +137,10 @@ export class NotePickerModal extends Modal {
 
   private renderItem(file: TFile): void {
     const isChecked = this.checked.has(file.path);
+    const listEl = this.listEl;
+    if (!listEl) return;
 
-    const item = this.listEl.createEl('li', {
+    const item = listEl.createEl('li', {
       cls: 'curraint-note-picker-modal__item',
     });
     if (isChecked) item.addClass('is-checked');
@@ -149,10 +183,21 @@ export class NotePickerModal extends Modal {
       this.updateConfirmLabel();
     };
 
-    item.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement) !== checkbox) toggle();
+    const handleItemClick = (event: MouseEvent): void => {
+      if ((event.target as HTMLElement) !== checkbox) toggle();
+    };
+    const handleCheckboxChange = (): void => {
+      toggle();
+    };
+
+    item.addEventListener('click', handleItemClick);
+    checkbox.addEventListener('change', handleCheckboxChange);
+    this.listDisposers.push(() => {
+      item.removeEventListener('click', handleItemClick);
     });
-    checkbox.addEventListener('change', () => toggle());
+    this.listDisposers.push(() => {
+      checkbox.removeEventListener('change', handleCheckboxChange);
+    });
   }
 
   private updateConfirmLabel(): void {
@@ -160,5 +205,11 @@ export class NotePickerModal extends Modal {
     const count = this.checked.size;
     this.confirmBtn.textContent =
       count > 0 ? `Add ${count} note${count === 1 ? '' : 's'} to context` : 'Add to context';
+  }
+
+  private clearDisposers(disposers: Array<() => void>): void {
+    while (disposers.length > 0) {
+      disposers.pop()?.();
+    }
   }
 }

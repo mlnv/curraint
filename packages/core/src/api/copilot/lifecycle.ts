@@ -1,6 +1,6 @@
 import { getClient, stopClient } from './client';
 import { getSdk } from './sdk';
-import { destroyActiveSession, getOrCreateSession } from './session';
+import { disconnectActiveSession, getOrCreateSession } from './session';
 
 /** Pre-warm: eagerly start the CLI and create the session to reduce cold-start overhead. */
 export async function warmupCopilotSession(
@@ -19,7 +19,7 @@ export async function resetCopilotSession(
   model: string,
   systemPrompt: string
 ): Promise<void> {
-  await destroyActiveSession();
+  await disconnectActiveSession();
   await warmupCopilotSession(model, systemPrompt);
 }
 
@@ -41,6 +41,6 @@ export async function copilotTestConnection(model: string): Promise<string> {
 }
 
 export async function stopCopilotClient(): Promise<void> {
-  await destroyActiveSession();
+  await disconnectActiveSession();
   await stopClient();
 }
