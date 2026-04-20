@@ -5,37 +5,29 @@ import {
   settingsFilePath,
   ENABLE_COPILOT_PROVIDER,
   stopCopilotClient,
-  generateSessionId,
-  deriveTitle,
-  saveSession,
 } from '@curraint/core';
 import type { ChatSessionCore, EndpointSettings } from '@curraint/core';
 import { c, divider } from './theme';
-import { loadSettings } from './settings';
-import { isFirstRun, runFirstRunSetup, askForApiKeyIfNeeded } from './setup';
 import { buildTransport } from './transport';
 import { readLineWithCompletion } from './readline-completion';
 import { SessionUI } from './session-ui';
 import { dispatchSlashCommand } from './commands/registry';
 import type { CommandContext } from './commands/types';
 import { InputHistory } from './input-history';
+import { bootstrapCliSettings } from './runtime/bootstrap';
+import { installSigintHandler } from './runtime/signal-handling';
+import { persistSessionIfEnabled } from './runtime/session-persistence';
 
 /** Starts the interactive CLI chat loop. Returns an exit code (0 on clean exit, 1 on setup failure). */
 export async function run(): Promise<number> {
-  let settings = loadSettings();
   const rl = readline.createInterface({ input, output });
 
-  const firstRun = isFirstRun();
-  if (firstRun) {
-    settings = await runFirstRunSetup(rl, settings);
-  }
-
-  const finalSettings = await askForApiKeyIfNeeded(rl, settings, firstRun);
-  if (!finalSettings) {
+  const bootstrap = await bootstrapCliSettings(rl);
+  if (!bootstrap.settings) {
     rl.close();
-    return 1;
+    return bootstrap.exitCode;
   }
-  settings = finalSettings;
+  let settings = bootstrap.settings;
 
   const sessionUI = new SessionUI();
   let session: ChatSessionCore = createChatSessionCore(buildTransport(settings));
@@ -70,15 +62,7 @@ export async function run(): Promise<number> {
     `${c.bold}curraint CLI${c.reset} — provider: ${c.cyan}${settings.provider}${c.reset}, model: ${c.cyan}${settings.model}${c.reset}. Settings: ${c.dim}${settingsFilePath()}${c.reset}. Type ${c.cyan}/exit${c.reset} to quit. Use ${c.cyan}/help${c.reset} for commands.\n`,
   );
 
-  process.on('SIGINT', () => {
-    if (session.getState().isSending) {
-      void session.stopResponse();
-      return;
-    }
-    output.write('\n');
-    rl.close();
-    process.exit(0);
-  });
+  const cleanupSigintHandler = installSigintHandler({ output, rl, session });
 
   try {
     const history = new InputHistory();
@@ -98,25 +82,14 @@ export async function run(): Promise<number> {
         await session.submitPrompt(text);
         sessionUI.printFinalAssistantIfNeeded(session);
 
-        // Auto-save session after each completed response
-        if (settings.enableSessionSaving) {
-          const state = session.getState();
-          const msgs = state.conversation.filter((m) => m.role !== 'system');
-          if (msgs.length > 0) {
-            if (!currentSessionId) {
-              currentSessionId = generateSessionId();
-              currentSessionCreatedAt = Date.now();
-            }
-            const firstUser = msgs.find((m) => m.role === 'user')?.content ?? '';
-            saveSession({
-              id: currentSessionId,
-              title: deriveTitle(firstUser),
-              createdAt: currentSessionCreatedAt,
-              updatedAt: Date.now(),
-              messages: msgs
-            });
-          }
-        }
+        const persistenceState = persistSessionIfEnabled({
+          enableSessionSaving: settings.enableSessionSaving,
+          conversation: session.getState().conversation,
+          currentSessionId,
+          currentSessionCreatedAt,
+        });
+        currentSessionId = persistenceState.currentSessionId;
+        currentSessionCreatedAt = persistenceState.currentSessionCreatedAt;
       } catch (error) {
         output.write(
           `${c.red}Error:${c.reset} ${error instanceof Error ? error.message : 'Unknown error'}\n`,
@@ -124,6 +97,7 @@ export async function run(): Promise<number> {
       }
     }
   } finally {
+    cleanupSigintHandler();
     rl.close();
     if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
       try {
