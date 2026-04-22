@@ -1,3 +1,4 @@
+import type { CompactedContext } from '../context';
 import type { ChatMessage } from '../types';
 
 export type SavedSession = {
@@ -6,6 +7,7 @@ export type SavedSession = {
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];
+  compactedContext?: CompactedContext | null;
 };
 
 export type SessionSummary = {

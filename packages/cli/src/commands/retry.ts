@@ -18,5 +18,6 @@ export async function runRetry(ctx: CommandContext): Promise<CommandResult> {
   ctx.sessionUI.resetTurnState();
   await session.retryLastMessage();
   ctx.sessionUI.printFinalAssistantIfNeeded(session);
+  ctx.sessionUI.printContextUsage(session, ctx.getSettings());
   return 'continue';
 }

@@ -24,5 +24,6 @@ export async function runEdit(text: string, ctx: CommandContext): Promise<Comman
   ctx.sessionUI.resetTurnState();
   await session.editUserMessage(userMessageIndex, edited);
   ctx.sessionUI.printFinalAssistantIfNeeded(session);
+  ctx.sessionUI.printContextUsage(session, ctx.getSettings());
   return 'continue';
 }

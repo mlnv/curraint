@@ -81,10 +81,12 @@ export async function run(): Promise<number> {
         sessionUI.resetTurnState();
         await session.submitPrompt(text);
         sessionUI.printFinalAssistantIfNeeded(session);
+        sessionUI.printContextUsage(session, settings);
 
         const persistenceState = persistSessionIfEnabled({
           enableSessionSaving: settings.enableSessionSaving,
           conversation: session.getState().conversation,
+          compactedContext: session.getState().compactedContext,
           currentSessionId,
           currentSessionCreatedAt,
         });

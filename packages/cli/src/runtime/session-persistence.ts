@@ -1,4 +1,5 @@
 import { deriveTitle, generateSessionId, saveSession } from '@curraint/core';
+import type { CompactedContext } from '@curraint/core';
 import type { ChatMessage } from '@curraint/core';
 
 export type SessionPersistenceState = {
@@ -9,6 +10,7 @@ export type SessionPersistenceState = {
 type PersistSessionOptions = SessionPersistenceState & {
   enableSessionSaving: boolean;
   conversation: ChatMessage[];
+  compactedContext?: CompactedContext | null;
   now?: () => number;
 };
 
@@ -49,6 +51,7 @@ export function persistSessionIfEnabled(
     createdAt: currentSessionCreatedAt,
     updatedAt: timestamp,
     messages,
+    compactedContext: options.compactedContext ?? null,
   });
 
   return {

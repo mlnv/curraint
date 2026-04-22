@@ -1,3 +1,4 @@
+import type { CompactedContext, ContextSafetyLimits } from '../context';
 import type { ChatMessage, TokenUsage } from '../types';
 
 export type ChatSessionState = {
@@ -5,6 +6,7 @@ export type ChatSessionState = {
   status: string;
   isSending: boolean;
   isStopping: boolean;
+  compactedContext: CompactedContext | null;
 };
 
 export type ChatStreamResult = {
@@ -16,7 +18,7 @@ export type ChatSessionTransport = {
   streamChat: (
     messages: ChatMessage[],
     onDelta: (delta: string) => void,
-    options?: { signal?: AbortSignal }
+    options?: { signal?: AbortSignal; compactedContext?: CompactedContext | null }
   ) => Promise<ChatStreamResult>;
   cancelChatStream?: () => Promise<void>;
   clearSession?: () => Promise<void>;
@@ -34,6 +36,7 @@ export type ChatSessionCore = {
   editUserMessage: (index: number, editedContent: string) => Promise<void>;
   retryLastMessage: () => Promise<void>;
   stopResponse: () => Promise<void>;
+  compactContext: (limits: ContextSafetyLimits) => boolean;
   clearConversation: () => Promise<void>;
-  loadConversation: (messages: ChatMessage[]) => void;
+  loadConversation: (messages: ChatMessage[], compactedContext?: CompactedContext | null) => void;
 };

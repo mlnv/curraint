@@ -42,8 +42,28 @@ function isChatStreamPayload(payload: unknown): payload is ChatStreamPayload {
     return false;
   }
 
-  const candidate = payload as { requestId?: unknown; messages?: unknown };
-  return typeof candidate.requestId === 'string' && isChatMessageArray(candidate.messages);
+  const candidate = payload as {
+    requestId?: unknown;
+    messages?: unknown;
+    compactedContext?: unknown;
+  };
+  const compactedContext = candidate.compactedContext;
+  const hasValidCompactedContext =
+    compactedContext === undefined ||
+    compactedContext === null ||
+    (
+      typeof compactedContext === 'object' &&
+      compactedContext !== null &&
+      typeof (compactedContext as { summary?: unknown }).summary === 'string' &&
+      typeof (compactedContext as { sourceMessageCount?: unknown }).sourceMessageCount === 'number' &&
+      typeof (compactedContext as { sourceCharacterCount?: unknown }).sourceCharacterCount === 'number'
+    );
+
+  return (
+    typeof candidate.requestId === 'string' &&
+    isChatMessageArray(candidate.messages) &&
+    hasValidCompactedContext
+  );
 }
 
 function isValidSavedSession(payload: unknown): payload is SavedSession {
@@ -124,7 +144,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     }
 
     const settings = settingsAccess.getSettings();
-    const composed = composeConversation(settings, payload.messages);
+    const composed = composeConversation(settings, payload.messages, payload.compactedContext ?? null);
     let hasStreamedChunk = false;
     let streamedMessage = '';
     const controller = new AbortController();

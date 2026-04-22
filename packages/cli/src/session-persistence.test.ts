@@ -78,6 +78,7 @@ describe('persistSessionIfEnabled', () => {
       title: 'Hello there',
       createdAt: 5000,
       updatedAt: 5000,
+      compactedContext: null,
       messages: [
         { role: 'user', content: 'Hello there' },
         { role: 'assistant', content: 'Hi' },
@@ -107,6 +108,7 @@ describe('persistSessionIfEnabled', () => {
       title: 'Hello there',
       createdAt: 3000,
       updatedAt: 8000,
+      compactedContext: null,
       messages: [
         { role: 'user', content: 'Hello there' },
         { role: 'assistant', content: 'Hi again' },

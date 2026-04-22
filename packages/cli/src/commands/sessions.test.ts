@@ -101,7 +101,7 @@ describe('runSessions', () => {
 
     expect(result).toBe('continue');
     expect(getSession).toHaveBeenCalledWith('id1');
-    expect(loadConversation).toHaveBeenCalledWith(fullSession.messages);
+    expect(loadConversation).toHaveBeenCalledWith(fullSession.messages, null);
     expect(setCurrentSessionId).toHaveBeenCalledWith('id1', 1000);
   });
 

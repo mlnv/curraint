@@ -1,3 +1,4 @@
+import { estimateMessageCost, truncateConversationForContext } from '../context';
 import type { ChatMessage } from '../types';
 import { applyStateUpdate, createInitialState, emitStateChange, snapshotState } from './state';
 import { runStream } from './stream';
@@ -20,6 +21,11 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       if (!c) _isCancelling = false;
     });
 
+  const clearCompactedContext = () => {
+    if (!state.compactedContext) return;
+    setState({ compactedContext: null });
+  };
+
   return {
     getState: () => snapshotState(state),
     subscribe: (subscriber) => {
@@ -37,6 +43,9 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       const trimmed = editedContent.trim();
       const target = state.conversation[index];
       if (!trimmed || !target || target.role !== 'user' || target.content === trimmed) return;
+      if (state.compactedContext && index < state.compactedContext.sourceMessageCount) {
+        clearCompactedContext();
+      }
       const next = state.conversation
         .slice(0, index + 1)
         .map((m, i) => (i === index ? { ...m, content: trimmed, timestamp: Date.now() } : m));
@@ -62,13 +71,37 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         setState({ status: 'Failed to stop response' });
       }
     },
+    compactContext: (limits) => {
+      if (state.isSending) return false;
+      const nonEmpty = state.conversation.filter((message) => message.content.trim().length > 0);
+      const { keptMessages, summary } = truncateConversationForContext(nonEmpty, limits);
+      if (!summary) {
+        return false;
+      }
+
+      const sourceMessages = nonEmpty.slice(0, nonEmpty.length - keptMessages.length);
+      const sourceCharacterCount = sourceMessages.reduce(
+        (total, message) => total + estimateMessageCost(message),
+        0
+      );
+
+      setState({
+        compactedContext: {
+          summary,
+          sourceMessageCount: sourceMessages.length,
+          sourceCharacterCount
+        },
+        status: ''
+      });
+      return true;
+    },
     clearConversation: async () => {
       if (state.isSending) return;
-      setState({ conversation: [], status: '' });
+      setState({ conversation: [], status: '', compactedContext: null });
       await transport.clearSession?.();
     },
-    loadConversation: (messages) => {
-      setState({ conversation: messages, status: '' });
+    loadConversation: (messages, compactedContext = null) => {
+      setState({ conversation: messages, status: '', compactedContext });
     }
   };
 }

@@ -95,7 +95,7 @@ export class ConversationRegistry {
     slot.title = saved.title;
     this.slots.set(key, slot);
     this._activeKey = key;
-    slot.core.loadConversation(saved.messages);
+    slot.core.loadConversation(saved.messages, saved.compactedContext ?? null);
   }
 
   /** Stop the active slot's stream if it is sending. */
@@ -127,7 +127,7 @@ export class ConversationRegistry {
     this.slots.clear();
   }
 
-  private autoSave(slot: ConversationSlot, messages: ChatMessage[]): void {
+  private autoSave(slot: ConversationSlot, messages: ChatMessage[], compactedContext: SavedSession['compactedContext'] = null): void {
     if (!this.getEnableSessionSaving()) return;
 
     let msgs = messages.filter((m) => m.role !== 'system');
@@ -151,6 +151,7 @@ export class ConversationRegistry {
       createdAt: slot.sessionCreatedAt,
       updatedAt: Date.now(),
       messages: msgs,
+      compactedContext,
     });
   }
 
@@ -176,12 +177,12 @@ export class ConversationRegistry {
 
         if (!wasSending && state.isSending) {
           // Save eagerly so the session appears in the list while streaming.
-          this.autoSave(slot, state.conversation);
+          this.autoSave(slot, state.conversation, state.compactedContext);
           return;
         }
 
         if (wasSending && !state.isSending) {
-          this.autoSave(slot, state.conversation);
+          this.autoSave(slot, state.conversation, state.compactedContext);
           // Background slots remove themselves once their stream finishes.
           if (key !== this._activeKey) {
             slot.unsubscribe();

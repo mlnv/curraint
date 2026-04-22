@@ -8,7 +8,8 @@ import { MessageRenderer } from './message-renderer';
 import { InputBar } from './input-bar';
 import { SessionsModal } from './sessions-modal';
 import { NotePickerModal } from './note-picker-modal';
-import type { ChatMessage, ChatSessionCore, SavedSession } from '@curraint/core';
+import { getContextUsage } from '@curraint/core';
+import type { ChatMessage, ChatSessionCore, ChatSessionState, SavedSession } from '@curraint/core';
 
 export const CHAT_VIEW_TYPE = 'curraint-chat';
 
@@ -19,6 +20,12 @@ export class ChatView extends ItemView {
   private inputBar!: InputBar;
   private pendingNoteFiles: TFile[] = [];
   private headerTitle!: HTMLInputElement;
+  private contextMeterButton!: HTMLButtonElement;
+  private contextMeterValue!: HTMLSpanElement;
+  private contextPopupSummary!: HTMLParagraphElement;
+  private contextPopupBreakdown!: HTMLDivElement;
+  private contextPopupStatus!: HTMLParagraphElement;
+  private contextStateUnsubscribe: (() => void) | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: CurraintPlugin) {
     super(leaf);
@@ -62,6 +69,7 @@ export class ChatView extends ItemView {
       () => this.plugin.settings.enableSessionSaving
     );
     this.registry.init();
+    this.attachActiveContextListener();
 
     this.inputBar = new InputBar(inputEl, {
       onSubmit: (text) => { this.handleSubmit(text).catch(() => {}); },
@@ -90,11 +98,14 @@ export class ChatView extends ItemView {
     );
 
     this.inputBar.focus();
+    this.updateContextIndicator();
   }
 
   async onClose(): Promise<void> {
     this.inputBar?.destroy();
     this.pendingNoteFiles = [];
+    this.contextStateUnsubscribe?.();
+    this.contextStateUnsubscribe = null;
     this.destroyRegistry();
   }
 
@@ -115,11 +126,14 @@ export class ChatView extends ItemView {
 
   private handleNewConversation(): void {
     this.registry.newConversation();
+    this.attachActiveContextListener();
     this.messageRenderer.renderAll([]);
     this.inputBar.setLoading(false);
     this.pendingNoteFiles = [];
     this.inputBar.clearNoteChips();
     this.updateHeaderTitle();
+    this.contextPopupStatus.textContent = '';
+    this.updateContextIndicator();
     this.inputBar.focus();
   }
 
@@ -212,10 +226,13 @@ export class ChatView extends ItemView {
 
   private handleLoadSession(saved: SavedSession): void {
     this.registry.loadSession(saved);
+    this.attachActiveContextListener();
     this.renderActiveSlot();
     this.pendingNoteFiles = [];
     this.inputBar.clearNoteChips();
     this.updateHeaderTitle();
+    this.contextPopupStatus.textContent = '';
+    this.updateContextIndicator();
     this.inputBar.focus();
   }
 
@@ -228,6 +245,7 @@ export class ChatView extends ItemView {
     if (!slot) {
       this.messageRenderer.renderAll([]);
       this.inputBar.setLoading(false);
+      this.updateContextIndicator();
       return;
     }
     const state = slot.core.getState();
@@ -245,6 +263,7 @@ export class ChatView extends ItemView {
       this.messageRenderer.renderAll(state.conversation);
       this.inputBar.setLoading(false);
     }
+    this.updateContextIndicator(state);
   }
 
   private updateHeaderTitle(): void {
@@ -277,6 +296,50 @@ export class ChatView extends ItemView {
       }
     });
     controls.appendChild(formatToggle);
+
+    const contextPopover = document.createElement('div');
+    contextPopover.className = 'curraint-chat-header__context-popover';
+
+    this.contextMeterButton = document.createElement('button');
+    this.contextMeterButton.type = 'button';
+    this.contextMeterButton.className = 'curraint-chat-header__context-meter';
+    this.contextMeterButton.title = 'Show context usage';
+    this.contextMeterButton.setAttribute('aria-label', 'Show context usage');
+
+    this.contextMeterValue = document.createElement('span');
+    this.contextMeterValue.className = 'curraint-chat-header__context-meter-value';
+    this.contextMeterButton.appendChild(this.contextMeterValue);
+    contextPopover.appendChild(this.contextMeterButton);
+
+    const contextPopup = document.createElement('div');
+    contextPopup.className = 'curraint-chat-header__context-popup';
+
+    const contextLabel = document.createElement('p');
+    contextLabel.className = 'curraint-chat-header__context-label';
+    contextLabel.textContent = 'Context budget';
+    contextPopup.appendChild(contextLabel);
+
+    this.contextPopupSummary = document.createElement('p');
+    this.contextPopupSummary.className = 'curraint-chat-header__context-summary';
+    contextPopup.appendChild(this.contextPopupSummary);
+
+    this.contextPopupBreakdown = document.createElement('div');
+    this.contextPopupBreakdown.className = 'curraint-chat-header__context-breakdown';
+    contextPopup.appendChild(this.contextPopupBreakdown);
+
+    this.contextPopupStatus = document.createElement('p');
+    this.contextPopupStatus.className = 'curraint-chat-header__context-status';
+    contextPopup.appendChild(this.contextPopupStatus);
+
+    const summarizeButton = document.createElement('button');
+    summarizeButton.type = 'button';
+    summarizeButton.className = 'curraint-chat-header__context-action';
+    summarizeButton.textContent = 'Summarize older context';
+    summarizeButton.addEventListener('click', () => this.handleSummarizeContext());
+    contextPopup.appendChild(summarizeButton);
+
+    contextPopover.appendChild(contextPopup);
+    controls.appendChild(contextPopover);
 
     const newChatBtn = document.createElement('button');
     newChatBtn.className = 'curraint-chat-header__new-chat';
@@ -333,6 +396,7 @@ export class ChatView extends ItemView {
       }
       this.inputBar.setLoading(false);
       this.updateHeaderTitle();
+      this.updateContextIndicator();
     };
   }
 
@@ -348,7 +412,72 @@ export class ChatView extends ItemView {
     ) {
       base = base.slice(1);
     }
-    core.loadConversation([...noteMsgs, ...base]);
+    core.loadConversation([...noteMsgs, ...base], core.getState().compactedContext);
+  }
+
+  private attachActiveContextListener(): void {
+    this.contextStateUnsubscribe?.();
+    this.contextStateUnsubscribe = null;
+
+    const slot = this.registry.getActiveSlot();
+    if (!slot) {
+      return;
+    }
+
+    this.contextStateUnsubscribe = slot.core.subscribe({
+      onStateChange: (state) => this.updateContextIndicator(state)
+    });
+  }
+
+  private updateContextIndicator(state?: ChatSessionState): void {
+    if (!this.contextMeterButton) {
+      return;
+    }
+
+    const currentState = state ?? this.registry.getActiveSlot()?.core.getState();
+    const usage = getContextUsage(
+      this.plugin.settings,
+      currentState?.conversation ?? [],
+      currentState?.compactedContext ?? null
+    );
+    const clampedPercent = Math.max(0, Math.min(usage.percent, 100));
+    const tone = clampedPercent >= 90 ? 'danger' : clampedPercent >= 70 ? 'warn' : 'safe';
+
+    this.contextMeterButton.style.setProperty('--curraint-context-progress', `${clampedPercent}%`);
+    this.contextMeterButton.dataset.tone = tone;
+    this.contextMeterValue.textContent = `${usage.percent}%`;
+    this.contextPopupSummary.textContent = `${usage.percent}% of the active request budget is in use.`;
+    this.contextPopupBreakdown.replaceChildren(
+      this.createPopupLine(`${usage.usedMessages} / ${usage.maxMessages} composed messages`),
+      this.createPopupLine(`${usage.usedCharacters} / ${usage.maxCharacters} composed characters`),
+      this.createPopupLine(
+        usage.hasCompactedContext
+          ? `${usage.compactedMessages} older messages are already summarized for AI`
+          : 'No hidden summary is active yet'
+      )
+    );
+  }
+
+  private createPopupLine(text: string): HTMLParagraphElement {
+    const line = document.createElement('p');
+    line.textContent = text;
+    return line;
+  }
+
+  private handleSummarizeContext(): void {
+    const slot = this.registry.getActiveSlot();
+    if (!slot) {
+      return;
+    }
+
+    const didCompact = slot.core.compactContext({
+      maxMessages: this.plugin.settings.contextMaxMessages,
+      maxCharacters: this.plugin.settings.contextMaxCharacters
+    });
+    this.contextPopupStatus.textContent = didCompact
+      ? 'Older messages are now summarized for AI while the transcript stays visible.'
+      : 'The current request already fits inside the active context limits.';
+    this.updateContextIndicator();
   }
 
   private resolveRootElement(): HTMLElement {

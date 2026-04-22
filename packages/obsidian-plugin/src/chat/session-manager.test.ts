@@ -206,7 +206,7 @@ describe('ConversationRegistry - loadSession', () => {
     reg.init();
     reg.loadSession(saved);
     const core = reg.getOrCreateActive();
-    expect(core.loadConversation).toHaveBeenCalledWith(saved.messages);
+    expect(core.loadConversation).toHaveBeenCalledWith(saved.messages, null);
   });
 
   it('re-uses a streaming background slot matching the session id', () => {

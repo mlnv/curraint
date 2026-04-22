@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { getContextUsage } from '@curraint/core';
 import { ChatComposer } from './components/chat/chat-composer';
 import { ChatMessageList } from './components/chat/chat-message-list';
 import { Card } from './components/ui/card';
@@ -8,6 +9,7 @@ import { applyTheme } from './lib/theme';
 export function ChatApp(): React.JSX.Element {
   const {
     conversation,
+    compactedContext,
     prompt,
     status,
     isSending,
@@ -19,9 +21,12 @@ export function ChatApp(): React.JSX.Element {
     editUserMessage,
     retryLastMessage,
     stopResponse,
+    summarizeContext,
     clearConversation
   } = useChatSession();
   const [enableThinkTagFolding, setEnableThinkTagFolding] = useState(true);
+  const [settings, setSettings] = useState<Awaited<ReturnType<typeof window.curraint.getSettings>> | null>(null);
+  const [contextActionMessage, setContextActionMessage] = useState('');
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
@@ -58,10 +63,12 @@ export function ChatApp(): React.JSX.Element {
       .getSettings()
       .then((settings) => {
         if (!settings) return;
+        setSettings(settings);
         setEnableThinkTagFolding(settings.enableThinkTagFolding);
         applyTheme(settings.theme);
       })
       .catch(() => {
+        setSettings(null);
         setEnableThinkTagFolding(true);
       });
   }, []);
@@ -81,10 +88,29 @@ export function ChatApp(): React.JSX.Element {
   useEffect(() => {
     return window.curraint.onSettingsChanged((settings) => {
       if (!settings) return;
+      setSettings(settings);
       setEnableThinkTagFolding(settings.enableThinkTagFolding);
       applyTheme(settings.theme);
     });
   }, []);
+
+  const contextUsage = useMemo(() => {
+    if (!settings) {
+      return null;
+    }
+
+    return getContextUsage(settings, conversation, compactedContext);
+  }, [settings, conversation, compactedContext]);
+
+  const meterStroke = 2 * Math.PI * 18;
+  const meterPercent = Math.max(0, Math.min(contextUsage?.percent ?? 0, 100));
+  const meterOffset = meterStroke - (meterStroke * meterPercent) / 100;
+  const meterTone =
+    meterPercent >= 90
+      ? 'text-rose-500'
+      : meterPercent >= 70
+        ? 'text-amber-500'
+        : 'text-emerald-500';
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -109,6 +135,23 @@ export function ChatApp(): React.JSX.Element {
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     await submitPrompt(prompt);
+  };
+
+  const onSummarizeContext = (): void => {
+    if (!settings) {
+      return;
+    }
+
+    const didSummarize = summarizeContext({
+      maxMessages: settings.contextMaxMessages,
+      maxCharacters: settings.contextMaxCharacters
+    });
+
+    setContextActionMessage(
+      didSummarize
+        ? 'Older messages are now summarized for AI, while the transcript stays intact.'
+        : 'The current request already fits inside the active context limits.'
+    );
   };
 
   const onPromptKeyDown = (
@@ -138,6 +181,57 @@ export function ChatApp(): React.JSX.Element {
               <p className="text-sm font-medium">curraint</p>
             </div>
             <div className="flex items-center gap-1">
+              {contextUsage ? (
+                <div className="group relative mr-2">
+                  <button
+                    type="button"
+                    className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-background/70 text-[10px] font-semibold text-foreground shadow-sm transition hover:bg-muted"
+                    title="Show context usage"
+                  >
+                    <svg className="absolute inset-0 h-10 w-10 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+                      <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/50" />
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeDasharray={meterStroke}
+                        strokeDashoffset={meterOffset}
+                        className={meterTone}
+                      />
+                    </svg>
+                    <span className="relative z-10">{contextUsage.percent}%</span>
+                  </button>
+                  <div className="invisible absolute right-0 top-full z-20 mt-2 w-72 rounded-2xl border border-border bg-background/95 p-3 text-left opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Context budget
+                    </p>
+                    <p className="mt-2 text-sm text-foreground">
+                      {contextUsage.percent}% of the active request budget is in use.
+                    </p>
+                    <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                      <p>{contextUsage.usedMessages} / {contextUsage.maxMessages} composed messages</p>
+                      <p>{contextUsage.usedCharacters} / {contextUsage.maxCharacters} composed characters</p>
+                      <p>{contextUsage.hasCompactedContext ? `${contextUsage.compactedMessages} older messages already summarized for AI` : 'No hidden summary is active yet'}</p>
+                    </div>
+                    {contextActionMessage ? (
+                      <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-xs text-foreground">
+                        {contextActionMessage}
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={onSummarizeContext}
+                      className="mt-3 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+                    >
+                      Summarize older context
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={() => { void window.curraint.openSessionsWindow(); }}
@@ -170,9 +264,14 @@ export function ChatApp(): React.JSX.Element {
           onRetryLastUserMessage={retryLastMessage}
         />
 
-        {totalTokens > 0 ? (
-          <div className="border-t px-4 py-1 text-right text-[10px] text-muted-foreground">
-            {totalTokens.toLocaleString()} tokens this session
+        {totalTokens > 0 || contextUsage ? (
+          <div className="flex items-center justify-between border-t px-4 py-1 text-[10px] text-muted-foreground">
+            <span>
+              {contextUsage
+                ? `Context ${contextUsage.percent}% · ${contextUsage.usedMessages}/${contextUsage.maxMessages} msg · ${contextUsage.usedCharacters}/${contextUsage.maxCharacters} chars`
+                : ''}
+            </span>
+            {totalTokens > 0 ? <span>{totalTokens.toLocaleString()} tokens this session</span> : <span />}
           </div>
         ) : null}
 

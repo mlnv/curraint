@@ -106,7 +106,7 @@ export async function runStream(
         }
         handleDelta(ctx, delta);
       },
-      { signal: controller.signal }
+      { signal: controller.signal, compactedContext: state.compactedContext }
     );
     const durationMs = Math.round(performance.now() - t0);
     debugLog('PERF:renderer', `streamChat resolved +${durationMs}ms`);

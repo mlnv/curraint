@@ -1,3 +1,4 @@
+import type { CompactedContext } from '../context';
 import type { ChatMessage } from '../types';
 import type { ChatSessionState, ChatSessionSubscriber } from './types';
 
@@ -6,10 +7,17 @@ export type MutableState = {
   status: string;
   isSending: boolean;
   isStopping: boolean;
+  compactedContext: CompactedContext | null;
 };
 
 export function createInitialState(): MutableState {
-  return { conversation: [], status: '', isSending: false, isStopping: false };
+  return {
+    conversation: [],
+    status: '',
+    isSending: false,
+    isStopping: false,
+    compactedContext: null
+  };
 }
 
 export function snapshotState(state: MutableState): ChatSessionState {
@@ -17,7 +25,8 @@ export function snapshotState(state: MutableState): ChatSessionState {
     conversation: [...state.conversation],
     status: state.status,
     isSending: state.isSending,
-    isStopping: state.isStopping
+    isStopping: state.isStopping,
+    compactedContext: state.compactedContext ? { ...state.compactedContext } : null
   };
 }
 
@@ -26,6 +35,7 @@ export function applyStateUpdate(state: MutableState, next: Partial<MutableState
   if (typeof next.status === 'string') state.status = next.status;
   if (typeof next.isSending === 'boolean') state.isSending = next.isSending;
   if (typeof next.isStopping === 'boolean') state.isStopping = next.isStopping;
+  if ('compactedContext' in next) state.compactedContext = next.compactedContext ?? null;
 }
 
 export function emitStateChange(

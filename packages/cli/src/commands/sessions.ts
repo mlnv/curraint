@@ -43,7 +43,7 @@ export async function runSessions(ctx: CommandContext): Promise<CommandResult> {
     return 'continue';
   }
 
-  ctx.getSession().loadConversation(full.messages);
+  ctx.getSession().loadConversation(full.messages, full.compactedContext ?? null);
   ctx.setCurrentSessionId(chosen.id, chosen.createdAt);
   output.write(
     `${c.green}Loaded:${c.reset} ${full.title} ${c.dim}(${full.messages.length} messages)${c.reset}\n`

@@ -168,9 +168,10 @@ async function streamOpenAiCompat(
   settings: EndpointSettings,
   messages: ChatMessage[],
   onDelta: (delta: string) => void,
+  compactedContext: ChatSessionTransport extends { streamChat: (messages: ChatMessage[], onDelta: (delta: string) => void, options?: infer T) => Promise<unknown> } ? T extends { compactedContext?: infer U } ? U : never : never,
   signal?: AbortSignal
 ): Promise<{ text: string; usage?: TokenUsage }> {
-  const composed = composeConversation(settings, messages);
+  const composed = composeConversation(settings, messages, compactedContext ?? null);
   const apiMessages = composed.map(({ role, content }) => ({ role, content }));
   let hasStreamedChunk = false;
   let streamedMessage = '';
@@ -252,7 +253,11 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
       // For sessions loaded from disk, lmsResponseId is null but prior history
       // exists - fall through to OpenAI-compatible path to send full history.
       const nonSystemMessages = messages.filter((m) => m.role !== 'system');
-      if (settings.provider === 'lmstudio' && (lmsResponseId !== null || nonSystemMessages.length <= 1)) {
+      if (
+        settings.provider === 'lmstudio' &&
+        !options?.compactedContext &&
+        (lmsResponseId !== null || nonSystemMessages.length <= 1)
+      ) {
         const { text, responseId } = await streamLmStudio(
           settings, messages, onDelta, lmsResponseId, options?.signal
         );
@@ -260,7 +265,7 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
         return { text };
       }
 
-      return streamOpenAiCompat(settings, messages, onDelta, options?.signal);
+      return streamOpenAiCompat(settings, messages, onDelta, options?.compactedContext, options?.signal);
     },
 
     clearSession: async () => {

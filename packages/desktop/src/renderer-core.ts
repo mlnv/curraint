@@ -13,6 +13,8 @@ export { debugLog } from '../../core/src/debug/log';
 export { DEFAULT_SETTINGS } from '../../core/src/settings/defaults';
 export { normalizeSettings } from '../../core/src/settings/normalizer';
 export { composeConversation } from '../../core/src/settings/composer';
+export { getContextUsage } from '../../core/src/settings/context-usage';
+export type { ContextUsage } from '../../core/src/settings/context-usage';
 export type { EndpointSettings } from '../../core/src/settings/types';
 export { testConnection, chatCompletion, chatCompletionStream } from '../../core/src/api/openai/client';
 export type { StreamCallbacks, StreamOptions } from '../../core/src/api/openai/types';

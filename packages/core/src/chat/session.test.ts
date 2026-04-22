@@ -202,4 +202,53 @@ describe('chatSessionCore', () => {
     ]);
     expect(streamChat).not.toHaveBeenCalled();
   });
+
+  it('compacts older context without rewriting visible history', () => {
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' })
+    });
+    const conversation = [
+      { role: 'user' as const, content: 'Message 1' },
+      { role: 'assistant' as const, content: 'Reply 1' },
+      { role: 'user' as const, content: 'Message 2' },
+      { role: 'assistant' as const, content: 'Reply 2' }
+    ];
+
+    session.loadConversation(conversation);
+
+    const didCompact = session.compactContext({
+      maxMessages: 2,
+      maxCharacters: 500
+    });
+
+    expect(didCompact).toBe(true);
+    expect(stripTs(session.getState().conversation)).toEqual(conversation);
+    expect(session.getState().compactedContext).toMatchObject({
+      sourceMessageCount: 2,
+      summary: expect.stringContaining('Message 1')
+    });
+  });
+
+  it('passes compacted context to the transport for future requests', async () => {
+    const streamChat = vi.fn().mockResolvedValue({ text: 'Fresh answer' });
+    const session = createChatSessionCore({ streamChat });
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1' },
+      { role: 'assistant', content: 'Reply 1' },
+      { role: 'user', content: 'Message 2' },
+      { role: 'assistant', content: 'Reply 2' }
+    ]);
+    session.compactContext({ maxMessages: 2, maxCharacters: 500 });
+
+    await session.submitPrompt('Next question');
+
+    const call = vi.mocked(streamChat).mock.calls[0];
+    expect(call?.[2]).toMatchObject({
+      compactedContext: {
+        sourceMessageCount: 2,
+        summary: expect.stringContaining('Message 1')
+      }
+    });
+  });
 });

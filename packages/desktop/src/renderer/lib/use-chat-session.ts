@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createChatSessionCore } from '@curraint/core';
-import type { ChatMessage, SavedSession } from '@curraint/core';
+import type { ChatMessage, CompactedContext, SavedSession } from '@curraint/core';
 
 export type UseChatSessionResult = {
   conversation: ChatMessage[];
+  compactedContext: CompactedContext | null;
   prompt: string;
   status: string;
   isSending: boolean;
@@ -15,6 +16,7 @@ export type UseChatSessionResult = {
   editUserMessage: (index: number, editedContent: string) => void;
   retryLastMessage: () => void;
   stopResponse: () => void;
+  summarizeContext: (limits: { maxMessages: number; maxCharacters: number }) => boolean;
   clearConversation: () => Promise<void>;
   loadSession: (session: SavedSession) => void;
 };
@@ -45,6 +47,7 @@ export function useChatSession(): UseChatSessionResult {
   const slotsRef = useRef<Map<string, SessionSlot>>(new Map());
 
   const [conversation, setConversation] = useState<ChatMessage[]>([]);
+  const [compactedContext, setCompactedContext] = useState<CompactedContext | null>(null);
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -52,7 +55,11 @@ export function useChatSession(): UseChatSessionResult {
 
   const enableSessionSavingRef = useRef(false);
 
-  const autoSave = (slot: SessionSlot, messages: ChatMessage[]): void => {
+  const autoSave = (
+    slot: SessionSlot,
+    messages: ChatMessage[],
+    nextCompactedContext: CompactedContext | null
+  ): void => {
     if (!enableSessionSavingRef.current) return;
     let msgs = messages.filter((m) => m.role !== 'system');
     // Strip the empty assistant placeholder that exists while the stream is
@@ -72,7 +79,8 @@ export function useChatSession(): UseChatSessionResult {
       title,
       createdAt: slot.sessionCreatedAt,
       updatedAt: Date.now(),
-      messages: msgs
+      messages: msgs,
+      compactedContext: nextCompactedContext
     });
   };
 
@@ -82,7 +90,8 @@ export function useChatSession(): UseChatSessionResult {
     sessionCreatedAt: number
   ): SessionSlot => {
     const core = createChatSessionCore({
-      streamChat: (messages, onDelta) => window.curraint.chatStream(messages, onDelta),
+      streamChat: (messages, onDelta, options) =>
+        window.curraint.chatStream(messages, onDelta, options?.compactedContext),
       cancelChatStream: () => window.curraint.cancelChatStream(),
       clearSession: () => window.curraint.clearChatSession()
     });
@@ -104,11 +113,11 @@ export function useChatSession(): UseChatSessionResult {
         if (!wasSending && nextState.isSending) {
           // Save as soon as the user message is added so the session
           // appears in the sessions list while the response is pending.
-          autoSave(slot, nextState.conversation);
+          autoSave(slot, nextState.conversation, nextState.compactedContext);
         }
 
         if (wasSending && !nextState.isSending) {
-          autoSave(slot, nextState.conversation);
+          autoSave(slot, nextState.conversation, nextState.compactedContext);
           if (!isActive) {
             // Background slot finished — unsubscribe and remove.
             slot.unsubscribe();
@@ -119,6 +128,7 @@ export function useChatSession(): UseChatSessionResult {
 
         if (isActive) {
           setConversation(nextState.conversation);
+          setCompactedContext(nextState.compactedContext);
           setStatus(nextState.status);
           setIsSending(nextState.isSending);
           setIsStopping(nextState.isStopping);
@@ -152,6 +162,7 @@ export function useChatSession(): UseChatSessionResult {
       activeSlotKeyRef.current = existingKey;
       const state = existing.core.getState();
       setConversation(state.conversation);
+      setCompactedContext(state.compactedContext);
       setStatus(state.status);
       setIsSending(state.isSending);
       setIsStopping(state.isStopping);
@@ -170,6 +181,7 @@ export function useChatSession(): UseChatSessionResult {
     // Reset all UI state immediately so switching away from a streaming session
     // never leaves stale messages or the waiting indicator visible.
     setConversation(session.messages);
+    setCompactedContext(session.compactedContext ?? null);
     setIsSending(false);
     setIsStopping(false);
     setStatus('');
@@ -177,7 +189,7 @@ export function useChatSession(): UseChatSessionResult {
     // Activate BEFORE loadConversation so the resulting onStateChange
     // sees isActive=true and drives React state immediately.
     activeSlotKeyRef.current = slotKey;
-    slot.core.loadConversation(session.messages);
+    slot.core.loadConversation(session.messages, session.compactedContext ?? null);
   };
 
   // Create the initial slot once on mount.
@@ -248,12 +260,22 @@ export function useChatSession(): UseChatSessionResult {
     return slot.core.clearConversation();
   };
 
+  const summarizeContext = (limits: { maxMessages: number; maxCharacters: number }): boolean => {
+    const slot = activeSlot();
+    if (!slot) {
+      return false;
+    }
+
+    return slot.core.compactContext(limits);
+  };
+
   const loadSession = (session: SavedSession): void => {
     switchToSession(session);
   };
 
   return {
     conversation,
+    compactedContext,
     prompt,
     status,
     isSending,
@@ -265,6 +287,7 @@ export function useChatSession(): UseChatSessionResult {
     editUserMessage,
     retryLastMessage,
     stopResponse,
+    summarizeContext,
     clearConversation,
     loadSession
   };

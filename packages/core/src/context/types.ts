@@ -12,6 +12,12 @@ export type TruncatedConversation = {
   summary: string | null;
 };
 
+export type CompactedContext = {
+  summary: string;
+  sourceMessageCount: number;
+  sourceCharacterCount: number;
+};
+
 export const CONTEXT_SAFETY_LIMIT_BOUNDS = {
   minMessages: 4,
   maxMessages: 120,

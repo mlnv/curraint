@@ -1,4 +1,4 @@
-import type { ChatMessage, TokenUsage } from '@curraint/core';
+import type { ChatMessage, CompactedContext, TokenUsage } from '@curraint/core';
 import type { AppSettings } from './types';
 import type { SavedSession, SessionSummary } from '@curraint/core';
 
@@ -32,6 +32,7 @@ export const IPC_CHANNELS = {
 export type ChatStreamPayload = {
   requestId: string;
   messages: ChatMessage[];
+  compactedContext?: CompactedContext | null;
 };
 
 export type ChatStreamChunkPayload = {
@@ -46,7 +47,8 @@ export type CurraintApi = {
   chat: (messages: ChatMessage[]) => Promise<string>;
   chatStream: (
     messages: ChatMessage[],
-    onDelta: (delta: string) => void
+    onDelta: (delta: string) => void,
+    compactedContext?: CompactedContext | null
   ) => Promise<{ text: string; usage?: TokenUsage }>;
   cancelChatStream: () => Promise<void>;
   clearChatSession: () => Promise<void>;

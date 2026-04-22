@@ -1,5 +1,6 @@
 import { stdout as output } from 'node:process';
-import type { ChatMessage, ChatSessionCore } from '@curraint/core';
+import { getContextUsage } from '@curraint/core';
+import type { ChatMessage, ChatSessionCore, EndpointSettings } from '@curraint/core';
 import { renderMarkdown } from './markdown';
 import { c } from './theme';
 
@@ -63,6 +64,24 @@ export class SessionUI {
         output.write(`${c.dim}${index + 1}.${c.reset} ${c.green}You:${c.reset} ${message.content}\n`);
       }
     });
+  }
+
+  printContextUsage(session: ChatSessionCore, settings: EndpointSettings): void {
+    const state = session.getState();
+    const usage = getContextUsage(settings, state.conversation, state.compactedContext);
+    output.write(
+      `${c.dim}${c.cyan}Context:${c.reset} ${usage.percent}% ` +
+      `${c.dim}(${usage.usedMessages}/${usage.maxMessages} messages, ` +
+      `${usage.usedCharacters}/${usage.maxCharacters} chars)${c.reset}\n`
+    );
+
+    if (state.compactedContext) {
+      output.write(
+        `${c.dim}${c.cyan}  summarized for AI:${c.reset} ` +
+        `${state.compactedContext.sourceMessageCount} older messages ` +
+        `${c.dim}(${state.compactedContext.sourceCharacterCount} chars source)${c.reset}\n`
+      );
+    }
   }
 
   getUserMessageIndexes(conversation: ChatMessage[]): number[] {

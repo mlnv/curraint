@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from './defaults';
 import { composeConversation } from './composer';
+import { getContextUsage } from './context-usage';
 import { normalizeSettings } from './normalizer';
 
 describe('normalizeSettings', () => {
@@ -95,5 +96,60 @@ describe('composeConversation', () => {
     const result = composeConversation(settings, messages);
     expect(result[0]?.role).toBe('system');
     expect(result[0]?.content).toContain('Summary of truncated messages:');
+  });
+
+  it('prepends hidden compacted context without changing visible messages', () => {
+    const settings = { ...DEFAULT_SETTINGS, systemPrompt: 'System message' };
+    const messages = [
+      { role: 'user' as const, content: 'Older user message' },
+      { role: 'assistant' as const, content: 'Older assistant message' },
+      { role: 'user' as const, content: 'Recent user message' },
+      { role: 'assistant' as const, content: 'Recent assistant message' }
+    ];
+
+    const result = composeConversation(settings, messages, {
+      summary: 'Compacted summary',
+      sourceMessageCount: 2,
+      sourceCharacterCount: 120
+    });
+
+    expect(result).toEqual([
+      { role: 'system', content: 'System message' },
+      { role: 'system', content: 'Compacted summary' },
+      { role: 'user', content: 'Recent user message' },
+      { role: 'assistant', content: 'Recent assistant message' }
+    ]);
+  });
+
+  it('calculates context usage from the composed request', () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      systemPrompt: 'System message',
+      contextMaxMessages: 10,
+      contextMaxCharacters: 1000
+    };
+    const usage = getContextUsage(
+      settings,
+      [
+        { role: 'user' as const, content: 'Older user message' },
+        { role: 'assistant' as const, content: 'Older assistant message' },
+        { role: 'user' as const, content: 'Recent user message' },
+        { role: 'assistant' as const, content: 'Recent assistant message' }
+      ],
+      {
+        summary: 'Compacted summary',
+        sourceMessageCount: 2,
+        sourceCharacterCount: 120
+      }
+    );
+
+    expect(usage).toMatchObject({
+      usedMessages: 4,
+      maxMessages: 10,
+      hasCompactedContext: true,
+      compactedMessages: 2,
+      percent: 40
+    });
+    expect(usage.usedCharacters).toBeGreaterThan(0);
   });
 });
