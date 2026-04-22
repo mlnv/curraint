@@ -41,10 +41,14 @@ export async function runFirstRunSetup(
     output.write(`  ${index + 1}. ${provider.label}\n`);
   });
 
-  const choice = (await rl.question(`Pick a provider [1-${PROVIDER_OPTIONS.length}]: `)).trim();
-  const index = Number(choice) - 1;
-  if (!Number.isInteger(index) || index < 0 || index >= PROVIDER_OPTIONS.length) {
-    return settings;
+  let choice = '';
+  let index = -1;
+  while (true) {
+    choice = (await rl.question(`Pick a provider [1-${PROVIDER_OPTIONS.length}]: `)).trim();
+    index = Number(choice) - 1;
+    if (Number.isInteger(index) && index >= 0 && index < PROVIDER_OPTIONS.length) {
+      break;
+    }
   }
 
   const selectedProvider = PROVIDER_OPTIONS[index]!;

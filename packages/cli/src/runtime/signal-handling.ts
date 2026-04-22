@@ -19,15 +19,20 @@ type InstallSigintHandlerOptions = {
   processLike?: SignalProcess;
   output: SignalOutput;
   rl: Pick<readline.Interface, 'close'>;
-  session: SignalSession;
+  getSession?: () => SignalSession;
+  session?: SignalSession;
 };
 
 export function installSigintHandler(options: InstallSigintHandlerOptions): () => void {
   const processLike = options.processLike ?? process;
+  const getSession = (): SignalSession => options.getSession?.() ?? options.session!;
 
   const handler = (): void => {
-    if (options.session.getState().isSending) {
-      void options.session.stopResponse();
+    const session = getSession();
+    if (session.getState().isSending) {
+      session.stopResponse().catch((error) => {
+        console.error('Failed to stop active response after SIGINT.', error);
+      });
       return;
     }
 

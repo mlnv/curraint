@@ -1,4 +1,4 @@
-import { deriveTitle, generateSessionId, saveSession } from '@curraint/core';
+import { persistConversation } from '@curraint/core';
 import type { ChatMessage } from '@curraint/core';
 
 export type SessionPersistenceState = {
@@ -15,11 +15,7 @@ type PersistSessionOptions = SessionPersistenceState & {
 export function persistSessionIfEnabled(
   options: PersistSessionOptions,
 ): SessionPersistenceState {
-  const {
-    enableSessionSaving,
-    conversation,
-    now = Date.now,
-  } = options;
+  const { enableSessionSaving } = options;
 
   if (!enableSessionSaving) {
     return {
@@ -28,31 +24,10 @@ export function persistSessionIfEnabled(
     };
   }
 
-  const messages = conversation.filter((message) => message.role !== 'system');
-  if (messages.length === 0) {
-    return {
-      currentSessionId: options.currentSessionId,
-      currentSessionCreatedAt: options.currentSessionCreatedAt,
-    };
-  }
-
-  const timestamp = now();
-  const currentSessionId = options.currentSessionId ?? generateSessionId();
-  const currentSessionCreatedAt = options.currentSessionId
-    ? options.currentSessionCreatedAt
-    : timestamp;
-  const firstUserMessage = messages.find((message) => message.role === 'user')?.content ?? '';
-
-  saveSession({
-    id: currentSessionId,
-    title: deriveTitle(firstUserMessage),
-    createdAt: currentSessionCreatedAt,
-    updatedAt: timestamp,
-    messages,
+  return persistConversation({
+    conversation: options.conversation,
+    currentSessionId: options.currentSessionId,
+    currentSessionCreatedAt: options.currentSessionCreatedAt,
+    now: options.now,
   });
-
-  return {
-    currentSessionId,
-    currentSessionCreatedAt,
-  };
 }

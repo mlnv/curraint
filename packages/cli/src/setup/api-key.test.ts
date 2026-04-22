@@ -50,6 +50,19 @@ describe('setup/api-key', () => {
     expect(saveSettingsToFile).not.toHaveBeenCalled();
   });
 
+  it('returns null when the entered API key is only whitespace', async () => {
+    const rl = {
+      question: vi.fn(),
+    } as unknown as Parameters<typeof askForApiKeyIfNeeded>[0];
+    vi.mocked(requiresApiKeyForProvider).mockReturnValue(true);
+    vi.mocked(askSecret).mockResolvedValue('   ');
+
+    const result = await askForApiKeyIfNeeded(rl, settings, false);
+
+    expect(result).toBeNull();
+    expect(saveSettingsToFile).not.toHaveBeenCalled();
+  });
+
   it('saves prompted API key settings when the user accepts persistence', async () => {
     const rl = {
       question: vi.fn().mockResolvedValue('Y'),
@@ -67,6 +80,22 @@ describe('setup/api-key', () => {
       ...settings,
       apiKey: 'secret-key',
     });
+  });
+
+  it('returns the prompted API key without saving when the user declines persistence', async () => {
+    const rl = {
+      question: vi.fn().mockResolvedValue('n'),
+    } as unknown as Parameters<typeof askForApiKeyIfNeeded>[0];
+    vi.mocked(requiresApiKeyForProvider).mockReturnValue(true);
+    vi.mocked(askSecret).mockResolvedValue('secret-key');
+
+    const result = await askForApiKeyIfNeeded(rl, settings, false);
+
+    expect(result).toEqual({
+      ...settings,
+      apiKey: 'secret-key',
+    });
+    expect(saveSettingsToFile).not.toHaveBeenCalled();
   });
 
   it('auto-saves first-run settings when no API key prompt is needed', async () => {

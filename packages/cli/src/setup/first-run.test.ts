@@ -60,14 +60,20 @@ describe('setup/first-run', () => {
     expect(isFirstRun()).toBe(false);
   });
 
-  it('returns the original settings when the provider choice is invalid', async () => {
+  it('reprompts until the provider choice is valid', async () => {
     const rl = {
-      question: vi.fn().mockResolvedValue('99'),
+      question: vi.fn().mockResolvedValueOnce('99').mockResolvedValueOnce('1'),
     } as unknown as Parameters<typeof runFirstRunSetup>[0];
 
     const result = await runFirstRunSetup(rl, baseSettings);
 
-    expect(result).toBe(baseSettings);
+    expect(result).toEqual({
+      ...baseSettings,
+      provider: 'openai',
+      model: 'gpt-4o',
+      baseUrl: 'https://api.openai.com/v1',
+    });
+    expect(rl.question).toHaveBeenCalledTimes(2);
     expect(askSecret).not.toHaveBeenCalled();
   });
 

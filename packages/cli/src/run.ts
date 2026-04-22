@@ -62,7 +62,7 @@ export async function run(): Promise<number> {
     `${c.bold}curraint CLI${c.reset} — provider: ${c.cyan}${settings.provider}${c.reset}, model: ${c.cyan}${settings.model}${c.reset}. Settings: ${c.dim}${settingsFilePath()}${c.reset}. Type ${c.cyan}/exit${c.reset} to quit. Use ${c.cyan}/help${c.reset} for commands.\n`,
   );
 
-  const cleanupSigintHandler = installSigintHandler({ output, rl, session });
+  const cleanupSigintHandler = installSigintHandler({ output, rl, getSession: () => session });
 
   try {
     const history = new InputHistory();
