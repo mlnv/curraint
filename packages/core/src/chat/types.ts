@@ -21,7 +21,10 @@ export type ChatSessionTransport = {
     onDelta: (delta: string) => void,
     options?: { signal?: AbortSignal; compactedContext?: CompactedContext | null }
   ) => Promise<ChatStreamResult>;
-  summarizeMessages: (messages: ChatMessage[]) => Promise<string>;
+  summarizeMessages: (
+    messages: ChatMessage[],
+    options?: { signal?: AbortSignal }
+  ) => Promise<string>;
   cancelChatStream?: () => Promise<void>;
   clearSession?: () => Promise<void>;
 };

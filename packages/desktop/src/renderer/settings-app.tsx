@@ -92,9 +92,11 @@ export function SettingsApp(): React.JSX.Element {
   useEffect(() => {
     Promise.all([window.curraint.getSettings(), window.curraint.getFeatureFlags()])
       .then(([settings, nextFeatureFlags]) => {
-        if (!settings) return;
-        setForm(settings);
         setFeatureFlags(nextFeatureFlags);
+        if (!settings) {
+          return;
+        }
+        setForm(settings);
         applyTheme(settings.theme);
       })
       .catch((error: unknown) => {
@@ -179,7 +181,7 @@ export function SettingsApp(): React.JSX.Element {
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
             <SettingsFormFields
               form={form}
-              enableCopilotProvider={featureFlags.enableCopilotProvider}
+              featureFlags={featureFlags}
               shortcutRegistered={shortcutRegistered}
               onProviderChange={updateProvider}
               onFieldChange={updateField}

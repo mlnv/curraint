@@ -26,14 +26,20 @@ export async function testConnection(settings: EndpointSettings): Promise<string
 
 export async function chatCompletion(
   settings: EndpointSettings,
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  options: StreamOptions = {}
 ): Promise<ChatResult> {
   const baseUrl = validateSettingsForRequest(settings);
   const url = `${baseUrl}/chat/completions`;
   const headers = createAuthHeaders(settings);
   const body = buildOpenAiPayload(settings, messages);
   logRequest('', url, headers, body);
-  const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    signal: options.signal,
+    body: JSON.stringify(body)
+  });
   logResponse(response);
   if (!response.ok) throw new Error(`Request failed (${response.status}): ${await readErrorDetail(response)}`);
   const json = (await response.json()) as CompletionResponse;

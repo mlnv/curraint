@@ -12,6 +12,16 @@ export type TruncatedConversation = {
   summary: string | null;
 };
 
+/**
+ * Represents older transcript content that has been replaced by a summary.
+ *
+ * `sourceMessageCount` is a slice boundary used by `composeConversation` as
+ * `messages.slice(compactedContext.sourceMessageCount)`. Callers must update it
+ * whenever earlier messages are inserted, removed, or reordered.
+ *
+ * `sourceCharacterCount` is the approximate character cost of the original
+ * source slice. It is used for telemetry, UI, and re-summarization heuristics.
+ */
 export type CompactedContext = {
   summary: string;
   sourceMessageCount: number;

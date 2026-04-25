@@ -1,13 +1,26 @@
 import type { ChatMessage } from '../types';
 
-const SUMMARY_SYSTEM_PROMPT = [
-  'You compress earlier chat turns so they can be safely replaced in future context.',
-  'Write a concise factual summary of the provided conversation slice.',
-  'Preserve user goals, constraints, decisions, file names, code details, errors, and unresolved tasks.',
-  'Do not invent information.',
-  'Return plain text bullet points only.',
-  'Keep the result under 8 bullet points and under 1200 characters.'
-].join(' ');
+const DEFAULT_SUMMARY_MAX_BULLETS = 8;
+const DEFAULT_SUMMARY_MAX_CHARACTERS = 1200;
+
+export type SummaryPromptOptions = {
+  maxBullets?: number;
+  maxCharacters?: number;
+};
+
+export function buildSummarySystemPrompt(options: SummaryPromptOptions = {}): string {
+  const maxBullets = options.maxBullets ?? DEFAULT_SUMMARY_MAX_BULLETS;
+  const maxCharacters = options.maxCharacters ?? DEFAULT_SUMMARY_MAX_CHARACTERS;
+
+  return [
+    'You compress earlier chat turns so they can be safely replaced in future context.',
+    'Write a concise factual summary of the provided conversation slice.',
+    'Preserve user goals, constraints, decisions, file names, code details, errors, and unresolved tasks.',
+    'Do not invent information.',
+    'Return plain text bullet points only.',
+    `Keep the result under ${maxBullets} bullet points and under ${maxCharacters} characters.`
+  ].join(' ');
+}
 
 function formatConversation(messages: ChatMessage[]): string {
   return messages
@@ -15,11 +28,14 @@ function formatConversation(messages: ChatMessage[]): string {
     .join('\n\n');
 }
 
-export function buildModelSummaryMessages(messages: ChatMessage[]): ChatMessage[] {
+export function buildModelSummaryMessages(
+  messages: ChatMessage[],
+  options: SummaryPromptOptions = {}
+): ChatMessage[] {
   return [
     {
       role: 'system',
-      content: SUMMARY_SYSTEM_PROMPT
+      content: buildSummarySystemPrompt(options)
     },
     {
       role: 'user',

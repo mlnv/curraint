@@ -13,6 +13,13 @@ export async function runContext(ctx: CommandContext, text: string): Promise<Com
 
   if (action !== 'summarize') {
     output.write('Usage: /context or /context summarize\n');
+    ctx.sessionUI.printContextUsage(session, ctx.getSettings());
+    return 'continue';
+  }
+
+  if (session.getState().isCompactingContext) {
+    output.write('Context summarization is already in progress. Please wait for it to finish.\n');
+    ctx.sessionUI.printContextUsage(session, ctx.getSettings());
     return 'continue';
   }
 

@@ -1,21 +1,25 @@
 import { ipcMain, shell, app } from 'electron';
 import { IPC_CHANNELS, type ChatStreamChunkPayload, type ChatStreamPayload } from '../ipc';
-import { debugLog, setDebugEnabled } from '@curraint/core';
-import { ENABLE_COPILOT_PROVIDER } from '@curraint/core';
 import {
+  ENABLE_COPILOT_PROVIDER,
+  buildModelSummaryMessages,
   chatCompletion,
   chatCompletionStream,
-  testConnection
-} from '@curraint/core';
-import {
+  composeConversation,
   copilotChatComplete,
   copilotChatStream,
   copilotTestConnection,
-  resetCopilotSession
+  debugLog,
+  deleteSession,
+  getSession,
+  listSessions,
+  resetCopilotSession,
+  saveSession,
+  setDebugEnabled,
+  testConnection,
+  type ChatMessage,
+  type SavedSession,
 } from '@curraint/core';
-import { composeConversation } from '@curraint/core';
-import { listSessions, getSession, saveSession, deleteSession } from '@curraint/core';
-import type { ChatMessage, SavedSession } from '@curraint/core';
 import { normalizeAppSettings } from '../appSettings';
 import type { AppSettings } from '../types';
 
@@ -51,9 +55,9 @@ function isChatStreamPayload(payload: unknown): payload is ChatStreamPayload {
   const candidate = payload as {
     requestId?: unknown;
     messages?: unknown;
-    compactedContext?: unknown;
+    options?: unknown;
   };
-  const compactedContext = candidate.compactedContext;
+  const compactedContext = (candidate.options as { compactedContext?: unknown } | undefined)?.compactedContext;
   const hasValidCompactedContext =
     compactedContext === undefined ||
     compactedContext === null ||
@@ -154,13 +158,14 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     }
 
     const settings = settingsAccess.getSettings();
+    const summaryMessages = buildModelSummaryMessages(messages);
 
     if (settings.provider === 'copilot') {
-      const result = await copilotChatComplete(settings.model, messages);
+      const result = await copilotChatComplete(settings.model, summaryMessages);
       return result.message;
     }
 
-    const result = await chatCompletion(settings, messages);
+    const result = await chatCompletion(settings, summaryMessages);
     return result.message;
   });
 
@@ -170,7 +175,8 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     }
 
     const settings = settingsAccess.getSettings();
-    const composed = composeConversation(settings, payload.messages, payload.compactedContext ?? null);
+  const compactedContext = payload.options?.compactedContext ?? null;
+  const composed = composeConversation(settings, payload.messages, compactedContext);
     let hasStreamedChunk = false;
     let streamedMessage = '';
     const controller = new AbortController();

@@ -12,7 +12,7 @@ export const SLASH_COMMANDS: Array<{ command: string; description: string; requi
   { command: '/retry',    description: 'Retry the last message' },
   { command: '/provider', description: 'Switch the AI provider' },
   { command: '/model',    description: 'Change the model' },
-  { command: '/context',  description: 'Show context usage or summarize', requiresArg: true },
+  { command: '/context',  description: 'Show context usage or summarize' },
   { command: '/version',  description: 'Show version' },
   { command: '/clear',    description: 'Clear the screen' },
   { command: '/exit',     description: 'Quit' },

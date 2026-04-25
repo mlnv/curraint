@@ -50,6 +50,7 @@ const compactedContext: CompactedContext = {
 };
 
 const messages = [{ role: 'user' as const, content: 'Hello' }];
+const composedConversation = [{ role: 'user' as const, content: 'Composed hello' }];
 const summaryPromptMessages = [
   { role: 'system' as const, content: 'Summarize' },
   { role: 'user' as const, content: 'Transcript' },
@@ -59,7 +60,7 @@ describe('buildTransport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     buildModelSummaryMessages.mockReturnValue(summaryPromptMessages);
-    composeConversation.mockReturnValue(messages);
+    composeConversation.mockReturnValue(composedConversation);
     chatCompletionStream.mockResolvedValue({ message: 'OpenAI reply' });
     chatCompletion.mockResolvedValue({ message: 'Fallback reply' });
     copilotChatComplete.mockResolvedValue({ message: 'Copilot summary' });
@@ -72,7 +73,7 @@ describe('buildTransport', () => {
     await expect(transport.summarizeMessages(messages)).resolves.toBe('Fallback reply');
 
     expect(buildModelSummaryMessages).toHaveBeenCalledWith(messages);
-    expect(chatCompletion).toHaveBeenCalledWith(baseSettings, summaryPromptMessages);
+    expect(chatCompletion).toHaveBeenCalledWith(baseSettings, summaryPromptMessages, { signal: undefined });
   });
 
   it('uses the copilot completion helper for Copilot summaries', async () => {
@@ -81,7 +82,7 @@ describe('buildTransport', () => {
     await expect(transport.summarizeMessages(messages)).resolves.toBe('Copilot summary');
 
     expect(buildModelSummaryMessages).toHaveBeenCalledWith(messages);
-    expect(copilotChatComplete).toHaveBeenCalledWith('test-model', summaryPromptMessages);
+    expect(copilotChatComplete).toHaveBeenCalledWith('test-model', summaryPromptMessages, undefined);
   });
 
   it('passes compacted context into OpenAI request composition', async () => {
@@ -93,6 +94,12 @@ describe('buildTransport', () => {
       baseSettings,
       messages,
       compactedContext,
+    );
+    expect(chatCompletionStream).toHaveBeenCalledWith(
+      baseSettings,
+      composedConversation,
+      expect.objectContaining({ onDelta: expect.any(Function) }),
+      { signal: undefined },
     );
   });
 
@@ -106,5 +113,57 @@ describe('buildTransport', () => {
       messages,
       compactedContext,
     );
+    expect(copilotChatStream).toHaveBeenCalledWith(
+      'test-model',
+      composedConversation,
+      expect.objectContaining({ onDelta: expect.any(Function) }),
+      { signal: undefined },
+    );
+  });
+
+  it('propagates summary builder failures', async () => {
+    const transport = buildTransport(baseSettings);
+    buildModelSummaryMessages.mockImplementation(() => {
+      throw new Error('summary prompt failed');
+    });
+
+    await expect(transport.summarizeMessages(messages)).rejects.toThrow('summary prompt failed');
+    expect(chatCompletion).not.toHaveBeenCalled();
+  });
+
+  it('propagates summarizer failures from the provider', async () => {
+    const transport = buildTransport({ ...baseSettings, provider: 'copilot' });
+    copilotChatComplete.mockRejectedValue(new Error('copilot summary failed'));
+
+    await expect(transport.summarizeMessages(messages)).rejects.toThrow('copilot summary failed');
+  });
+
+  it('propagates fallback completion failures when streaming fails before any chunk', async () => {
+    const transport = buildTransport(baseSettings);
+    chatCompletionStream.mockRejectedValue(new Error('stream failed'));
+    chatCompletion.mockRejectedValue(new Error('fallback failed'));
+
+    await expect(transport.streamChat(messages, vi.fn())).rejects.toThrow('fallback failed');
+  });
+
+  it('passes null compacted context to stream helpers when no summary exists', async () => {
+    const transport = buildTransport(baseSettings);
+
+    await transport.streamChat(messages, vi.fn());
+
+    expect(composeConversation).toHaveBeenCalledWith(baseSettings, messages, null);
+    expect(chatCompletionStream).toHaveBeenCalledWith(
+      baseSettings,
+      composedConversation,
+      expect.objectContaining({ onDelta: expect.any(Function) }),
+      { signal: undefined },
+    );
+  });
+
+  it('preserves empty summary responses from the provider', async () => {
+    const transport = buildTransport(baseSettings);
+    chatCompletion.mockResolvedValue({ message: '   ' });
+
+    await expect(transport.summarizeMessages(messages)).resolves.toBe('   ');
   });
 });

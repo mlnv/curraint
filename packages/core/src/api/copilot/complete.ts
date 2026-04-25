@@ -43,9 +43,16 @@ export async function copilotChatComplete(
   const session = await createEphemeralSession(model, systemPrompt);
   let fullMessage = '';
   let usage: TokenUsage | undefined;
+  const onAbort = () => {
+    void session.abort().catch(() => {});
+  };
 
   if (signal) {
-    signal.addEventListener('abort', () => void session.abort());
+    if (signal.aborted) {
+      onAbort();
+    } else {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
   }
 
   const unsubDelta = session.on('assistant.message_delta', (event) => {
@@ -69,14 +76,15 @@ export async function copilotChatComplete(
 
   try {
     await session.sendAndWait({ prompt });
-    unsubDelta();
-    unsubUsage();
     if (!fullMessage.trim()) {
       throw new Error('GitHub Copilot returned an empty response.');
     }
 
     return { message: fullMessage, usage };
   } finally {
+    if (signal) {
+      signal.removeEventListener('abort', onAbort);
+    }
     unsubDelta();
     unsubUsage();
     await session.disconnect().catch(() => {});

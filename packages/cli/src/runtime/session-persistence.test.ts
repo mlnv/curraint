@@ -69,4 +69,35 @@ describe('persistSessionIfEnabled', () => {
     });
     expect(result).toEqual(persistedState);
   });
+
+  it('persists sessions without compacted context using the canonical absent value', () => {
+    const persistedState = {
+      currentSessionId: 'new-session-id',
+      currentSessionCreatedAt: 9000,
+    };
+    vi.mocked(persistConversation).mockReturnValue(persistedState);
+
+    const result = persistSessionIfEnabled({
+      enableSessionSaving: true,
+      conversation: [
+        { role: 'user', content: 'Hello there' },
+        { role: 'assistant', content: 'Hi again' },
+      ],
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
+      now: () => 9000,
+    });
+
+    expect(persistConversation).toHaveBeenCalledWith({
+      conversation: [
+        { role: 'user', content: 'Hello there' },
+        { role: 'assistant', content: 'Hi again' },
+      ],
+      compactedContext: undefined,
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
+      now: expect.any(Function),
+    });
+    expect(result).toEqual(persistedState);
+  });
 });

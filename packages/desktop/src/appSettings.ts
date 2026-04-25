@@ -1,4 +1,4 @@
-import { normalizeSettings, isProviderId } from '@curraint/core';
+import { ENABLE_COPILOT_PROVIDER, normalizeSettings, isProviderId } from '@curraint/core';
 import type { AppSettings, SavedConnection, ThemeId } from './types';
 
 const THEME_IDS: ThemeId[] = ['black', 'white', 'dark', 'monokai', 'retro-sand', 'retro-green'];
@@ -55,10 +55,25 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   enableSessionSaving: false
 };
 
+function normalizeProvider(provider: unknown): AppSettings['provider'] {
+  if (!isProviderId(provider)) {
+    return DEFAULT_APP_SETTINGS.provider;
+  }
+
+  if (provider === 'copilot' && !ENABLE_COPILOT_PROVIDER) {
+    return DEFAULT_APP_SETTINGS.provider;
+  }
+
+  return provider;
+}
+
 export function normalizeAppSettings(
   input: Partial<AppSettings> | AppSettings
 ): AppSettings {
-  const core = normalizeSettings(input);
+  const core = normalizeSettings({
+    ...input,
+    provider: normalizeProvider(input.provider)
+  });
   return {
     ...core,
     enableThinkTagFolding:

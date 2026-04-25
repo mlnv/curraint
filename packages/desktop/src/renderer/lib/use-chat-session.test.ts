@@ -5,6 +5,7 @@ import type { SavedSession } from '@curraint/core';
 import { useChatSession } from './use-chat-session';
 
 const chatStreamMock = vi.fn();
+const summarizeMessagesMock = vi.fn();
 const cancelChatStreamMock = vi.fn();
 const clearChatSessionMock = vi.fn();
 const getSettingsMock = vi.fn();
@@ -19,6 +20,7 @@ const stripTs = (msgs: { role: string; content: string; timestamp?: number }[]) 
 function makeCurraint(overrides: Record<string, unknown> = {}): unknown {
   return {
     chatStream: chatStreamMock,
+    summarizeMessages: summarizeMessagesMock,
     cancelChatStream: cancelChatStreamMock,
     clearChatSession: clearChatSessionMock,
     getSettings: getSettingsMock,
@@ -31,6 +33,7 @@ function makeCurraint(overrides: Record<string, unknown> = {}): unknown {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  summarizeMessagesMock.mockResolvedValue('Condensed summary');
   cancelChatStreamMock.mockResolvedValue(undefined);
   clearChatSessionMock.mockResolvedValue(undefined);
   getSettingsMock.mockResolvedValue({ enableSessionSaving: false });
@@ -254,5 +257,39 @@ describe('useChatSession', () => {
     const secondCallId = (saveSessionMock.mock.calls[2][0] as SavedSession).id;
 
     expect(firstCallId).not.toBe(secondCallId);
+  });
+
+  it('auto-saves when only compacted context changes', async () => {
+    getSettingsMock.mockResolvedValue({ enableSessionSaving: true });
+
+    const { result } = renderHook(() => useChatSession());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.loadSession({
+        id: 'session-1',
+        title: 'Loaded session',
+        createdAt: 1000,
+        updatedAt: 2000,
+        messages: [
+          { role: 'user', content: 'First' },
+          { role: 'assistant', content: 'Reply' },
+          { role: 'user', content: 'Second' },
+        ],
+      });
+    });
+
+    await act(async () => {
+      await result.current.summarizeContext({ maxMessages: 1, maxCharacters: 2000 });
+    });
+
+    expect(summarizeMessagesMock).toHaveBeenCalledTimes(1);
+    expect(saveSessionMock).toHaveBeenCalledTimes(1);
+    expect((saveSessionMock.mock.calls[0][0] as SavedSession).compactedContext).toMatchObject({
+      summary: 'Condensed summary'
+    });
   });
 });

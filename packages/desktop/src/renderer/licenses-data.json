@@ -8,21 +8,21 @@
   },
   {
     "name": "@github/copilot",
-    "version": "0.0.420",
+    "version": "1.0.11",
     "license": "Unknown",
     "author": "GitHub",
     "homepage": "https://github.com/github/copilot-cli/#readme"
   },
   {
     "name": "@github/copilot-sdk",
-    "version": "0.1.30",
+    "version": "0.2.0",
     "license": "MIT",
     "author": "GitHub",
     "homepage": "https://github.com/github/copilot-sdk#readme"
   },
   {
     "name": "@github/copilot-win32-x64",
-    "version": "0.0.420",
+    "version": "1.0.11",
     "license": "Unknown",
     "author": "",
     "homepage": "https://github.com/github/copilot-cli/#readme"

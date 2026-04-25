@@ -1,5 +1,5 @@
 import { getProviderConfig } from '@curraint/core';
-import type { AppSettings, SavedConnection } from '@curraint/core';
+import type { AppSettings, RuntimeFeatureFlags, SavedConnection } from '@curraint/core';
 import { THEME_OPTIONS } from '../../lib/theme';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -10,7 +10,7 @@ import { getVisibleProviderOptions } from './provider-options';
 
 type Props = {
   form: AppSettings;
-  enableCopilotProvider: boolean;
+  featureFlags: RuntimeFeatureFlags;
   shortcutRegistered: boolean | undefined;
   onProviderChange: (provider: AppSettings['provider']) => void;
   onFieldChange: <K extends keyof AppSettings>(
@@ -25,7 +25,7 @@ type Props = {
 
 export function SettingsFormFields({
   form,
-  enableCopilotProvider,
+  featureFlags,
   shortcutRegistered,
   onProviderChange,
   onFieldChange,
@@ -35,9 +35,7 @@ export function SettingsFormFields({
   onOpenLogFolder
 }: Props): React.JSX.Element {
   const providerConfig = getProviderConfig(form.provider);
-  const providerOptions = getVisibleProviderOptions(form.provider, {
-    enableCopilotProvider
-  });
+  const providerOptions = getVisibleProviderOptions(form.provider, featureFlags);
 
   return (
     <>

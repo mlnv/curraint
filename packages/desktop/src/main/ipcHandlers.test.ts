@@ -3,6 +3,7 @@ import { IPC_CHANNELS } from '../ipc';
 import { DEFAULT_APP_SETTINGS } from '../appSettings';
 
 const {
+  buildModelSummaryMessagesMock,
   handlers,
   ipcHandleMock,
   chatCompletionMock,
@@ -15,6 +16,7 @@ const {
     handlers.set(channel, handler);
   });
   return {
+    buildModelSummaryMessagesMock: vi.fn(),
     handlers,
     ipcHandleMock,
     chatCompletionMock: vi.fn(),
@@ -34,6 +36,7 @@ vi.mock('@curraint/core', async (importActual) => {
   const actual = await importActual<typeof import('@curraint/core')>();
   return {
     ...actual,
+    buildModelSummaryMessages: buildModelSummaryMessagesMock,
     chatCompletion: chatCompletionMock,
     chatCompletionStream: chatCompletionStreamMock,
     copilotChatComplete: copilotChatCompleteMock,
@@ -45,6 +48,10 @@ describe('registerIpcHandlers', () => {
   beforeEach(() => {
     handlers.clear();
     vi.clearAllMocks();
+    buildModelSummaryMessagesMock.mockReturnValue([
+      { role: 'system', content: 'Summarize' },
+      { role: 'user', content: 'Transcript' }
+    ]);
   });
 
   it('validates chat payload before send', async () => {
@@ -74,9 +81,10 @@ describe('registerIpcHandlers', () => {
       const result = await chatSummarize?.({}, messages);
 
       expect(result).toBe(`${provider} summary`);
+      expect(buildModelSummaryMessagesMock).toHaveBeenCalledWith(messages);
       expect(chatCompletionMock).toHaveBeenCalledWith(
         expect.objectContaining({ provider }),
-        messages
+        buildModelSummaryMessagesMock.mock.results[0]?.value
       );
       expect(copilotChatCompleteMock).not.toHaveBeenCalled();
     }
@@ -96,8 +104,49 @@ describe('registerIpcHandlers', () => {
     const result = await chatSummarize?.({}, messages);
 
     expect(result).toBe('copilot summary');
-    expect(copilotChatCompleteMock).toHaveBeenCalledWith(DEFAULT_APP_SETTINGS.model, messages);
+    expect(buildModelSummaryMessagesMock).toHaveBeenCalledWith(messages);
+    expect(copilotChatCompleteMock).toHaveBeenCalledWith(
+      DEFAULT_APP_SETTINGS.model,
+      buildModelSummaryMessagesMock.mock.results[0]?.value
+    );
     expect(chatCompletionMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid summarize payloads', async () => {
+    const { registerIpcHandlers } = await import('./ipcHandlers');
+    registerIpcHandlers({
+      getSettings: () => DEFAULT_APP_SETTINGS,
+      saveSettings: (next) => next
+    });
+
+    const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
+    await expect(chatSummarize?.({}, 'invalid')).rejects.toThrow('Invalid summarize payload.');
+  });
+
+  it('propagates summarize failures for OpenAI-compatible providers', async () => {
+    chatCompletionMock.mockRejectedValue(new Error('summary failed'));
+
+    const { registerIpcHandlers } = await import('./ipcHandlers');
+    registerIpcHandlers({
+      getSettings: () => DEFAULT_APP_SETTINGS,
+      saveSettings: (next) => next
+    });
+
+    const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
+    await expect(chatSummarize?.({}, [{ role: 'user', content: 'Summarize this' }])).rejects.toThrow('summary failed');
+  });
+
+  it('propagates summarize failures for copilot', async () => {
+    copilotChatCompleteMock.mockRejectedValue(new Error('copilot summary failed'));
+
+    const { registerIpcHandlers } = await import('./ipcHandlers');
+    registerIpcHandlers({
+      getSettings: () => ({ ...DEFAULT_APP_SETTINGS, provider: 'copilot', baseUrl: '', apiKey: '' }),
+      saveSettings: (next) => next
+    });
+
+    const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
+    await expect(chatSummarize?.({}, [{ role: 'user', content: 'Summarize this' }])).rejects.toThrow('copilot summary failed');
   });
 
   it('streams deltas and returns final streamed message', async () => {

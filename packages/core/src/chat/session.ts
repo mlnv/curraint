@@ -6,14 +6,72 @@ import { applyStateUpdate, createInitialState, emitStateChange, snapshotState } 
 import { runStream } from './stream';
 import type { ChatSessionCore, ChatSessionSubscriber, ChatSessionTransport } from './types';
 
-function pickManualCompactionSourceMessages(messages: ChatMessage[]): ChatMessage[] | null {
+const MIN_MESSAGES_TO_KEEP = 1;
+const MIN_MESSAGES_TO_KEEP_FOR_LONG_HISTORY = 2;
+const LONG_HISTORY_THRESHOLD = 4;
+
+type CompactionSelection = {
+  sourceMessages: ChatMessage[];
+  sourceMessageCount: number;
+};
+
+function getRequiredTailStartIndex(messages: ChatMessage[]): number {
+  const minimumTailCount = messages.length >= LONG_HISTORY_THRESHOLD
+    ? MIN_MESSAGES_TO_KEEP_FOR_LONG_HISTORY
+    : MIN_MESSAGES_TO_KEEP;
+
+  // Preserve the most recent user -> assistant turn when a full turn exists.
+  if (messages[messages.length - 1]?.role === 'assistant') {
+    for (let index = messages.length - 2; index >= 0; index -= 1) {
+      if (messages[index]?.role === 'user') {
+        return index;
+      }
+    }
+  }
+
+  return Math.max(messages.length - minimumTailCount, 0);
+}
+
+function pickManualCompactionSourceMessages(
+  messages: ChatMessage[],
+  limits: { maxMessages: number; maxCharacters: number },
+): CompactionSelection | null {
   if (messages.length < 2) {
     return null;
   }
 
-  const minimumKeptMessages = messages.length >= 4 ? 2 : 1;
-  const sourceMessageCount = messages.length - minimumKeptMessages;
-  return sourceMessageCount >= 1 ? messages.slice(0, sourceMessageCount) : null;
+  const requiredTailStartIndex = getRequiredTailStartIndex(messages);
+  let tailStartIndex = messages.length;
+  let tailMessageCount = 0;
+  let tailCharacterCount = 0;
+
+  for (let index = messages.length - 1; index >= requiredTailStartIndex; index -= 1) {
+    tailStartIndex = index;
+    tailMessageCount += 1;
+    tailCharacterCount += estimateMessageCost(messages[index]!);
+  }
+
+  for (let index = requiredTailStartIndex - 1; index >= 0; index -= 1) {
+    const nextTailMessageCount = tailMessageCount + 1;
+    const nextTailCharacterCount = tailCharacterCount + estimateMessageCost(messages[index]!);
+
+    if (nextTailMessageCount > limits.maxMessages || nextTailCharacterCount > limits.maxCharacters) {
+      break;
+    }
+
+    tailStartIndex = index;
+    tailMessageCount = nextTailMessageCount;
+    tailCharacterCount = nextTailCharacterCount;
+  }
+
+  if (tailStartIndex < 1) {
+    return null;
+  }
+
+  return {
+    sourceMessages: messages.slice(0, tailStartIndex),
+    sourceMessageCount: tailStartIndex,
+  };
 }
 
 export function createChatSessionCore(transport: ChatSessionTransport): ChatSessionCore {
@@ -83,13 +141,20 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         setState({ status: 'Failed to stop response' });
       }
     },
-    compactContext: async () => {
+    compactContext: async (limits) => {
       if (state.isSending || state.isCompactingContext) return false;
-      const nonEmpty = state.conversation.filter((message) => message.content.trim().length > 0);
-      const sourceMessages = pickManualCompactionSourceMessages(nonEmpty);
-      if (!sourceMessages) {
+      const nonEmptyEntries = state.conversation.flatMap((message, index) => (
+        message.content.trim().length > 0
+          ? [{ index, message }]
+          : []
+      ));
+      const nonEmpty = nonEmptyEntries.map((entry) => entry.message);
+      const selection = pickManualCompactionSourceMessages(nonEmpty, limits);
+      if (!selection) {
         return false;
       }
+      const { sourceMessages, sourceMessageCount: nonEmptySourceMessageCount } = selection;
+      const sourceMessageCount = nonEmptyEntries[nonEmptySourceMessageCount - 1]!.index + 1;
 
       const sourceCharacterCount = sourceMessages.reduce(
         (total, message) => total + estimateMessageCost(message),
@@ -116,7 +181,7 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         setState({
           compactedContext: {
             summary,
-            sourceMessageCount: sourceMessages.length,
+            sourceMessageCount,
             sourceCharacterCount
           },
           status: ''

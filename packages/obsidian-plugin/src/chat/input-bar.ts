@@ -32,6 +32,7 @@ export class InputBar {
   private addCurrentNoteButton: HTMLButtonElement | null;
   private noteAddButton: HTMLButtonElement | null;
   private contextBar: HTMLElement | null;
+  private trailingAction: HTMLElement | null = null;
   private readonly noteChipMap = new Map<string, NoteChipEntry>();
   private callbacks: InputBarCallbacks;
   private readonly handleTextareaKeydown = (event: KeyboardEvent): void => {
@@ -131,6 +132,13 @@ export class InputBar {
   }
 
   attachTrailingAction(element: HTMLElement): void {
+    if (this.trailingAction === element) {
+      return;
+    }
+
+    this.trailingAction?.remove();
+    this.trailingAction = element;
+
     if (!this.actionBar || !this.sendButton) {
       return;
     }
@@ -225,6 +233,8 @@ export class InputBar {
     this.noteAddButton?.removeEventListener('click', this.handleNoteAddClick);
 
     this.clearNoteChips();
+    this.trailingAction?.remove();
+    this.trailingAction = null;
     this.contextBar?.replaceChildren();
     this.wrapper.remove();
     this.callbacks = NOOP_CALLBACKS;

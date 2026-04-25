@@ -1,8 +1,30 @@
 import { describe, expect, it } from 'vitest';
+import { estimateMessageCost } from '../context';
 import { DEFAULT_SETTINGS } from './defaults';
 import { composeConversation } from './composer';
 import { getContextUsage } from './context-usage';
 import { normalizeSettings } from './normalizer';
+
+function getExpectedPercent(
+  settings: typeof DEFAULT_SETTINGS,
+  messages: Parameters<typeof composeConversation>[1],
+  compactedContext?: Parameters<typeof composeConversation>[2],
+): number {
+  const composed = composeConversation(settings, messages, compactedContext ?? null);
+  const usedMessages = composed.length;
+  const usedCharacters = composed.reduce(
+    (total, message) => total + estimateMessageCost(message),
+    0,
+  );
+  const messagePercent = settings.contextMaxMessages > 0
+    ? Math.max(0, Math.min(100, Math.round((usedMessages / settings.contextMaxMessages) * 100)))
+    : 0;
+  const characterPercent = settings.contextMaxCharacters > 0
+    ? Math.max(0, Math.min(100, Math.round((usedCharacters / settings.contextMaxCharacters) * 100)))
+    : 0;
+
+  return Math.max(messagePercent, characterPercent);
+}
 
 describe('normalizeSettings', () => {
   it('trims values and fills defaults', () => {
@@ -81,9 +103,9 @@ describe('composeConversation', () => {
       content: `Message ${index + 1}`
     }));
     const result = composeConversation(settings, messages);
-    expect(result[0]).toEqual({ role: 'system', content: 'System message' });
-    expect(result[1]?.role).toBe('system');
-    expect(result[1]?.content).toContain('Earlier conversation was truncated');
+    expect(result[0]?.role).toBe('system');
+    expect(result[0]?.content).toContain('System message');
+    expect(result[0]?.content).toContain('Earlier conversation was truncated');
   });
 
   it('adds truncation summary even without explicit system prompt', () => {
@@ -114,8 +136,7 @@ describe('composeConversation', () => {
     });
 
     expect(result).toEqual([
-      { role: 'system', content: 'System message' },
-      { role: 'system', content: 'Compacted summary' },
+      { role: 'system', content: 'System message\n\nCompacted summary' },
       { role: 'user', content: 'Recent user message' },
       { role: 'assistant', content: 'Recent assistant message' }
     ]);
@@ -138,12 +159,12 @@ describe('composeConversation', () => {
     const result = composeConversation(settings, messages);
 
     expect(result).toHaveLength(4);
-    expect(result[0]).toEqual({ role: 'system', content: 'System message' });
-    expect(result[1]).toMatchObject({
+    expect(result[0]).toMatchObject({
       role: 'system',
-      content: expect.stringContaining('Earlier conversation was truncated')
+      content: expect.stringContaining('System message')
     });
-    expect(getContextUsage(settings, messages).percent).toBeLessThanOrEqual(100);
+    expect(result[0]?.content).toContain('Earlier conversation was truncated');
+    expect(getContextUsage(settings, messages).percent).toBe(getExpectedPercent(settings, messages));
   });
 
   it('keeps the composed request within message limits after adding compacted context', () => {
@@ -169,13 +190,14 @@ describe('composeConversation', () => {
     const result = composeConversation(settings, messages, compactedContext);
 
     expect(result).toHaveLength(4);
-    expect(result[0]).toEqual({ role: 'system', content: 'System message' });
-    expect(result[1]).toEqual({ role: 'system', content: 'Compacted summary' });
-    expect(result[2]).toMatchObject({
+    expect(result[0]).toMatchObject({
       role: 'system',
-      content: expect.stringContaining('Earlier conversation was truncated')
+      content: expect.stringContaining('System message')
     });
-    expect(getContextUsage(settings, messages, compactedContext).percent).toBeLessThanOrEqual(100);
+    expect(result[0]?.content).toContain('Compacted summary');
+    expect(getContextUsage(settings, messages, compactedContext).percent).toBe(
+      getExpectedPercent(settings, messages, compactedContext),
+    );
   });
 
   it('calculates context usage from the composed request', () => {
@@ -201,11 +223,25 @@ describe('composeConversation', () => {
     );
 
     expect(usage).toMatchObject({
-      usedMessages: 4,
+      usedMessages: 3,
       maxMessages: 10,
+      tone: 'safe',
       hasCompactedContext: true,
       compactedMessages: 2,
-      percent: 40
+      percent: getExpectedPercent(
+        settings,
+        [
+          { role: 'user' as const, content: 'Older user message' },
+          { role: 'assistant' as const, content: 'Older assistant message' },
+          { role: 'user' as const, content: 'Recent user message' },
+          { role: 'assistant' as const, content: 'Recent assistant message' }
+        ],
+        {
+          summary: 'Compacted summary',
+          sourceMessageCount: 2,
+          sourceCharacterCount: 120
+        }
+      )
     });
     expect(usage.usedCharacters).toBeGreaterThan(0);
   });

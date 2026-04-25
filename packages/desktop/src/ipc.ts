@@ -2,6 +2,11 @@ import type { ChatMessage, CompactedContext, TokenUsage } from '@curraint/core';
 import type { AppSettings, RuntimeFeatureFlags } from './types';
 import type { SavedSession, SessionSummary } from '@curraint/core';
 
+export type ChatStreamOptions = {
+  signal?: AbortSignal;
+  compactedContext?: CompactedContext | null;
+};
+
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
   getFeatureFlags: 'app:getFeatureFlags',
@@ -34,7 +39,7 @@ export const IPC_CHANNELS = {
 export type ChatStreamPayload = {
   requestId: string;
   messages: ChatMessage[];
-  compactedContext?: CompactedContext | null;
+  options?: Omit<ChatStreamOptions, 'signal'>;
 };
 
 export type ChatStreamChunkPayload = {
@@ -52,7 +57,7 @@ export type CurraintApi = {
   chatStream: (
     messages: ChatMessage[],
     onDelta: (delta: string) => void,
-    compactedContext?: CompactedContext | null
+    options?: ChatStreamOptions
   ) => Promise<{ text: string; usage?: TokenUsage }>;
   cancelChatStream: () => Promise<void>;
   clearChatSession: () => Promise<void>;

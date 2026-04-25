@@ -1,6 +1,4 @@
-import { persistConversation } from '@curraint/core';
-import type { CompactedContext } from '@curraint/core';
-import type { ChatMessage } from '@curraint/core';
+import { persistConversation, type CompactedContext, type ChatMessage } from '@curraint/core';
 
 export type SessionPersistenceState = {
   currentSessionId: string | null;

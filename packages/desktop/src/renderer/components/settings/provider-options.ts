@@ -1,11 +1,11 @@
 import { PROVIDER_CONFIGS } from '@curraint/core';
 import type { ProviderConfig, ProviderId, RuntimeFeatureFlags } from '@curraint/core';
 
-const BASE_PROVIDER_OPTIONS: ProviderConfig[] = [
+const BASE_PROVIDER_OPTIONS = Object.freeze<ProviderConfig[]>([
   PROVIDER_CONFIGS.openai,
   PROVIDER_CONFIGS.lmstudio,
   PROVIDER_CONFIGS.custom
-];
+]);
 
 export function getVisibleProviderOptions(
   selectedProvider: ProviderId,

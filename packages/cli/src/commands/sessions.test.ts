@@ -105,6 +105,42 @@ describe('runSessions', () => {
     expect(setCurrentSessionId).toHaveBeenCalledWith('id1', 1000);
   });
 
+  it('preserves compacted context when loading a saved session', async () => {
+    vi.mocked(listSessions).mockReturnValue(SESSIONS);
+    const compactedContext = {
+      summary: 'Earlier discussion summary',
+      sourceMessageCount: 2,
+      sourceCharacterCount: 80,
+    };
+    const fullSession: SavedSession = {
+      id: 'id1',
+      title: 'First chat',
+      createdAt: 1000,
+      updatedAt: 2000,
+      messages: [
+        { role: 'user', content: 'hi' },
+        { role: 'assistant', content: 'hello' },
+      ],
+      compactedContext,
+    };
+    vi.mocked(getSession).mockReturnValue(fullSession);
+
+    const loadConversation = vi.fn();
+    const setCurrentSessionId = vi.fn();
+    const ctx = makeCtx({
+      rl: { question: vi.fn().mockResolvedValue('1') } as unknown as CommandContext['rl'],
+      getSession: vi.fn().mockReturnValue({ loadConversation }),
+      setCurrentSessionId,
+    });
+
+    const result = await runSessions(ctx);
+
+    expect(result).toBe('continue');
+    expect(getSession).toHaveBeenCalledWith('id1');
+    expect(loadConversation).toHaveBeenCalledWith(fullSession.messages, compactedContext);
+    expect(setCurrentSessionId).toHaveBeenCalledWith('id1', 1000);
+  });
+
   it('reports when a session file cannot be found after listing', async () => {
     vi.mocked(listSessions).mockReturnValue(SESSIONS);
     vi.mocked(getSession).mockReturnValue(null);

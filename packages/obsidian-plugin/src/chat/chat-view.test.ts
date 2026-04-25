@@ -1,39 +1,23 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
-import { ChatView } from './chat-view';
+import { describe, expect, it, vi } from 'vitest';
+import { createContextPopover } from './chat-view';
 
 describe('ChatView context popup', () => {
-  it('renders the context meter in the composer action row', () => {
-    const actionRow = document.createElement('div');
-    const sendButton = document.createElement('button');
-    sendButton.className = 'curraint-input-bar__send';
-    actionRow.appendChild(sendButton);
+  it('creates the context meter and summarize action without private casts', () => {
+    const onSummarize = vi.fn();
+    const popover = createContextPopover(onSummarize);
+    const summarizeButton = popover.root.querySelector('.curraint-chat-header__context-action');
 
-    const view = new ChatView({} as never, {} as never) as ChatView & {
-      inputBar: { attachTrailingAction: (element: HTMLElement) => void };
-      mountContextPopover: () => void;
-    };
-    view.inputBar = {
-      attachTrailingAction: (element: HTMLElement) => {
-        actionRow.insertBefore(element, sendButton);
-      }
-    };
+    expect(popover.root.querySelector('.curraint-chat-header__context-meter')).toBe(popover.meterButton);
+    expect(summarizeButton).not.toBeNull();
 
-    view.mountContextPopover();
-
-    const contextPopover = actionRow.querySelector('.curraint-chat-header__context-popover');
-
-    expect(contextPopover).not.toBeNull();
-    expect(actionRow.firstElementChild).toBe(contextPopover);
+    summarizeButton?.dispatchEvent(new MouseEvent('click'));
+    expect(onSummarize).toHaveBeenCalledTimes(1);
   });
 
   it('adds a hover bridge so the popup stays reachable from the meter', () => {
-    const view = new ChatView({} as never, {} as never) as ChatView & {
-      createContextPopover: () => HTMLDivElement;
-    };
-
-    const popover = view.createContextPopover();
-    const bridge = popover.querySelector('.curraint-chat-header__context-popup-bridge');
+    const popover = createContextPopover(() => {});
+    const bridge = popover.root.querySelector('.curraint-chat-header__context-popup-bridge');
 
     expect(bridge).not.toBeNull();
     expect(bridge?.getAttribute('aria-hidden')).toBe('true');

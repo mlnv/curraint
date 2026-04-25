@@ -238,7 +238,7 @@ describe('chatSessionCore', () => {
     });
   });
 
-  it('proactively compacts older context even when the current request fits', async () => {
+  it('skips compaction when the current request already fits within limits', async () => {
     const session = createChatSessionCore({
       summarizeMessages: async () => 'Model summary',
       streamChat: async () => ({ text: 'unused' })
@@ -258,11 +258,8 @@ describe('chatSessionCore', () => {
       maxCharacters: 24000
     });
 
-    expect(didCompact).toBe(true);
-    expect(session.getState().compactedContext).toMatchObject({
-      sourceMessageCount: 4,
-      summary: 'Model summary'
-    });
+    expect(didCompact).toBe(false);
+    expect(session.getState().compactedContext).toBeNull();
   });
 
   it('reduces composed usage after a manual summarize', async () => {
@@ -294,7 +291,7 @@ describe('chatSessionCore', () => {
 
     const before = getContextUsage(settings, session.getState().conversation, session.getState().compactedContext);
     const didCompact = await session.compactContext({
-      maxMessages: settings.contextMaxMessages,
+      maxMessages: 4,
       maxCharacters: settings.contextMaxCharacters
     });
     const after = getContextUsage(settings, session.getState().conversation, session.getState().compactedContext);
@@ -309,7 +306,7 @@ describe('chatSessionCore', () => {
     const session = createChatSessionCore({
       streamChat: async () => ({ text: 'unused' }),
       summarizeMessages,
-    } as Parameters<typeof createChatSessionCore>[0]);
+    });
 
     session.loadConversation([
       { role: 'user', content: 'Message 1 '.repeat(20) },
@@ -321,7 +318,7 @@ describe('chatSessionCore', () => {
     ]);
 
     const didCompact = await session.compactContext({
-      maxMessages: 10,
+      maxMessages: 2,
       maxCharacters: 24000
     });
 
@@ -330,6 +327,105 @@ describe('chatSessionCore', () => {
     expect(session.getState().compactedContext).toMatchObject({
       summary: 'Model generated summary'
     });
+  });
+
+  it('surfaces summarize failures and stores the error status', async () => {
+    const summarizeMessages = vi.fn().mockRejectedValue(new Error('Summary provider failed'));
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' }),
+      summarizeMessages,
+    });
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1' },
+      { role: 'assistant', content: 'Reply 1' },
+      { role: 'user', content: 'Message 2' },
+    ]);
+
+    await expect(session.compactContext({ maxMessages: 1, maxCharacters: 2000 })).rejects.toThrow(
+      'Summary provider failed',
+    );
+    expect(session.getState().status).toBe('Summary provider failed');
+    expect(session.getState().compactedContext).toBeNull();
+  });
+
+  it('rejects empty summaries', async () => {
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' }),
+      summarizeMessages: vi.fn().mockResolvedValue('   '),
+    });
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1' },
+      { role: 'assistant', content: 'Reply 1' },
+      { role: 'user', content: 'Message 2' },
+    ]);
+
+    await expect(session.compactContext({ maxMessages: 1, maxCharacters: 2000 })).rejects.toThrow(
+      'Summary request returned an empty response.',
+    );
+    expect(session.getState().status).toBe('Summary request returned an empty response.');
+  });
+
+  it('skips compaction when a single-message summary would be larger than the source', async () => {
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' }),
+      summarizeMessages: vi.fn().mockResolvedValue('This summary is intentionally longer than the original source.'),
+    });
+
+    session.loadConversation([
+      { role: 'assistant', content: 'tiny' },
+      { role: 'user', content: 'latest question' },
+    ]);
+
+    await expect(session.compactContext({ maxMessages: 1, maxCharacters: 2000 })).resolves.toBe(false);
+    expect(session.getState().compactedContext).toBeNull();
+  });
+
+  it('returns false without summarizing while a response is in flight', async () => {
+    let resolveStream: ((value: { text: string }) => void) | null = null;
+    const summarizeMessages = vi.fn().mockResolvedValue('unused');
+    const session = createChatSessionCore({
+      summarizeMessages,
+      streamChat: () => new Promise((resolve) => {
+        resolveStream = resolve;
+      }),
+    });
+
+    const submitPromise = session.submitPrompt('streaming');
+    await Promise.resolve();
+
+    await expect(session.compactContext({ maxMessages: 1, maxCharacters: 1000 })).resolves.toBe(false);
+    expect(summarizeMessages).not.toHaveBeenCalled();
+
+    resolveStream?.({ text: 'done' });
+    await submitPromise;
+  });
+
+  it('returns false when compaction is already in progress', async () => {
+    let resolveSummary: ((value: string) => void) | null = null;
+    const summarizeMessages = vi.fn(() => new Promise<string>((resolve) => {
+      resolveSummary = resolve;
+    }));
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' }),
+      summarizeMessages,
+    });
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1' },
+      { role: 'assistant', content: 'Reply 1' },
+      { role: 'user', content: 'Message 2' },
+    ]);
+
+    const firstCompaction = session.compactContext({ maxMessages: 1, maxCharacters: 2000 });
+    await Promise.resolve();
+
+    await expect(session.compactContext({ maxMessages: 1, maxCharacters: 2000 })).resolves.toBe(false);
+    expect(summarizeMessages).toHaveBeenCalledTimes(1);
+
+    resolveSummary?.('Condensed summary');
+    await expect(firstCompaction).resolves.toBe(true);
   });
 
   it('passes compacted context to the transport for future requests', async () => {

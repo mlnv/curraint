@@ -1,7 +1,11 @@
 import { deleteSessionFile, listSessionFiles, readSession, writeSession } from './storage';
 import type { CompactedContext } from '../context';
 import type { ChatMessage } from '../types';
-import type { SavedSession, SessionSummary } from './types';
+import {
+  COMPACTED_CONTEXT_SCHEMA_VERSION,
+  type SavedSession,
+  type SessionSummary,
+} from './types';
 
 export type PersistConversationOptions = {
   conversation: ChatMessage[];
@@ -48,11 +52,77 @@ export function listSessions(): SessionSummary[] {
 }
 
 export function getSession(id: string): SavedSession | null {
-  return readSession(id);
+  const session = readSession(id);
+  return session ? normalizeSessionFromStorage(session) : null;
 }
 
 export function saveSession(session: SavedSession): void {
-  writeSession(session);
+  writeSession(normalizeSessionForStorage(session));
+}
+
+function normalizeLegacyCompactedContext(
+  messages: ChatMessage[],
+  compactedContext: CompactedContext,
+): CompactedContext {
+  let remainingNonEmptyMessages = Math.max(0, compactedContext.sourceMessageCount);
+  let rawBoundaryIndex = 0;
+
+  while (rawBoundaryIndex < messages.length && remainingNonEmptyMessages > 0) {
+    if (messages[rawBoundaryIndex]!.content.trim().length > 0) {
+      remainingNonEmptyMessages -= 1;
+    }
+    rawBoundaryIndex += 1;
+  }
+
+  return {
+    ...compactedContext,
+    sourceMessageCount: rawBoundaryIndex,
+  };
+}
+
+function normalizeSessionForStorage(session: SavedSession): SavedSession {
+  const compactedContext = session.compactedContext ?? undefined;
+  if (!compactedContext) {
+    return {
+      ...session,
+      compactedContext: undefined,
+      compactedContextSchemaVersion: undefined,
+    };
+  }
+
+  return {
+    ...session,
+    compactedContext,
+    compactedContextSchemaVersion: COMPACTED_CONTEXT_SCHEMA_VERSION,
+  };
+}
+
+function normalizeSessionFromStorage(session: SavedSession): SavedSession {
+  const compactedContext = session.compactedContext ?? undefined;
+  if (!compactedContext) {
+    return {
+      ...session,
+      compactedContext: undefined,
+      compactedContextSchemaVersion: undefined,
+    };
+  }
+
+  const normalizedCompactedContext =
+    session.compactedContextSchemaVersion === COMPACTED_CONTEXT_SCHEMA_VERSION
+      ? {
+          ...compactedContext,
+          sourceMessageCount: Math.min(
+            Math.max(compactedContext.sourceMessageCount, 0),
+            session.messages.length,
+          ),
+        }
+      : normalizeLegacyCompactedContext(session.messages, compactedContext);
+
+  return {
+    ...session,
+    compactedContext: normalizedCompactedContext,
+    compactedContextSchemaVersion: COMPACTED_CONTEXT_SCHEMA_VERSION,
+  };
 }
 
 export function persistConversation(
@@ -80,7 +150,7 @@ export function persistConversation(
     title: deriveTitle(firstUserMessage),
     createdAt: currentSessionCreatedAt,
     updatedAt: timestamp,
-    compactedContext: options.compactedContext ?? null,
+    compactedContext: options.compactedContext ?? undefined,
     messages,
   });
 

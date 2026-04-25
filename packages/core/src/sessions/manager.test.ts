@@ -135,7 +135,11 @@ describe('getSession', () => {
     };
     vi.mocked(readSession).mockReturnValue(session);
 
-    expect(getSession('x')).toBe(session);
+    expect(getSession('x')).toEqual({
+      ...session,
+      compactedContext: undefined,
+      compactedContextSchemaVersion: undefined,
+    });
     expect(readSession).toHaveBeenCalledWith('x');
   });
 
@@ -188,7 +192,8 @@ describe('persistConversation', () => {
       title: 'Hello there',
       createdAt: 5000,
       updatedAt: 5000,
-      compactedContext: null,
+      compactedContext: undefined,
+      compactedContextSchemaVersion: undefined,
       messages: [
         { role: 'user', content: 'Hello there' },
         { role: 'assistant', content: 'Hi' }
@@ -219,7 +224,8 @@ describe('persistConversation', () => {
       title: '',
       createdAt: 7000,
       updatedAt: 7000,
-      compactedContext: null,
+      compactedContext: undefined,
+      compactedContextSchemaVersion: undefined,
       messages: [
         { role: 'assistant', content: 'Proactive hello' }
       ]
@@ -250,6 +256,7 @@ describe('persistConversation', () => {
       createdAt: 8000,
       updatedAt: 8000,
       compactedContext,
+      compactedContextSchemaVersion: 1,
       messages: [{ role: 'user', content: 'Continue' }]
     });
   });

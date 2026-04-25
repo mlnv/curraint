@@ -26,4 +26,12 @@ describe('getVisibleProviderOptions', () => {
 
     expect(options.some((option) => option.id === 'copilot')).toBe(false);
   });
+
+  it('does not duplicate GitHub Copilot when it is both enabled and selected', () => {
+    const options = getVisibleProviderOptions('copilot', {
+      enableCopilotProvider: true
+    });
+
+    expect(options.filter((option) => option.id === 'copilot')).toHaveLength(1);
+  });
 });

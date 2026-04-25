@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-> Auto-generated on 2026-03-12 by `pnpm build`. Do not edit manually.
+> Auto-generated on 2026-04-25 by `pnpm build`. Do not edit manually.
 
 ## License summary
 
@@ -16,9 +16,9 @@
 | Package | Version | License | Author |
 | ------- | ------- | ------- | ------ |
 | [@colors/colors](https://github.com/DABH/colors.js) | 1.5.0 | MIT | DABH |
-| [@github/copilot](https://github.com/github/copilot-cli/#readme) | 0.0.420 | Unknown | GitHub |
-| [@github/copilot-sdk](https://github.com/github/copilot-sdk#readme) | 0.1.30 | MIT | GitHub |
-| [@github/copilot-win32-x64](https://github.com/github/copilot-cli/#readme) | 0.0.420 | Unknown |  |
+| [@github/copilot](https://github.com/github/copilot-cli/#readme) | 1.0.11 | Unknown | GitHub |
+| [@github/copilot-sdk](https://github.com/github/copilot-sdk#readme) | 0.2.0 | MIT | GitHub |
+| [@github/copilot-win32-x64](https://github.com/github/copilot-cli/#readme) | 1.0.11 | Unknown |  |
 | [@sindresorhus/is](https://github.com/sindresorhus/is#readme) | 4.6.0 | MIT | Sindre Sorhus |
 | [@types/debug](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/debug) | 4.1.12 | MIT |  |
 | [@types/estree](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/estree) | 1.0.8 | MIT |  |

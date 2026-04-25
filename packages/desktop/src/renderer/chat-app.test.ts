@@ -2,11 +2,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CurraintApi } from '../ipc';
 import { ChatApp } from './chat-app';
 
 vi.mock('@curraint/core', () => ({
   getContextUsage: vi.fn(() => ({
     percent: 42,
+    tone: 'safe',
     usedMessages: 4,
     maxMessages: 10,
     usedCharacters: 400,
@@ -19,7 +21,7 @@ vi.mock('@curraint/core', () => ({
 vi.mock('./lib/use-chat-session', () => ({
   useChatSession: () => ({
     conversation: [],
-    compactedContext: '',
+    compactedContext: null,
     prompt: '',
     status: '',
     isSending: false,
@@ -50,28 +52,23 @@ vi.mock('./lib/theme', () => ({
 }));
 
 beforeEach(() => {
-  (window as unknown as {
-    curraint: {
-      getSettings: () => Promise<{ enableThinkTagFolding: boolean; theme: string }>;
-      onSettingsChanged: () => () => void;
-      onReceiveQuickInput: () => () => void;
-      hideChatWindow: () => Promise<void>;
-    };
-  }).curraint = {
+  const mockApi: Partial<CurraintApi> = {
     getSettings: vi.fn().mockResolvedValue({ enableThinkTagFolding: true, theme: 'black' }),
     onSettingsChanged: vi.fn(() => () => undefined),
     onReceiveQuickInput: vi.fn(() => () => undefined),
     hideChatWindow: vi.fn().mockResolvedValue(undefined)
   };
+  (window as { curraint: CurraintApi }).curraint = mockApi as CurraintApi;
 });
 
 describe('ChatApp context popup', () => {
-  it('renders a hover bridge beneath the popup so the summarize button stays reachable', async () => {
+  it('renders a hover bridge beneath the popup and keeps summarize reachable', async () => {
     const { container } = render(createElement(ChatApp));
 
     await waitFor(() => {
       expect(screen.getByText('Context budget')).not.toBeNull();
     });
+    expect(screen.getByRole('button', { name: 'Summarize older context' })).not.toBeNull();
     expect(container.querySelector('.curraint-chat-context-popup-bridge')).not.toBeNull();
   });
 });

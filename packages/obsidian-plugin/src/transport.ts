@@ -4,7 +4,7 @@ import {
   chatCompletionStream,
   composeConversation,
 } from '@curraint/core';
-import type { EndpointSettings, ChatSessionTransport } from '@curraint/core';
+import type { CompactedContext, EndpointSettings, ChatSessionTransport } from '@curraint/core';
 import type { ChatMessage, TokenUsage } from '@curraint/core';
 import type CurraintPlugin from './main';
 
@@ -169,7 +169,7 @@ async function streamOpenAiCompat(
   settings: EndpointSettings,
   messages: ChatMessage[],
   onDelta: (delta: string) => void,
-  compactedContext: ChatSessionTransport extends { streamChat: (messages: ChatMessage[], onDelta: (delta: string) => void, options?: infer T) => Promise<unknown> } ? T extends { compactedContext?: infer U } ? U : never : never,
+  compactedContext: CompactedContext | null | undefined,
   signal?: AbortSignal
 ): Promise<{ text: string; usage?: TokenUsage }> {
   const composed = composeConversation(settings, messages, compactedContext ?? null);
@@ -240,6 +240,13 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
   return {
     summarizeMessages: async (messages) => {
       const settings = await resolveSettings();
+
+      if (settings.provider === 'lmstudio' && Platform.isMobile) {
+        throw new Error(
+          'LM Studio is not available on mobile. Switch to a cloud provider in Settings.'
+        );
+      }
+
       const summaryMessages = buildModelSummaryMessages(messages).map(({ role, content }) => ({ role, content }));
       return corsFreeChatCompletion(settings, summaryMessages);
     },
@@ -269,6 +276,10 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
         );
         lmsResponseId = responseId;
         return { text };
+      }
+
+      if (settings.provider === 'lmstudio' && options?.compactedContext) {
+        lmsResponseId = null;
       }
 
       return streamOpenAiCompat(settings, messages, onDelta, options?.compactedContext, options?.signal);

@@ -1,5 +1,6 @@
 import {
   createChatSessionCore,
+  type CompactedContext,
   generateSessionId,
   deriveTitle,
   saveSession,
@@ -127,7 +128,7 @@ export class ConversationRegistry {
     this.slots.clear();
   }
 
-  private autoSave(slot: ConversationSlot, messages: ChatMessage[], compactedContext: SavedSession['compactedContext'] = null): void {
+  private autoSave(slot: ConversationSlot, messages: ChatMessage[], compactedContext: CompactedContext | null = null): void {
     if (!this.getEnableSessionSaving()) return;
 
     let msgs = messages.filter((m) => m.role !== 'system');
@@ -151,7 +152,7 @@ export class ConversationRegistry {
       createdAt: slot.sessionCreatedAt,
       updatedAt: Date.now(),
       messages: msgs,
-      compactedContext,
+      compactedContext: compactedContext ?? undefined,
     });
   }
 

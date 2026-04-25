@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildModelSummaryMessages, createChatSessionCore } from '@curraint/core';
+import { createChatSessionCore } from '@curraint/core';
 import type { ChatMessage, CompactedContext, SavedSession } from '@curraint/core';
 
 export type UseChatSessionResult = {
@@ -31,8 +31,28 @@ type SessionSlot = {
   sessionId: string | null;
   sessionCreatedAt: number;
   prevIsSending: boolean;
+  prevCompactedContext: CompactedContext | null;
   unsubscribe: () => void;
 };
+
+function areCompactedContextsEqual(
+  left: CompactedContext | null,
+  right: CompactedContext | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.summary === right.summary &&
+    left.sourceMessageCount === right.sourceMessageCount &&
+    left.sourceCharacterCount === right.sourceCharacterCount
+  );
+}
 
 const INITIAL_SLOT_KEY = '__new__';
 
@@ -82,7 +102,7 @@ export function useChatSession(): UseChatSessionResult {
       createdAt: slot.sessionCreatedAt,
       updatedAt: Date.now(),
       messages: msgs,
-      compactedContext: nextCompactedContext
+      compactedContext: nextCompactedContext ?? undefined
     });
   };
 
@@ -92,11 +112,9 @@ export function useChatSession(): UseChatSessionResult {
     sessionCreatedAt: number
   ): SessionSlot => {
     const core = createChatSessionCore({
-      summarizeMessages: async (messages) => window.curraint.summarizeMessages(
-        buildModelSummaryMessages(messages)
-      ),
+      summarizeMessages: async (messages) => window.curraint.summarizeMessages(messages),
       streamChat: (messages, onDelta, options) =>
-        window.curraint.chatStream(messages, onDelta, options?.compactedContext),
+        window.curraint.chatStream(messages, onDelta, options),
       cancelChatStream: () => window.curraint.cancelChatStream(),
       clearSession: () => window.curraint.clearChatSession()
     });
@@ -106,6 +124,7 @@ export function useChatSession(): UseChatSessionResult {
       sessionId,
       sessionCreatedAt,
       prevIsSending: false,
+      prevCompactedContext: null,
       unsubscribe: () => {}
     };
 
@@ -113,6 +132,11 @@ export function useChatSession(): UseChatSessionResult {
       onStateChange: (nextState) => {
         const wasSending = slot.prevIsSending;
         slot.prevIsSending = nextState.isSending;
+        const compactedContextChanged = !areCompactedContextsEqual(
+          slot.prevCompactedContext,
+          nextState.compactedContext,
+        );
+        slot.prevCompactedContext = nextState.compactedContext;
         const isActive = slotKey === activeSlotKeyRef.current;
 
         if (!wasSending && nextState.isSending) {
@@ -129,6 +153,10 @@ export function useChatSession(): UseChatSessionResult {
             slotsRef.current.delete(slotKey);
             return;
           }
+        }
+
+        if (!nextState.isSending && compactedContextChanged) {
+          autoSave(slot, nextState.conversation, nextState.compactedContext);
         }
 
         if (isActive) {
@@ -183,6 +211,7 @@ export function useChatSession(): UseChatSessionResult {
     }
 
     const slot = createSlot(slotKey, session.id, session.createdAt);
+    slot.prevCompactedContext = session.compactedContext ?? null;
     slotsRef.current.set(slotKey, slot);
 
     // Reset all UI state immediately so switching away from a streaming session

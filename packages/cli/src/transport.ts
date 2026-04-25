@@ -19,10 +19,11 @@ function isAbortError(error: unknown): boolean {
 
 function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport {
   return {
-    summarizeMessages: async (messages) => {
+    summarizeMessages: async (messages, options) => {
       const result = await copilotChatComplete(
         settings.model,
-        buildModelSummaryMessages(messages)
+        buildModelSummaryMessages(messages),
+        options?.signal,
       );
       return result.message;
     },
@@ -53,10 +54,11 @@ function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport
 
 function buildOpenAiTransport(settings: EndpointSettings): ChatSessionTransport {
   return {
-    summarizeMessages: async (messages) => {
+    summarizeMessages: async (messages, options) => {
       const result = await chatCompletion(
         settings,
-        buildModelSummaryMessages(messages)
+        buildModelSummaryMessages(messages),
+        { signal: options?.signal },
       );
       return result.message;
     },

@@ -11,7 +11,7 @@ const api: CurraintApi = {
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
   chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
   summarizeMessages: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSummarize, messages),
-  chatStream: async (messages, onDelta, compactedContext) => {
+  chatStream: async (messages, onDelta, options) => {
     const requestId = crypto.randomUUID();
     activeStreamRequestId = requestId;
     const onChunk = (
@@ -31,7 +31,9 @@ const api: CurraintApi = {
       return await ipcRenderer.invoke(IPC_CHANNELS.chatStream, {
         requestId,
         messages,
-        compactedContext: compactedContext ?? null
+        options: {
+          compactedContext: options?.compactedContext ?? null
+        }
       });
     } finally {
       ipcRenderer.removeListener(IPC_CHANNELS.chatStreamChunk, onChunk);

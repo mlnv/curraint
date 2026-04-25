@@ -45,8 +45,11 @@ export async function runSessions(ctx: CommandContext): Promise<CommandResult> {
 
   ctx.getSession().loadConversation(full.messages, full.compactedContext ?? null);
   ctx.setCurrentSessionId(chosen.id, chosen.createdAt);
+  const compactedContextNote = full.compactedContext
+    ? ' with restored compacted context (summary)'
+    : '';
   output.write(
-    `${c.green}Loaded:${c.reset} ${full.title} ${c.dim}(${full.messages.length} messages)${c.reset}\n`
+    `${c.green}Loaded:${c.reset} ${full.title} ${c.dim}(${full.messages.length} messages${compactedContextNote})${c.reset}\n`
   );
   ctx.sessionUI.printHistory(ctx.getSession());
   return 'continue';

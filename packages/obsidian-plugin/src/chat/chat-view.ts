@@ -13,6 +13,74 @@ import type { ChatMessage, ChatSessionCore, ChatSessionState, SavedSession } fro
 
 export const CHAT_VIEW_TYPE = 'curraint-chat';
 
+export type ContextPopoverElements = {
+  root: HTMLDivElement;
+  meterButton: HTMLButtonElement;
+  meterValue: HTMLSpanElement;
+  popupSummary: HTMLParagraphElement;
+  popupBreakdown: HTMLDivElement;
+  popupStatus: HTMLParagraphElement;
+};
+
+export function createContextPopover(onSummarize: () => void): ContextPopoverElements {
+  const root = document.createElement('div');
+  root.className = 'curraint-chat-header__context-popover';
+
+  const meterButton = document.createElement('button');
+  meterButton.type = 'button';
+  meterButton.className = 'curraint-chat-header__context-meter';
+  meterButton.title = 'Show context usage';
+  meterButton.setAttribute('aria-label', 'Show context usage');
+
+  const meterValue = document.createElement('span');
+  meterValue.className = 'curraint-chat-header__context-meter-value';
+  meterButton.appendChild(meterValue);
+  root.appendChild(meterButton);
+
+  const contextPopup = document.createElement('div');
+  contextPopup.className = 'curraint-chat-header__context-popup';
+
+  const contextPopupBridge = document.createElement('div');
+  contextPopupBridge.className = 'curraint-chat-header__context-popup-bridge';
+  contextPopupBridge.setAttribute('aria-hidden', 'true');
+  contextPopup.appendChild(contextPopupBridge);
+
+  const contextLabel = document.createElement('p');
+  contextLabel.className = 'curraint-chat-header__context-label';
+  contextLabel.textContent = 'Context budget';
+  contextPopup.appendChild(contextLabel);
+
+  const popupSummary = document.createElement('p');
+  popupSummary.className = 'curraint-chat-header__context-summary';
+  contextPopup.appendChild(popupSummary);
+
+  const popupBreakdown = document.createElement('div');
+  popupBreakdown.className = 'curraint-chat-header__context-breakdown';
+  contextPopup.appendChild(popupBreakdown);
+
+  const popupStatus = document.createElement('p');
+  popupStatus.className = 'curraint-chat-header__context-status';
+  contextPopup.appendChild(popupStatus);
+
+  const summarizeButton = document.createElement('button');
+  summarizeButton.type = 'button';
+  summarizeButton.className = 'curraint-chat-header__context-action';
+  summarizeButton.textContent = 'Summarize older context';
+  summarizeButton.addEventListener('click', onSummarize);
+  contextPopup.appendChild(summarizeButton);
+
+  root.appendChild(contextPopup);
+
+  return {
+    root,
+    meterButton,
+    meterValue,
+    popupSummary,
+    popupBreakdown,
+    popupStatus,
+  };
+}
+
 export class ChatView extends ItemView {
   private readonly plugin: CurraintPlugin;
   private registry!: ConversationRegistry;
@@ -26,6 +94,9 @@ export class ChatView extends ItemView {
   private contextPopupBreakdown!: HTMLDivElement;
   private contextPopupStatus!: HTMLParagraphElement;
   private contextStateUnsubscribe: (() => void) | null = null;
+  private contextIndicatorFrame: number | null = null;
+  private pendingContextIndicatorState: ChatSessionState | undefined;
+  private lastContextIndicatorKey = '';
 
   constructor(leaf: WorkspaceLeaf, plugin: CurraintPlugin) {
     super(leaf);
@@ -107,6 +178,10 @@ export class ChatView extends ItemView {
     this.pendingNoteFiles = [];
     this.contextStateUnsubscribe?.();
     this.contextStateUnsubscribe = null;
+    if (this.contextIndicatorFrame !== null) {
+      cancelAnimationFrame(this.contextIndicatorFrame);
+      this.contextIndicatorFrame = null;
+    }
     this.destroyRegistry();
   }
 
@@ -318,58 +393,15 @@ export class ChatView extends ItemView {
   }
 
   private mountContextPopover(): void {
-    this.inputBar.attachTrailingAction(this.createContextPopover());
-  }
-
-  private createContextPopover(): HTMLDivElement {
-    const contextPopover = document.createElement('div');
-    contextPopover.className = 'curraint-chat-header__context-popover';
-
-    this.contextMeterButton = document.createElement('button');
-    this.contextMeterButton.type = 'button';
-    this.contextMeterButton.className = 'curraint-chat-header__context-meter';
-    this.contextMeterButton.title = 'Show context usage';
-    this.contextMeterButton.setAttribute('aria-label', 'Show context usage');
-
-    this.contextMeterValue = document.createElement('span');
-    this.contextMeterValue.className = 'curraint-chat-header__context-meter-value';
-    this.contextMeterButton.appendChild(this.contextMeterValue);
-    contextPopover.appendChild(this.contextMeterButton);
-
-    const contextPopup = document.createElement('div');
-    contextPopup.className = 'curraint-chat-header__context-popup';
-
-    const contextPopupBridge = document.createElement('div');
-    contextPopupBridge.className = 'curraint-chat-header__context-popup-bridge';
-    contextPopupBridge.setAttribute('aria-hidden', 'true');
-    contextPopup.appendChild(contextPopupBridge);
-
-    const contextLabel = document.createElement('p');
-    contextLabel.className = 'curraint-chat-header__context-label';
-    contextLabel.textContent = 'Context budget';
-    contextPopup.appendChild(contextLabel);
-
-    this.contextPopupSummary = document.createElement('p');
-    this.contextPopupSummary.className = 'curraint-chat-header__context-summary';
-    contextPopup.appendChild(this.contextPopupSummary);
-
-    this.contextPopupBreakdown = document.createElement('div');
-    this.contextPopupBreakdown.className = 'curraint-chat-header__context-breakdown';
-    contextPopup.appendChild(this.contextPopupBreakdown);
-
-    this.contextPopupStatus = document.createElement('p');
-    this.contextPopupStatus.className = 'curraint-chat-header__context-status';
-    contextPopup.appendChild(this.contextPopupStatus);
-
-    const summarizeButton = document.createElement('button');
-    summarizeButton.type = 'button';
-    summarizeButton.className = 'curraint-chat-header__context-action';
-    summarizeButton.textContent = 'Summarize older context';
-    summarizeButton.addEventListener('click', () => { void this.handleSummarizeContext(); });
-    contextPopup.appendChild(summarizeButton);
-
-    contextPopover.appendChild(contextPopup);
-    return contextPopover;
+    const popover = createContextPopover(() => {
+      void this.handleSummarizeContext();
+    });
+    this.contextMeterButton = popover.meterButton;
+    this.contextMeterValue = popover.meterValue;
+    this.contextPopupSummary = popover.popupSummary;
+    this.contextPopupBreakdown = popover.popupBreakdown;
+    this.contextPopupStatus = popover.popupStatus;
+    this.inputBar.attachTrailingAction(popover.root);
   }
 
   // Returns the editable title input for the active conversation.
@@ -437,7 +469,21 @@ export class ChatView extends ItemView {
     }
 
     this.contextStateUnsubscribe = slot.core.subscribe({
-      onStateChange: (state) => this.updateContextIndicator(state)
+      onStateChange: (state) => this.scheduleContextIndicatorUpdate(state)
+    });
+  }
+
+  private scheduleContextIndicatorUpdate(state?: ChatSessionState): void {
+    this.pendingContextIndicatorState = state;
+    if (this.contextIndicatorFrame !== null) {
+      return;
+    }
+
+    this.contextIndicatorFrame = requestAnimationFrame(() => {
+      this.contextIndicatorFrame = null;
+      const nextState = this.pendingContextIndicatorState;
+      this.pendingContextIndicatorState = undefined;
+      this.updateContextIndicator(nextState);
     });
   }
 
@@ -453,10 +499,25 @@ export class ChatView extends ItemView {
       currentState?.compactedContext ?? null
     );
     const clampedPercent = Math.max(0, Math.min(usage.percent, 100));
-    const tone = clampedPercent >= 90 ? 'danger' : clampedPercent >= 70 ? 'warn' : 'safe';
+    const indicatorKey = [
+      clampedPercent,
+      usage.tone,
+      usage.usedMessages,
+      usage.usedCharacters,
+      usage.maxMessages,
+      usage.maxCharacters,
+      usage.compactedMessages,
+      usage.hasCompactedContext,
+    ].join('|');
+
+    if (indicatorKey === this.lastContextIndicatorKey) {
+      return;
+    }
+
+    this.lastContextIndicatorKey = indicatorKey;
 
     this.contextMeterButton.style.setProperty('--curraint-context-progress', `${clampedPercent}%`);
-    this.contextMeterButton.dataset.tone = tone;
+    this.contextMeterButton.dataset.tone = usage.tone;
     this.contextMeterValue.textContent = `${usage.percent}%`;
     this.contextPopupSummary.textContent = `${usage.percent}% of the active request budget is in use.`;
     this.contextPopupBreakdown.replaceChildren(
