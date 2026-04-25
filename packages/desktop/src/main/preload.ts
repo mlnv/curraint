@@ -7,6 +7,7 @@ let activeStreamRequestId: string | null = null;
 
 const api: CurraintApi = {
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.getSettings),
+  getFeatureFlags: () => ipcRenderer.invoke(IPC_CHANNELS.getFeatureFlags),
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
   chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
   chatStream: async (messages, onDelta, compactedContext) => {

@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { getProviderConfig } from '@curraint/core';
-import type { AppSettings, SavedConnection } from '@curraint/core';
+import type { AppSettings, RuntimeFeatureFlags, SavedConnection } from '@curraint/core';
 import { Card } from './components/ui/card';
 import { SettingsFormActions } from './components/settings/settings-form-actions';
 import { SettingsFormFields } from './components/settings/settings-form-fields';
@@ -25,12 +25,18 @@ const EMPTY_FORM: FormState = {
   theme: 'black'
 };
 
+const DEFAULT_FEATURE_FLAGS: RuntimeFeatureFlags = {
+  enableCopilotProvider: false
+};
+
 export function SettingsApp(): React.JSX.Element {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [featureFlags, setFeatureFlags] = useState<RuntimeFeatureFlags>(DEFAULT_FEATURE_FLAGS);
   const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [shortcutRegistered, setShortcutRegistered] = useState<boolean | undefined>(undefined);
+  const currentProvider = getProviderConfig(form.provider);
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -85,11 +91,11 @@ export function SettingsApp(): React.JSX.Element {
   };
 
   useEffect(() => {
-    window.curraint
-      .getSettings()
-      .then((settings) => {
+    Promise.all([window.curraint.getSettings(), window.curraint.getFeatureFlags()])
+      .then(([settings, nextFeatureFlags]) => {
         if (!settings) return;
         setForm(settings);
+        setFeatureFlags(nextFeatureFlags);
         applyTheme(settings.theme);
       })
       .catch((error: unknown) => {
@@ -167,13 +173,14 @@ export function SettingsApp(): React.JSX.Element {
       <Card className="flex h-full flex-col rounded-none p-4">
         <div className="mb-4 shrink-0">
           <p className="text-sm font-medium">Settings</p>
-          <p className="text-xs text-muted-foreground">OpenAI-compatible endpoint</p>
+          <p className="text-xs text-muted-foreground">Current provider: {currentProvider.label}</p>
         </div>
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
             <SettingsFormFields
               form={form}
+              enableCopilotProvider={featureFlags.enableCopilotProvider}
               shortcutRegistered={shortcutRegistered}
               onProviderChange={updateProvider}
               onFieldChange={updateField}

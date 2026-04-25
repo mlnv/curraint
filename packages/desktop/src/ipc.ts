@@ -1,9 +1,10 @@
 import type { ChatMessage, CompactedContext, TokenUsage } from '@curraint/core';
-import type { AppSettings } from './types';
+import type { AppSettings, RuntimeFeatureFlags } from './types';
 import type { SavedSession, SessionSummary } from '@curraint/core';
 
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
+  getFeatureFlags: 'app:getFeatureFlags',
   openExternal: 'shell:openExternal',
   saveSettings: 'settings:save',
   settingsChanged: 'settings:changed',
@@ -42,6 +43,7 @@ export type ChatStreamChunkPayload = {
 
 export type CurraintApi = {
   getSettings: () => Promise<AppSettings>;
+  getFeatureFlags: () => Promise<RuntimeFeatureFlags>;
   openExternal: (url: string) => Promise<void>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   chat: (messages: ChatMessage[]) => Promise<string>;

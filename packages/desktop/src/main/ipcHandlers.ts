@@ -1,6 +1,7 @@
 import { ipcMain, shell, app } from 'electron';
 import { IPC_CHANNELS, type ChatStreamChunkPayload, type ChatStreamPayload } from '../ipc';
 import { debugLog, setDebugEnabled } from '@curraint/core';
+import { ENABLE_COPILOT_PROVIDER } from '@curraint/core';
 import {
   chatCompletion,
   chatCompletionStream,
@@ -92,6 +93,10 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
   setDebugEnabled(settingsAccess.getSettings().enableDebugLogging);
 
   ipcMain.handle(IPC_CHANNELS.getSettings, () => settingsAccess.getSettings());
+
+  ipcMain.handle(IPC_CHANNELS.getFeatureFlags, () => ({
+    enableCopilotProvider: ENABLE_COPILOT_PROVIDER
+  }));
 
   ipcMain.handle(IPC_CHANNELS.saveSettings, (_event, next: AppSettings) => {
     const saved = settingsAccess.saveSettings(next);

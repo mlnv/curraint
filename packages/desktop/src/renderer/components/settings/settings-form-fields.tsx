@@ -1,4 +1,4 @@
-import { getProviderConfig, PROVIDER_OPTIONS } from '@curraint/core';
+import { getProviderConfig } from '@curraint/core';
 import type { AppSettings, SavedConnection } from '@curraint/core';
 import { THEME_OPTIONS } from '../../lib/theme';
 import { Input } from '../ui/input';
@@ -6,9 +6,11 @@ import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
 import { SavedConnections } from './saved-connections';
 import { ShortcutRecorder } from './shortcut-recorder';
+import { getVisibleProviderOptions } from './provider-options';
 
 type Props = {
   form: AppSettings;
+  enableCopilotProvider: boolean;
   shortcutRegistered: boolean | undefined;
   onProviderChange: (provider: AppSettings['provider']) => void;
   onFieldChange: <K extends keyof AppSettings>(
@@ -23,6 +25,7 @@ type Props = {
 
 export function SettingsFormFields({
   form,
+  enableCopilotProvider,
   shortcutRegistered,
   onProviderChange,
   onFieldChange,
@@ -32,6 +35,9 @@ export function SettingsFormFields({
   onOpenLogFolder
 }: Props): React.JSX.Element {
   const providerConfig = getProviderConfig(form.provider);
+  const providerOptions = getVisibleProviderOptions(form.provider, {
+    enableCopilotProvider
+  });
 
   return (
     <>
@@ -51,7 +57,7 @@ export function SettingsFormFields({
             onProviderChange(event.target.value as AppSettings['provider'])
           }
         >
-          {PROVIDER_OPTIONS.map((provider) => (
+          {providerOptions.map((provider) => (
             <option key={provider.id} value={provider.id}>
               {provider.label}
             </option>

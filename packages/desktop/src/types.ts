@@ -11,6 +11,10 @@ export type SavedConnection = {
   model: string;
 };
 
+export type RuntimeFeatureFlags = {
+  enableCopilotProvider: boolean;
+};
+
 /**
  * Full application settings — extends the core connection settings with
  * desktop-specific UI preferences (theme, shortcuts, saved connections).
