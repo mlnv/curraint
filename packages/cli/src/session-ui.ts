@@ -77,7 +77,7 @@ export class SessionUI {
 
     if (state.compactedContext) {
       output.write(
-        `${c.dim}${c.cyan}  summarized for AI:${c.reset} ` +
+        `${c.dim}${c.cyan}  older context:${c.reset} ` +
         `${state.compactedContext.sourceMessageCount} older messages ` +
         `${c.dim}(${state.compactedContext.sourceCharacterCount} chars source)${c.reset}\n`
       );

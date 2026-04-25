@@ -280,7 +280,7 @@ export function ChatApp(): React.JSX.Element {
                     <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                       <p>{contextUsage.usedMessages} / {contextUsage.maxMessages} composed messages</p>
                       <p>{contextUsage.usedCharacters} / {contextUsage.maxCharacters} composed characters</p>
-                      <p>{contextUsage.hasCompactedContext ? `${contextUsage.compactedMessages} older messages already summarized for AI` : 'No hidden summary is active yet'}</p>
+                      <p>{contextUsage.hasCompactedContext ? `${contextUsage.compactedMessages} older messages are already condensed into older context` : 'No older context has been condensed yet'}</p>
                     </div>
                     {contextActionMessage ? (
                       <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-xs text-foreground">

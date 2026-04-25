@@ -452,8 +452,8 @@ export class ChatView extends ItemView {
       this.createPopupLine(`${usage.usedCharacters} / ${usage.maxCharacters} composed characters`),
       this.createPopupLine(
         usage.hasCompactedContext
-          ? `${usage.compactedMessages} older messages are already summarized for AI`
-          : 'No hidden summary is active yet'
+          ? `${usage.compactedMessages} older messages are already condensed into older context`
+          : 'No older context has been condensed yet'
       )
     );
   }
