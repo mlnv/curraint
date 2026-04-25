@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteSession,
   deriveTitle,
   generateSessionId,
   getSession,
   listSessions,
+  persistConversation,
   saveSession
 } from './manager';
 import type { SavedSession } from './types';
@@ -22,6 +23,10 @@ import {
   readSession,
   writeSession
 } from './storage';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('generateSessionId', () => {
   it('returns a string matching the timestamp-hex pattern', () => {
@@ -153,6 +158,85 @@ describe('saveSession', () => {
     };
     saveSession(session);
     expect(writeSession).toHaveBeenCalledWith(session);
+  });
+});
+
+describe('persistConversation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('creates a new session from non-system messages', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    const result = persistConversation({
+      conversation: [
+        { role: 'system', content: 'You are helpful.' },
+        { role: 'user', content: 'Hello there' },
+        { role: 'assistant', content: 'Hi' }
+      ],
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
+      now: () => 5000
+    });
+
+    expect(result).toEqual({
+      currentSessionId: '1234-0000',
+      currentSessionCreatedAt: 5000
+    });
+    expect(writeSession).toHaveBeenCalledWith({
+      id: '1234-0000',
+      title: 'Hello there',
+      createdAt: 5000,
+      updatedAt: 5000,
+      messages: [
+        { role: 'user', content: 'Hello there' },
+        { role: 'assistant', content: 'Hi' }
+      ]
+    });
+  });
+
+  it('keeps assistant-only conversations and derives an empty title', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2345);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    const result = persistConversation({
+      conversation: [
+        { role: 'system', content: 'You are helpful.' },
+        { role: 'assistant', content: 'Proactive hello' }
+      ],
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
+      now: () => 7000
+    });
+
+    expect(result).toEqual({
+      currentSessionId: '2345-0000',
+      currentSessionCreatedAt: 7000
+    });
+    expect(writeSession).toHaveBeenCalledWith({
+      id: '2345-0000',
+      title: '',
+      createdAt: 7000,
+      updatedAt: 7000,
+      messages: [
+        { role: 'assistant', content: 'Proactive hello' }
+      ]
+    });
+  });
+
+  it('returns existing metadata unchanged when no non-system messages remain', () => {
+    const result = persistConversation({
+      conversation: [{ role: 'system', content: 'You are helpful.' }],
+      currentSessionId: 'existing-id',
+      currentSessionCreatedAt: 3000,
+      now: () => 9000
+    });
+
+    expect(result).toEqual({
+      currentSessionId: 'existing-id',
+      currentSessionCreatedAt: 3000
+    });
+    expect(writeSession).not.toHaveBeenCalled();
   });
 });
 

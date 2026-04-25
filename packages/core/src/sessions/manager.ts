@@ -1,5 +1,18 @@
 import { deleteSessionFile, listSessionFiles, readSession, writeSession } from './storage';
+import type { ChatMessage } from '../types';
 import type { SavedSession, SessionSummary } from './types';
+
+export type PersistConversationOptions = {
+  conversation: ChatMessage[];
+  currentSessionId: string | null;
+  currentSessionCreatedAt: number;
+  now?: () => number;
+};
+
+export type PersistConversationResult = {
+  currentSessionId: string | null;
+  currentSessionCreatedAt: number;
+};
 
 export function generateSessionId(): string {
   const rand = Math.floor(Math.random() * 0xffff)
@@ -38,6 +51,40 @@ export function getSession(id: string): SavedSession | null {
 
 export function saveSession(session: SavedSession): void {
   writeSession(session);
+}
+
+export function persistConversation(
+  options: PersistConversationOptions,
+): PersistConversationResult {
+  const { conversation, now = Date.now } = options;
+  const messages = conversation.filter((message) => message.role !== 'system');
+
+  if (messages.length === 0) {
+    return {
+      currentSessionId: options.currentSessionId,
+      currentSessionCreatedAt: options.currentSessionCreatedAt
+    };
+  }
+
+  const timestamp = now();
+  const currentSessionId = options.currentSessionId ?? generateSessionId();
+  const currentSessionCreatedAt = options.currentSessionId
+    ? options.currentSessionCreatedAt
+    : timestamp;
+  const firstUserMessage = messages.find((message) => message.role === 'user')?.content ?? '';
+
+  saveSession({
+    id: currentSessionId,
+    title: deriveTitle(firstUserMessage),
+    createdAt: currentSessionCreatedAt,
+    updatedAt: timestamp,
+    messages,
+  });
+
+  return {
+    currentSessionId,
+    currentSessionCreatedAt,
+  };
 }
 
 export function deleteSession(id: string): void {
