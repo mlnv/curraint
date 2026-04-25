@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { persistSessionIfEnabled } from './runtime/session-persistence';
+import { persistSessionIfEnabled } from './session-persistence';
 
 vi.mock('@curraint/core', async (importActual) => {
   const actual = await importActual<typeof import('@curraint/core')>();
@@ -33,15 +33,15 @@ describe('persistSessionIfEnabled', () => {
   });
 
   it('forwards persistence arguments to core and returns its result', () => {
+    const now = () => 5000;
     const compactedContext = {
       summary: 'Earlier discussion summary',
       sourceMessageCount: 4,
       sourceCharacterCount: 1200,
     };
-    const now = () => 8000;
     const persistedState = {
-      currentSessionId: 'existing-session-id',
-      currentSessionCreatedAt: 3000,
+      currentSessionId: 'generated-session-id',
+      currentSessionCreatedAt: 5000,
     };
     vi.mocked(persistConversation).mockReturnValue(persistedState);
 
@@ -49,24 +49,22 @@ describe('persistSessionIfEnabled', () => {
       enableSessionSaving: true,
       conversation: [
         { role: 'system', content: 'You are helpful.' },
-        { role: 'user', content: 'Hello there' },
-        { role: 'assistant', content: 'Hi again' },
+        { role: 'assistant', content: 'Proactive hello' },
       ],
       compactedContext,
-      currentSessionId: 'existing-session-id',
-      currentSessionCreatedAt: 3000,
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
       now,
     });
 
     expect(persistConversation).toHaveBeenCalledWith({
       conversation: [
         { role: 'system', content: 'You are helpful.' },
-        { role: 'user', content: 'Hello there' },
-        { role: 'assistant', content: 'Hi again' },
+        { role: 'assistant', content: 'Proactive hello' },
       ],
       compactedContext,
-      currentSessionId: 'existing-session-id',
-      currentSessionCreatedAt: 3000,
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
       now,
     });
     expect(result).toEqual(persistedState);

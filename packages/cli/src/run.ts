@@ -62,7 +62,29 @@ export async function run(): Promise<number> {
     `${c.bold}curraint CLI${c.reset} — provider: ${c.cyan}${settings.provider}${c.reset}, model: ${c.cyan}${settings.model}${c.reset}. Settings: ${c.dim}${settingsFilePath()}${c.reset}. Type ${c.cyan}/exit${c.reset} to quit. Use ${c.cyan}/help${c.reset} for commands.\n`,
   );
 
-  const cleanupSigintHandler = installSigintHandler({ output, rl, session });
+  let isShuttingDown = false;
+  const shutdown = async (): Promise<void> => {
+    if (isShuttingDown) {
+      return;
+    }
+
+    isShuttingDown = true;
+    rl.close();
+    if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
+      try {
+        await stopCopilotClient();
+      } catch {
+        // ignore shutdown errors
+      }
+    }
+  };
+
+  const cleanupSigintHandler = installSigintHandler({
+    output,
+    rl,
+    getSession: () => session,
+    onExit: shutdown,
+  });
 
   try {
     const history = new InputHistory();
@@ -100,14 +122,7 @@ export async function run(): Promise<number> {
     }
   } finally {
     cleanupSigintHandler();
-    rl.close();
-    if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
-      try {
-        await stopCopilotClient();
-      } catch {
-        // ignore shutdown errors
-      }
-    }
+    await shutdown();
   }
 
   return 0;

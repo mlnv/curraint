@@ -15,25 +15,59 @@ type SignalOutput = {
   write: (text: string) => void;
 };
 
-type InstallSigintHandlerOptions = {
+type SigintSessionSource =
+  | {
+      getSession: () => SignalSession;
+      session?: never;
+    }
+  | {
+      session: SignalSession;
+      getSession?: never;
+    };
+
+type InstallSigintHandlerOptions = SigintSessionSource & {
   processLike?: SignalProcess;
   output: SignalOutput;
   rl: Pick<readline.Interface, 'close'>;
-  session: SignalSession;
+  onExit?: () => Promise<void> | void;
 };
 
 export function installSigintHandler(options: InstallSigintHandlerOptions): () => void {
   const processLike = options.processLike ?? process;
+  const getSession = (): SignalSession => {
+    if ('getSession' in options) {
+      return options.getSession();
+    }
+
+    return options.session;
+  };
+
+  const exitGracefully = async (): Promise<void> => {
+    options.output.write('\n');
+
+    try {
+      if (options.onExit) {
+        await options.onExit();
+      } else {
+        options.rl.close();
+      }
+    } catch (error) {
+      console.error('Failed to run SIGINT cleanup.', error);
+    }
+
+    processLike.exit(0);
+  };
 
   const handler = (): void => {
-    if (options.session.getState().isSending) {
-      void options.session.stopResponse();
+    const session = getSession();
+    if (session.getState().isSending) {
+      session.stopResponse().catch((error) => {
+        console.error('Failed to stop active response after SIGINT.', error);
+      });
       return;
     }
 
-    options.output.write('\n');
-    options.rl.close();
-    processLike.exit(0);
+    void exitGracefully();
   };
 
   processLike.on('SIGINT', handler);
