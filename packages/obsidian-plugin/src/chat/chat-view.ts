@@ -314,6 +314,11 @@ export class ChatView extends ItemView {
     const contextPopup = document.createElement('div');
     contextPopup.className = 'curraint-chat-header__context-popup';
 
+    const contextPopupBridge = document.createElement('div');
+    contextPopupBridge.className = 'curraint-chat-header__context-popup-bridge';
+    contextPopupBridge.setAttribute('aria-hidden', 'true');
+    contextPopup.appendChild(contextPopupBridge);
+
     const contextLabel = document.createElement('p');
     contextLabel.className = 'curraint-chat-header__context-label';
     contextLabel.textContent = 'Context budget';

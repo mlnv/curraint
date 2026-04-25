@@ -271,6 +271,7 @@ export function ChatApp(): React.JSX.Element {
                     <span className="relative z-10">{contextUsage.percent}%</span>
                   </button>
                   <div className="invisible absolute bottom-full right-0 z-20 mb-2 w-72 rounded-2xl border border-border bg-background/95 p-3 text-left opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                    <div aria-hidden="true" className="curraint-chat-context-popup-bridge absolute right-0 top-full h-2 w-full" />
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Context budget
                     </p>

@@ -132,6 +132,14 @@
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
+.curraint-chat-header__context-popup-bridge {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  width: 100%;
+  height: 8px;
+}
+
 .curraint-chat-header__context-popover:hover .curraint-chat-header__context-popup,
 .curraint-chat-header__context-popover:focus-within .curraint-chat-header__context-popup {
   opacity: 1;
