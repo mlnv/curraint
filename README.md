@@ -82,6 +82,7 @@ flowchart TD
 | Edit a previous user message and regenerate | Yes | Yes | Yes |
 | Optional session saving | Yes | Yes | Yes |
 | Context truncation with summary fallback | Yes | Yes | Yes |
+| Context usage meter and manual summarize action | Yes | Yes | Yes |
 | OpenAI-compatible providers | Yes | Yes | Yes |
 | Markdown rendering | Yes | Yes | Yes |
 | LM Studio local models | Yes | Yes | Yes |
@@ -118,6 +119,7 @@ Desktop highlights:
 - Left-click the tray icon to open or close the chat popover.
 - Right-click the tray icon for `Open Chat`, `Settings`, and `Quit`.
 - Use the optional global quick input shortcut to open a floating input bar from anywhere.
+- Use the composer context meter to inspect request budget usage and summarize older context before long chats get crowded.
 
 ### Run the CLI
 
@@ -142,6 +144,7 @@ CLI behavior:
 - Streaming, stop, edit, and regenerate use the same core behavior as desktop.
 - Conversation history is not saved by default.
 - Use `/sessions-save on` to persist sessions and `/sessions` to browse and resume them.
+- Use `/context` to inspect the active request budget and `/context summarize` to condense older turns for AI while keeping the visible transcript intact.
 - Press `Ctrl+C` while streaming to stop the current response.
 
 <details>
@@ -157,6 +160,7 @@ CLI behavior:
 | `/retry` | Regenerate the last assistant response |
 | `/provider` | Change the active provider interactively |
 | `/model` | Change the active model interactively |
+| `/context` | Show context usage or run `/context summarize` |
 | `/version` | Print the CLI version |
 | `/clear` | Clear the screen and reset the current session |
 | `/exit` | Exit the CLI |
@@ -183,6 +187,7 @@ Plugin highlights:
 - Add the active note as context with one click.
 - Search and select any vault notes as additional context.
 - Keep multiple conversations open and continue streaming in the background while switching between them.
+- Use the composer context meter to inspect request budget usage and summarize older context without removing visible messages.
 
 ### LM Studio local setup
 
@@ -198,7 +203,8 @@ Use these settings in desktop, CLI, or Obsidian:
 2. **Start streaming immediately.** Responses arrive incrementally, and you can stop generation without losing the partial result.
 3. **Fix the conversation in place.** Edit any earlier user message and regenerate the thread from that point instead of starting over.
 4. **Protect long-running chats.** When conversations get too large, curraint trims older history and inserts a compact summary.
-5. **Save sessions only when you want to.** Session persistence is optional and remains off by default.
+5. **Inspect and compact context proactively.** Desktop, CLI, and Obsidian can show current context usage and summarize older turns into hidden AI context while keeping the transcript visible.
+6. **Save sessions only when you want to.** Session persistence is optional and remains off by default.
 
 ## Desktop details
 
@@ -209,6 +215,8 @@ The desktop app is designed for fast, low-friction chat from the system tray.
 - Markdown rendering with tables, headings, lists, code blocks, and copy buttons
 - Show or hide `<think>` and `<reasoning>` blocks from models that emit reasoning traces
 - Configurable context limits for max messages and max characters
+- Composer context meter with a popup breakdown of composed messages, characters, and summarized older context
+- One-click `Summarize older context` action from the chat composer
 - Light and dark theme
 - Cross-platform packaging for Windows, macOS, and Linux
 
@@ -221,6 +229,8 @@ The plugin is designed for conversations that should stay close to your notes.
 - Editable conversation titles and a sessions modal to browse, rename, and delete saved sessions
 - Markdown or plain text mode per conversation
 - Optional session saving with configurable context limits
+- Composer context meter with an inline popup for request budget and summarized older context
+- `Summarize older context` action available from the chat composer controls
 
 > **Note:** The plugin stores its own encrypted API key separately from the desktop and CLI `secrets.json`. Keys are not shared between the plugin and the desktop or CLI apps.
 
