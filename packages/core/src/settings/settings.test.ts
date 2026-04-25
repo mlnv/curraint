@@ -121,6 +121,63 @@ describe('composeConversation', () => {
     ]);
   });
 
+  it('keeps the composed request within message limits after adding the system prompt', () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      systemPrompt: 'System message',
+      contextMaxMessages: 4,
+      contextMaxCharacters: 4000
+    };
+    const messages = [
+      { role: 'user' as const, content: 'Message 1' },
+      { role: 'assistant' as const, content: 'Reply 1' },
+      { role: 'user' as const, content: 'Message 2' },
+      { role: 'assistant' as const, content: 'Reply 2' }
+    ];
+
+    const result = composeConversation(settings, messages);
+
+    expect(result).toHaveLength(4);
+    expect(result[0]).toEqual({ role: 'system', content: 'System message' });
+    expect(result[1]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Earlier conversation was truncated')
+    });
+    expect(getContextUsage(settings, messages).percent).toBeLessThanOrEqual(100);
+  });
+
+  it('keeps the composed request within message limits after adding compacted context', () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      systemPrompt: 'System message',
+      contextMaxMessages: 4,
+      contextMaxCharacters: 4000
+    };
+    const messages = [
+      { role: 'user' as const, content: 'Older user message' },
+      { role: 'assistant' as const, content: 'Older assistant message' },
+      { role: 'user' as const, content: 'Recent user message 1' },
+      { role: 'assistant' as const, content: 'Recent assistant message 1' },
+      { role: 'user' as const, content: 'Recent user message 2' }
+    ];
+    const compactedContext = {
+      summary: 'Compacted summary',
+      sourceMessageCount: 2,
+      sourceCharacterCount: 120
+    };
+
+    const result = composeConversation(settings, messages, compactedContext);
+
+    expect(result).toHaveLength(4);
+    expect(result[0]).toEqual({ role: 'system', content: 'System message' });
+    expect(result[1]).toEqual({ role: 'system', content: 'Compacted summary' });
+    expect(result[2]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Earlier conversation was truncated')
+    });
+    expect(getContextUsage(settings, messages, compactedContext).percent).toBeLessThanOrEqual(100);
+  });
+
   it('calculates context usage from the composed request', () => {
     const settings = {
       ...DEFAULT_SETTINGS,

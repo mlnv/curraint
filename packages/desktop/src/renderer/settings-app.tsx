@@ -36,7 +36,6 @@ export function SettingsApp(): React.JSX.Element {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [shortcutRegistered, setShortcutRegistered] = useState<boolean | undefined>(undefined);
-  const currentProvider = getProviderConfig(form.provider);
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -173,7 +172,7 @@ export function SettingsApp(): React.JSX.Element {
       <Card className="flex h-full flex-col rounded-none p-4">
         <div className="mb-4 shrink-0">
           <p className="text-sm font-medium">Settings</p>
-          <p className="text-xs text-muted-foreground">Current provider: {currentProvider.label}</p>
+          <p className="text-xs text-muted-foreground">OpenAI-compatible endpoint</p>
         </div>
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">

@@ -18,7 +18,7 @@ function isAbortError(error: unknown): boolean {
 function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport {
   return {
     streamChat: async (messages, onDelta, options) => {
-      const composed = composeConversation(settings, messages);
+      const composed = composeConversation(settings, messages, options?.compactedContext ?? null);
       let streamedMessage = '';
       try {
         const result = await copilotChatStream(
@@ -45,7 +45,7 @@ function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport
 function buildOpenAiTransport(settings: EndpointSettings): ChatSessionTransport {
   return {
     streamChat: async (messages, onDelta, options) => {
-      const composed = composeConversation(settings, messages);
+      const composed = composeConversation(settings, messages, options?.compactedContext ?? null);
       let hasStreamedChunk = false;
       let streamedMessage = '';
 
