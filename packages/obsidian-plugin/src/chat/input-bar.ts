@@ -26,6 +26,7 @@ const NOOP_CALLBACKS: InputBarCallbacks = {
 export class InputBar {
   private wrapper: HTMLElement | null;
   private textarea: HTMLTextAreaElement | null;
+  private actionBar: HTMLElement | null;
   private sendButton: HTMLButtonElement | null;
   private stopButton: HTMLButtonElement | null;
   private addCurrentNoteButton: HTMLButtonElement | null;
@@ -103,9 +104,12 @@ export class InputBar {
     this.stopButton.style.display = 'none';
     this.stopButton.addEventListener('click', this.handleStopClick);
 
+    this.actionBar = document.createElement('div');
+    this.actionBar.className = 'curraint-input-bar__actions';
+    this.actionBar.appendChild(this.sendButton);
+    this.actionBar.appendChild(this.stopButton);
+
     bar.appendChild(this.textarea);
-    bar.appendChild(this.sendButton);
-    bar.appendChild(this.stopButton);
 
     // Bottom bar - browse-and-add-notes button
     const bottomBar = document.createElement('div');
@@ -118,11 +122,20 @@ export class InputBar {
     );
     this.noteAddButton.addEventListener('click', this.handleNoteAddClick);
     bottomBar.appendChild(this.noteAddButton);
+    bottomBar.appendChild(this.actionBar);
 
     wrapper.appendChild(this.contextBar);
     wrapper.appendChild(bar);
     wrapper.appendChild(bottomBar);
     container.appendChild(wrapper);
+  }
+
+  attachTrailingAction(element: HTMLElement): void {
+    if (!this.actionBar || !this.sendButton) {
+      return;
+    }
+
+    this.actionBar.insertBefore(element, this.sendButton);
   }
 
   /** Update the label on the quick-add button to reflect the active note title. */
@@ -221,6 +234,7 @@ export class InputBar {
     this.addCurrentNoteButton = null;
     this.noteAddButton = null;
     this.contextBar = null;
+    this.actionBar = null;
     this.wrapper = null;
   }
 

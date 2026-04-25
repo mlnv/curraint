@@ -78,6 +78,7 @@ export class ChatView extends ItemView {
       onNoteRemove: (path) => { this.handleNoteRemove(path); },
       onStop: () => { this.registry.stopActive(); },
     });
+    this.mountContextPopover();
 
     // Keep the "+ <title>" button label in sync with the active note.
     const syncNoteTitle = (): void => {
@@ -297,6 +298,30 @@ export class ChatView extends ItemView {
     });
     controls.appendChild(formatToggle);
 
+    const newChatBtn = document.createElement('button');
+    newChatBtn.className = 'curraint-chat-header__new-chat';
+    newChatBtn.title = 'New conversation';
+    newChatBtn.setAttribute('aria-label', 'New conversation');
+    newChatBtn.textContent = 'Start a new conversation';
+    newChatBtn.addEventListener('click', () => this.handleNewConversation());
+    controls.appendChild(newChatBtn);
+
+    const sessionsBtn = document.createElement('button');
+    sessionsBtn.className = 'curraint-chat-header__sessions';
+    sessionsBtn.title = 'Browse saved conversations';
+    sessionsBtn.setAttribute('aria-label', 'Browse saved conversations');
+    sessionsBtn.textContent = 'Conversations';
+    sessionsBtn.addEventListener('click', () => this.handleOpenSessions());
+    controls.appendChild(sessionsBtn);
+
+    return controls;
+  }
+
+  private mountContextPopover(): void {
+    this.inputBar.attachTrailingAction(this.createContextPopover());
+  }
+
+  private createContextPopover(): HTMLDivElement {
     const contextPopover = document.createElement('div');
     contextPopover.className = 'curraint-chat-header__context-popover';
 
@@ -344,25 +369,7 @@ export class ChatView extends ItemView {
     contextPopup.appendChild(summarizeButton);
 
     contextPopover.appendChild(contextPopup);
-    controls.appendChild(contextPopover);
-
-    const newChatBtn = document.createElement('button');
-    newChatBtn.className = 'curraint-chat-header__new-chat';
-    newChatBtn.title = 'New conversation';
-    newChatBtn.setAttribute('aria-label', 'New conversation');
-    newChatBtn.textContent = 'Start a new conversation';
-    newChatBtn.addEventListener('click', () => this.handleNewConversation());
-    controls.appendChild(newChatBtn);
-
-    const sessionsBtn = document.createElement('button');
-    sessionsBtn.className = 'curraint-chat-header__sessions';
-    sessionsBtn.title = 'Browse saved conversations';
-    sessionsBtn.setAttribute('aria-label', 'Browse saved conversations');
-    sessionsBtn.textContent = 'Conversations';
-    sessionsBtn.addEventListener('click', () => this.handleOpenSessions());
-    controls.appendChild(sessionsBtn);
-
-    return controls;
+    return contextPopover;
   }
 
   // Returns the editable title input for the active conversation.
