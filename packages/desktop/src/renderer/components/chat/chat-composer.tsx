@@ -7,6 +7,7 @@ type Props = {
   canSend: boolean;
   isSending: boolean;
   isStopping: boolean;
+  contextIndicator?: React.ReactNode;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   onStop: () => void;
   onPromptChange: (value: string) => void;
@@ -19,6 +20,7 @@ export function ChatComposer({
   canSend,
   isSending,
   isStopping,
+  contextIndicator,
   textareaRef,
   onStop,
   onPromptChange,
@@ -34,25 +36,28 @@ export function ChatComposer({
         placeholder="Ask anything..."
         className="min-h-[68px]"
       />
-      <div className="flex items-end justify-between gap-2">
-        <p className="max-h-16 min-h-4 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
+      <div className="flex items-end gap-2">
+        <p className="max-h-16 min-h-4 min-w-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
           {status}
         </p>
-        {isSending ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onStop}
-            disabled={isStopping}
-          >
-            {isStopping ? 'Stopping...' : 'Stop response'}
-          </Button>
-        ) : (
-          <Button type="submit" size="sm" disabled={!canSend}>
-            Send
-          </Button>
-        )}
+        <div className="flex shrink-0 items-end gap-2">
+          {contextIndicator}
+          {isSending ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onStop}
+              disabled={isStopping}
+            >
+              {isStopping ? 'Stopping...' : 'Stop response'}
+            </Button>
+          ) : (
+            <Button type="submit" size="sm" disabled={!canSend}>
+              Send
+            </Button>
+          )}
+        </div>
       </div>
     </>
   );

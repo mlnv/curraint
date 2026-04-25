@@ -174,21 +174,75 @@ export function ChatApp(): React.JSX.Element {
 
   return (
     <div className="h-screen bg-background p-3 text-foreground">
-      <Card className="flex h-full flex-col overflow-hidden">
+      <Card className="flex h-full flex-col overflow-visible">
         <div className="border-b px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">curraint</p>
             </div>
             <div className="flex items-center gap-1">
-              {contextUsage ? (
-                <div className="group relative mr-2">
+              <button
+                type="button"
+                onClick={() => { void window.curraint.openSessionsWindow(); }}
+                className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="Browse sessions"
+              >
+                Sessions
+              </button>
+              {conversation.length > 0 && !isSending && (
+                <button
+                  type="button"
+                  onClick={() => { void clearConversation(); }}
+                  className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="New chat"
+                >
+                  New chat
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ChatMessageList
+            messages={messages}
+            isSending={isSending}
+            enableThinkTagFolding={enableThinkTagFolding}
+            containerRef={messagesContainerRef}
+            onContainerScroll={onMessagesScroll}
+            onEditUserMessage={editUserMessage}
+            onRetryLastUserMessage={retryLastMessage}
+          />
+        </div>
+
+        {totalTokens > 0 || contextUsage ? (
+          <div className="flex items-center justify-between border-t px-4 py-1 text-[10px] text-muted-foreground">
+            <span>
+              {contextUsage
+                ? `Context ${contextUsage.percent}% · ${contextUsage.usedMessages}/${contextUsage.maxMessages} msg · ${contextUsage.usedCharacters}/${contextUsage.maxCharacters} chars`
+                : ''}
+            </span>
+            {totalTokens > 0 ? <span>{totalTokens.toLocaleString()} tokens this session</span> : <span />}
+          </div>
+        ) : null}
+
+        <form onSubmit={onSubmit} className="space-y-2 border-t p-3">
+          <ChatComposer
+            prompt={prompt}
+            status={status}
+            canSend={canSend}
+            isSending={isSending}
+            isStopping={isStopping}
+            contextIndicator={
+              contextUsage ? (
+                <div className="group relative shrink-0">
                   <button
                     type="button"
-                    className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-background/70 text-[10px] font-semibold text-foreground shadow-sm transition hover:bg-muted"
+                    className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-background/70 text-[9px] font-semibold text-foreground shadow-sm transition hover:bg-muted"
                     title="Show context usage"
+                    aria-label="Show context usage"
                   >
-                    <svg className="absolute inset-0 h-10 w-10 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+                    <svg className="absolute inset-0 h-8 w-8 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
                       <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/50" />
                       <circle
                         cx="20"
@@ -205,7 +259,7 @@ export function ChatApp(): React.JSX.Element {
                     </svg>
                     <span className="relative z-10">{contextUsage.percent}%</span>
                   </button>
-                  <div className="invisible absolute right-0 top-full z-20 mt-2 w-72 rounded-2xl border border-border bg-background/95 p-3 text-left opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                  <div className="invisible absolute bottom-full right-0 z-20 mb-2 w-72 rounded-2xl border border-border bg-background/95 p-3 text-left opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Context budget
                     </p>
@@ -231,57 +285,8 @@ export function ChatApp(): React.JSX.Element {
                     </button>
                   </div>
                 </div>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => { void window.curraint.openSessionsWindow(); }}
-                className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                title="Browse sessions"
-              >
-                Sessions
-              </button>
-              {conversation.length > 0 && !isSending && (
-                <button
-                  type="button"
-                  onClick={() => { void clearConversation(); }}
-                  className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                  title="New chat"
-                >
-                  New chat
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <ChatMessageList
-          messages={messages}
-          isSending={isSending}
-          enableThinkTagFolding={enableThinkTagFolding}
-          containerRef={messagesContainerRef}
-          onContainerScroll={onMessagesScroll}
-          onEditUserMessage={editUserMessage}
-          onRetryLastUserMessage={retryLastMessage}
-        />
-
-        {totalTokens > 0 || contextUsage ? (
-          <div className="flex items-center justify-between border-t px-4 py-1 text-[10px] text-muted-foreground">
-            <span>
-              {contextUsage
-                ? `Context ${contextUsage.percent}% · ${contextUsage.usedMessages}/${contextUsage.maxMessages} msg · ${contextUsage.usedCharacters}/${contextUsage.maxCharacters} chars`
-                : ''}
-            </span>
-            {totalTokens > 0 ? <span>{totalTokens.toLocaleString()} tokens this session</span> : <span />}
-          </div>
-        ) : null}
-
-        <form onSubmit={onSubmit} className="space-y-2 border-t p-3">
-          <ChatComposer
-            prompt={prompt}
-            status={status}
-            canSend={canSend}
-            isSending={isSending}
-            isStopping={isStopping}
+              ) : null
+            }
             textareaRef={promptRef}
             onStop={stopResponse}
             onPromptChange={setPrompt}
