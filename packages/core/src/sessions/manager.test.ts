@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteSession,
   deriveTitle,
@@ -23,6 +23,10 @@ import {
   readSession,
   writeSession
 } from './storage';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('generateSessionId', () => {
   it('returns a string matching the timestamp-hex pattern', () => {

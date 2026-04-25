@@ -61,8 +61,9 @@ describe('setup/first-run', () => {
   });
 
   it('reprompts until the provider choice is valid', async () => {
+    const outputWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     const rl = {
-      question: vi.fn().mockResolvedValueOnce('99').mockResolvedValueOnce('1'),
+      question: vi.fn().mockResolvedValueOnce('abc').mockResolvedValueOnce('1'),
     } as unknown as Parameters<typeof runFirstRunSetup>[0];
 
     const result = await runFirstRunSetup(rl, baseSettings);
@@ -75,6 +76,8 @@ describe('setup/first-run', () => {
     });
     expect(rl.question).toHaveBeenCalledTimes(2);
     expect(askSecret).not.toHaveBeenCalled();
+    expect(outputWrite).toHaveBeenCalledWith('Invalid selection, please enter a number between 1 and 2.\n');
+    outputWrite.mockRestore();
   });
 
   it('updates provider, model, and base URL for a standard provider choice', async () => {

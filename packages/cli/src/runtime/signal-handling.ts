@@ -15,17 +15,48 @@ type SignalOutput = {
   write: (text: string) => void;
 };
 
-type InstallSigintHandlerOptions = {
+type SigintSessionSource =
+  | {
+      getSession: () => SignalSession;
+      session?: never;
+    }
+  | {
+      session: SignalSession;
+      getSession?: never;
+    };
+
+type InstallSigintHandlerOptions = SigintSessionSource & {
   processLike?: SignalProcess;
   output: SignalOutput;
   rl: Pick<readline.Interface, 'close'>;
-  getSession?: () => SignalSession;
-  session?: SignalSession;
+  onExit?: () => Promise<void> | void;
 };
 
 export function installSigintHandler(options: InstallSigintHandlerOptions): () => void {
   const processLike = options.processLike ?? process;
-  const getSession = (): SignalSession => options.getSession?.() ?? options.session!;
+  const getSession = (): SignalSession => {
+    if ('getSession' in options) {
+      return options.getSession();
+    }
+
+    return options.session;
+  };
+
+  const exitGracefully = async (): Promise<void> => {
+    options.output.write('\n');
+
+    try {
+      if (options.onExit) {
+        await options.onExit();
+      } else {
+        options.rl.close();
+      }
+    } catch (error) {
+      console.error('Failed to run SIGINT cleanup.', error);
+    }
+
+    processLike.exit(0);
+  };
 
   const handler = (): void => {
     const session = getSession();
@@ -36,9 +67,7 @@ export function installSigintHandler(options: InstallSigintHandlerOptions): () =
       return;
     }
 
-    options.output.write('\n');
-    options.rl.close();
-    processLike.exit(0);
+    void exitGracefully();
   };
 
   processLike.on('SIGINT', handler);

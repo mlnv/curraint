@@ -33,8 +33,16 @@ export async function askForApiKeyIfNeeded(
   }
 
   if (firstRun) {
-    saveSettingsToFile(settings);
+    if (settings.apiKey) {
+      const save = (await rl.question('Save to settings file for future use? [Y/n] ')).trim().toLowerCase();
+      if (save === 'n') {
+        return settings;
+      }
+    }
+
+    const savedSettings = saveSettingsToFile(settings);
     output.write(`Settings saved to ${settingsFilePath()}.\n`);
+    return savedSettings;
   }
 
   return settings;

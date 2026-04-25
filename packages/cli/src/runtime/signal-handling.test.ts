@@ -30,6 +30,34 @@ describe('installSigintHandler', () => {
     vi.clearAllMocks();
   });
 
+  it('waits for onExit cleanup before exiting when idle', async () => {
+    let resolveOnExit: (() => void) | undefined;
+    const onExit = vi.fn(() => new Promise<void>((resolve) => {
+      resolveOnExit = resolve;
+    }));
+
+    session.getState.mockReturnValue({ isSending: false });
+
+    installSigintHandler({
+      processLike,
+      output,
+      rl,
+      session,
+      onExit,
+    });
+
+    const handler = processLike.on.mock.calls[0][1] as () => void;
+    handler();
+
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(processLike.exit).not.toHaveBeenCalled();
+
+    resolveOnExit?.();
+    await Promise.resolve();
+
+    expect(processLike.exit).toHaveBeenCalledWith(0);
+  });
+
   it('stops the active response instead of exiting when a request is in flight', async () => {
     session.getState.mockReturnValue({ isSending: true });
     session.stopResponse.mockResolvedValue(undefined);
@@ -83,7 +111,6 @@ describe('installSigintHandler', () => {
       output,
       rl,
       getSession: () => nextSession,
-      session,
     });
 
     const handler = processLike.on.mock.calls[0][1] as () => void;
