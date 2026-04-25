@@ -476,7 +476,7 @@ export class ChatView extends ItemView {
     });
     this.contextPopupStatus.textContent = didCompact
       ? 'Older messages are now summarized for AI while the transcript stays visible.'
-      : 'The current request already fits inside the active context limits.';
+      : 'There is not enough older context to compact yet.';
     this.updateContextIndicator();
   }
 

@@ -1,8 +1,79 @@
-import { estimateMessageCost, truncateConversationForContext } from '../context';
+import {
+  buildTruncationSummary,
+  estimateMessageCost,
+  truncateConversationForContext
+} from '../context';
 import type { ChatMessage } from '../types';
 import { applyStateUpdate, createInitialState, emitStateChange, snapshotState } from './state';
 import { runStream } from './stream';
 import type { ChatSessionCore, ChatSessionSubscriber, ChatSessionTransport } from './types';
+
+type ManualCompactionCandidate = {
+  sourceMessages: ChatMessage[];
+  summary: string;
+  usedMessages: number;
+  usedCharacters: number;
+};
+
+function pickManualCompactionCandidate(
+  messages: ChatMessage[],
+  limits: { maxMessages: number; maxCharacters: number }
+): ManualCompactionCandidate | null {
+  if (messages.length < 3) {
+    return null;
+  }
+
+  const minimumKeptMessages = messages.length >= 4 ? 2 : 1;
+  const maxSourceMessages = messages.length - minimumKeptMessages;
+  const currentUsedMessages = messages.length;
+  const currentUsedCharacters = messages.reduce(
+    (total, message) => total + estimateMessageCost(message),
+    0
+  );
+  let bestCandidate: ManualCompactionCandidate | null = null;
+
+  for (let sourceMessageCount = 2; sourceMessageCount <= maxSourceMessages; sourceMessageCount += 1) {
+    const sourceMessages = messages.slice(0, sourceMessageCount);
+    const keptMessages = messages.slice(sourceMessageCount);
+    const summary = buildTruncationSummary(sourceMessages);
+    const summaryCharacterCount = estimateMessageCost({
+      role: 'system',
+      content: summary
+    });
+    const keptCharacterCount = keptMessages.reduce(
+      (total, message) => total + estimateMessageCost(message),
+      0
+    );
+    const usedMessages = keptMessages.length + 1;
+    const usedCharacters = keptCharacterCount + summaryCharacterCount;
+    const improvesUsage =
+      usedMessages < currentUsedMessages || usedCharacters < currentUsedCharacters;
+
+    if (
+      !improvesUsage ||
+      usedMessages > limits.maxMessages ||
+      usedCharacters > limits.maxCharacters
+    ) {
+      continue;
+    }
+
+    if (
+      !bestCandidate ||
+      usedMessages < bestCandidate.usedMessages ||
+      (usedMessages === bestCandidate.usedMessages &&
+        usedCharacters < bestCandidate.usedCharacters)
+    ) {
+      bestCandidate = {
+        sourceMessages,
+        summary,
+        usedMessages,
+        usedCharacters
+      };
+    }
+  }
+
+  return bestCandidate;
+}
 
 export function createChatSessionCore(transport: ChatSessionTransport): ChatSessionCore {
   const subscribers = new Set<ChatSessionSubscriber>();
@@ -74,12 +145,23 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
     compactContext: (limits) => {
       if (state.isSending) return false;
       const nonEmpty = state.conversation.filter((message) => message.content.trim().length > 0);
-      const { keptMessages, summary } = truncateConversationForContext(nonEmpty, limits);
-      if (!summary) {
-        return false;
+      const manualCandidate = pickManualCompactionCandidate(nonEmpty, limits);
+      let sourceMessages: ChatMessage[];
+      let summary: string;
+
+      if (manualCandidate) {
+        sourceMessages = manualCandidate.sourceMessages;
+        summary = manualCandidate.summary;
+      } else {
+        const { keptMessages, summary: autoSummary } = truncateConversationForContext(nonEmpty, limits);
+        if (!autoSummary) {
+          return false;
+        }
+
+        sourceMessages = nonEmpty.slice(0, nonEmpty.length - keptMessages.length);
+        summary = autoSummary;
       }
 
-      const sourceMessages = nonEmpty.slice(0, nonEmpty.length - keptMessages.length);
       const sourceCharacterCount = sourceMessages.reduce(
         (total, message) => total + estimateMessageCost(message),
         0

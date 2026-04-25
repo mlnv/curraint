@@ -150,7 +150,7 @@ export function ChatApp(): React.JSX.Element {
     setContextActionMessage(
       didSummarize
         ? 'Older messages are now summarized for AI, while the transcript stays intact.'
-        : 'The current request already fits inside the active context limits.'
+        : 'There is not enough older context to compact yet.'
     );
   };
 

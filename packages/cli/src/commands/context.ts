@@ -22,7 +22,7 @@ export function runContext(ctx: CommandContext, text: string): CommandResult {
   });
 
   if (!didCompact) {
-    output.write('Nothing to summarize yet. Context already fits within the current limits.\n');
+    output.write('Nothing to summarize yet. There is not enough older context to compact.\n');
     ctx.sessionUI.printContextUsage(session, ctx.getSettings());
     return 'continue';
   }

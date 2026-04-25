@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { getContextUsage } from '../settings/context-usage';
 import { createChatSessionCore } from './session';
 import type { ChatSessionState } from './types';
 
@@ -227,6 +228,70 @@ describe('chatSessionCore', () => {
       sourceMessageCount: 2,
       summary: expect.stringContaining('Message 1')
     });
+  });
+
+  it('proactively compacts older context even when the current request fits', () => {
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' })
+    });
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 1 '.repeat(20) },
+      { role: 'user', content: 'Message 2 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 2 '.repeat(20) },
+      { role: 'user', content: 'Message 3 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 3 '.repeat(20) }
+    ]);
+
+    const didCompact = session.compactContext({
+      maxMessages: 10,
+      maxCharacters: 24000
+    });
+
+    expect(didCompact).toBe(true);
+    expect(session.getState().compactedContext).toMatchObject({
+      sourceMessageCount: 4,
+      summary: expect.stringContaining('Message 1')
+    });
+  });
+
+  it('reduces composed usage after a manual summarize', () => {
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' })
+    });
+    const settings = {
+      provider: 'openai' as const,
+      apiKey: 'key',
+      baseUrl: 'https://example.com/v1',
+      model: 'test-model',
+      systemPrompt: 'System prompt',
+      contextMaxMessages: 10,
+      contextMaxCharacters: 24000,
+      enableSessionSaving: false
+    };
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 1 '.repeat(20) },
+      { role: 'user', content: 'Message 2 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 2 '.repeat(20) },
+      { role: 'user', content: 'Message 3 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 3 '.repeat(20) },
+      { role: 'user', content: 'Message 4 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 4 '.repeat(20) }
+    ]);
+
+    const before = getContextUsage(settings, session.getState().conversation, session.getState().compactedContext);
+    const didCompact = session.compactContext({
+      maxMessages: settings.contextMaxMessages,
+      maxCharacters: settings.contextMaxCharacters
+    });
+    const after = getContextUsage(settings, session.getState().conversation, session.getState().compactedContext);
+
+    expect(didCompact).toBe(true);
+    expect(after.usedMessages).toBeLessThan(before.usedMessages);
+    expect(after.percent).toBeLessThan(before.percent);
   });
 
   it('passes compacted context to the transport for future requests', async () => {
