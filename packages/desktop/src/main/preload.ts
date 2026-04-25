@@ -10,6 +10,7 @@ const api: CurraintApi = {
   getFeatureFlags: () => ipcRenderer.invoke(IPC_CHANNELS.getFeatureFlags),
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
   chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
+  summarizeMessages: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSummarize, messages),
   chatStream: async (messages, onDelta, compactedContext) => {
     const requestId = crypto.randomUUID();
     activeStreamRequestId = requestId;

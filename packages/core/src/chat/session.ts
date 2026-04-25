@@ -1,78 +1,19 @@
 import {
-  buildTruncationSummary,
   estimateMessageCost,
-  truncateConversationForContext
 } from '../context';
 import type { ChatMessage } from '../types';
 import { applyStateUpdate, createInitialState, emitStateChange, snapshotState } from './state';
 import { runStream } from './stream';
 import type { ChatSessionCore, ChatSessionSubscriber, ChatSessionTransport } from './types';
 
-type ManualCompactionCandidate = {
-  sourceMessages: ChatMessage[];
-  summary: string;
-  usedMessages: number;
-  usedCharacters: number;
-};
-
-function pickManualCompactionCandidate(
-  messages: ChatMessage[],
-  limits: { maxMessages: number; maxCharacters: number }
-): ManualCompactionCandidate | null {
-  if (messages.length < 3) {
+function pickManualCompactionSourceMessages(messages: ChatMessage[]): ChatMessage[] | null {
+  if (messages.length < 2) {
     return null;
   }
 
   const minimumKeptMessages = messages.length >= 4 ? 2 : 1;
-  const maxSourceMessages = messages.length - minimumKeptMessages;
-  const currentUsedMessages = messages.length;
-  const currentUsedCharacters = messages.reduce(
-    (total, message) => total + estimateMessageCost(message),
-    0
-  );
-  let bestCandidate: ManualCompactionCandidate | null = null;
-
-  for (let sourceMessageCount = 2; sourceMessageCount <= maxSourceMessages; sourceMessageCount += 1) {
-    const sourceMessages = messages.slice(0, sourceMessageCount);
-    const keptMessages = messages.slice(sourceMessageCount);
-    const summary = buildTruncationSummary(sourceMessages);
-    const summaryCharacterCount = estimateMessageCost({
-      role: 'system',
-      content: summary
-    });
-    const keptCharacterCount = keptMessages.reduce(
-      (total, message) => total + estimateMessageCost(message),
-      0
-    );
-    const usedMessages = keptMessages.length + 1;
-    const usedCharacters = keptCharacterCount + summaryCharacterCount;
-    const improvesUsage =
-      usedMessages < currentUsedMessages || usedCharacters < currentUsedCharacters;
-
-    if (
-      !improvesUsage ||
-      usedMessages > limits.maxMessages ||
-      usedCharacters > limits.maxCharacters
-    ) {
-      continue;
-    }
-
-    if (
-      !bestCandidate ||
-      usedMessages < bestCandidate.usedMessages ||
-      (usedMessages === bestCandidate.usedMessages &&
-        usedCharacters < bestCandidate.usedCharacters)
-    ) {
-      bestCandidate = {
-        sourceMessages,
-        summary,
-        usedMessages,
-        usedCharacters
-      };
-    }
-  }
-
-  return bestCandidate;
+  const sourceMessageCount = messages.length - minimumKeptMessages;
+  return sourceMessageCount >= 1 ? messages.slice(0, sourceMessageCount) : null;
 }
 
 export function createChatSessionCore(transport: ChatSessionTransport): ChatSessionCore {
@@ -106,11 +47,11 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
     },
     submitPrompt: async (content) => {
       const trimmed = content.trim();
-      if (!trimmed || state.isSending) return;
+      if (!trimmed || state.isSending || state.isCompactingContext) return;
       await resend([...state.conversation, { role: 'user', content: trimmed, timestamp: Date.now() }]);
     },
     editUserMessage: async (index, editedContent) => {
-      if (state.isSending) return;
+      if (state.isSending || state.isCompactingContext) return;
       const trimmed = editedContent.trim();
       const target = state.conversation[index];
       if (!trimmed || !target || target.role !== 'user' || target.content === trimmed) return;
@@ -123,7 +64,7 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       await resend(next);
     },
     retryLastMessage: async () => {
-      if (state.isSending) return;
+      if (state.isSending || state.isCompactingContext) return;
       let lastUserIndex = -1;
       for (let i = state.conversation.length - 1; i >= 0; i--) {
         if (state.conversation[i]!.role === 'user') { lastUserIndex = i; break; }
@@ -142,24 +83,12 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         setState({ status: 'Failed to stop response' });
       }
     },
-    compactContext: (limits) => {
-      if (state.isSending) return false;
+    compactContext: async () => {
+      if (state.isSending || state.isCompactingContext) return false;
       const nonEmpty = state.conversation.filter((message) => message.content.trim().length > 0);
-      const manualCandidate = pickManualCompactionCandidate(nonEmpty, limits);
-      let sourceMessages: ChatMessage[];
-      let summary: string;
-
-      if (manualCandidate) {
-        sourceMessages = manualCandidate.sourceMessages;
-        summary = manualCandidate.summary;
-      } else {
-        const { keptMessages, summary: autoSummary } = truncateConversationForContext(nonEmpty, limits);
-        if (!autoSummary) {
-          return false;
-        }
-
-        sourceMessages = nonEmpty.slice(0, nonEmpty.length - keptMessages.length);
-        summary = autoSummary;
+      const sourceMessages = pickManualCompactionSourceMessages(nonEmpty);
+      if (!sourceMessages) {
+        return false;
       }
 
       const sourceCharacterCount = sourceMessages.reduce(
@@ -167,18 +96,44 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         0
       );
 
-      setState({
-        compactedContext: {
-          summary,
-          sourceMessageCount: sourceMessages.length,
-          sourceCharacterCount
-        },
-        status: ''
-      });
-      return true;
+      setState({ isCompactingContext: true, status: 'Summarizing older context...' });
+
+      try {
+        const summary = (await transport.summarizeMessages(sourceMessages)).trim();
+        if (!summary) {
+          throw new Error('Summary request returned an empty response.');
+        }
+
+        const summaryCharacterCount = estimateMessageCost({
+          role: 'system',
+          content: summary
+        });
+        if (sourceMessages.length === 1 && summaryCharacterCount >= sourceCharacterCount) {
+          setState({ status: '' });
+          return false;
+        }
+
+        setState({
+          compactedContext: {
+            summary,
+            sourceMessageCount: sourceMessages.length,
+            sourceCharacterCount
+          },
+          status: ''
+        });
+        return true;
+      } catch (error) {
+        const message = error instanceof Error
+          ? error.message
+          : 'Failed to summarize older context.';
+        setState({ status: message });
+        throw error instanceof Error ? error : new Error(message);
+      } finally {
+        setState({ isCompactingContext: false });
+      }
     },
     clearConversation: async () => {
-      if (state.isSending) return;
+      if (state.isSending || state.isCompactingContext) return;
       setState({ conversation: [], status: '', compactedContext: null });
       await transport.clearSession?.();
     },

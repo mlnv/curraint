@@ -3,14 +3,15 @@ import { runContext } from './context';
 import type { CommandContext } from './types';
 
 function makeCtx(overrides: Partial<CommandContext> = {}): CommandContext {
-  const compactContext = vi.fn().mockReturnValue(true);
+  const compactContext = vi.fn().mockResolvedValue(true);
   const session = {
     getState: vi.fn().mockReturnValue({
       conversation: [],
       compactedContext: null,
       status: '',
       isSending: false,
-      isStopping: false
+      isStopping: false,
+      isCompactingContext: false
     }),
     compactContext
   };
@@ -35,22 +36,23 @@ function makeCtx(overrides: Partial<CommandContext> = {}): CommandContext {
 describe('runContext', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('prints current context usage when no action is provided', () => {
+  it('prints current context usage when no action is provided', async () => {
     const ctx = makeCtx();
 
-    expect(runContext(ctx, '/context')).toBe('continue');
+    await expect(runContext(ctx, '/context')).resolves.toBe('continue');
     expect(ctx.sessionUI.printContextUsage).toHaveBeenCalledWith(ctx.getSession(), ctx.getSettings());
   });
 
-  it('summarizes older context when requested', () => {
-    const compactContext = vi.fn().mockReturnValue(true);
+  it('summarizes older context when requested', async () => {
+    const compactContext = vi.fn().mockResolvedValue(true);
     const session = {
       getState: vi.fn().mockReturnValue({
         conversation: [],
         compactedContext: null,
         status: '',
         isSending: false,
-        isStopping: false
+        isStopping: false,
+        isCompactingContext: false
       }),
       compactContext
     };
@@ -58,7 +60,7 @@ describe('runContext', () => {
       getSession: () => session as unknown as ReturnType<CommandContext['getSession']>
     });
 
-    expect(runContext(ctx, '/context summarize')).toBe('continue');
+    await expect(runContext(ctx, '/context summarize')).resolves.toBe('continue');
     expect(compactContext).toHaveBeenCalledWith({
       maxMessages: 40,
       maxCharacters: 24000

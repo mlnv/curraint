@@ -1,3 +1,4 @@
+export { copilotChatComplete } from './complete';
 export { copilotChatStream } from './stream';
 export {
   warmupCopilotSession,

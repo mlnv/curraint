@@ -7,7 +7,12 @@ import {
   chatCompletionStream,
   testConnection
 } from '@curraint/core';
-import { copilotChatStream, copilotTestConnection, resetCopilotSession } from '@curraint/core';
+import {
+  copilotChatComplete,
+  copilotChatStream,
+  copilotTestConnection,
+  resetCopilotSession
+} from '@curraint/core';
 import { composeConversation } from '@curraint/core';
 import { listSessions, getSession, saveSession, deleteSession } from '@curraint/core';
 import type { ChatMessage, SavedSession } from '@curraint/core';
@@ -140,6 +145,22 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
 
     const result = await chatCompletion(settings, composed);
     settingsAccess.onAssistantMessage?.();
+    return result.message;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatSummarize, async (_event, messages: unknown) => {
+    if (!isChatMessageArray(messages)) {
+      throw new Error('Invalid summarize payload.');
+    }
+
+    const settings = settingsAccess.getSettings();
+
+    if (settings.provider === 'copilot') {
+      const result = await copilotChatComplete(settings.model, messages);
+      return result.message;
+    }
+
+    const result = await chatCompletion(settings, messages);
     return result.message;
   });
 

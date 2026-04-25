@@ -1,6 +1,8 @@
 import {
+  buildModelSummaryMessages,
   chatCompletion,
   chatCompletionStream,
+  copilotChatComplete,
   copilotChatStream,
   resetCopilotSession,
   composeConversation,
@@ -17,6 +19,13 @@ function isAbortError(error: unknown): boolean {
 
 function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport {
   return {
+    summarizeMessages: async (messages) => {
+      const result = await copilotChatComplete(
+        settings.model,
+        buildModelSummaryMessages(messages)
+      );
+      return result.message;
+    },
     streamChat: async (messages, onDelta, options) => {
       const composed = composeConversation(settings, messages, options?.compactedContext ?? null);
       let streamedMessage = '';
@@ -44,6 +53,13 @@ function buildCopilotTransport(settings: EndpointSettings): ChatSessionTransport
 
 function buildOpenAiTransport(settings: EndpointSettings): ChatSessionTransport {
   return {
+    summarizeMessages: async (messages) => {
+      const result = await chatCompletion(
+        settings,
+        buildModelSummaryMessages(messages)
+      );
+      return result.message;
+    },
     streamChat: async (messages, onDelta, options) => {
       const composed = composeConversation(settings, messages, options?.compactedContext ?? null);
       let hasStreamedChunk = false;

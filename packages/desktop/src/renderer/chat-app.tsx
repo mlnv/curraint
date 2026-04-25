@@ -14,6 +14,7 @@ export function ChatApp(): React.JSX.Element {
     status,
     isSending,
     isStopping,
+    isCompactingContext,
     canSend,
     totalTokens,
     setPrompt,
@@ -137,21 +138,31 @@ export function ChatApp(): React.JSX.Element {
     await submitPrompt(prompt);
   };
 
-  const onSummarizeContext = (): void => {
-    if (!settings) {
+  const onSummarizeContext = async (): Promise<void> => {
+    if (!settings || isCompactingContext) {
       return;
     }
 
-    const didSummarize = summarizeContext({
-      maxMessages: settings.contextMaxMessages,
-      maxCharacters: settings.contextMaxCharacters
-    });
+    setContextActionMessage('');
 
-    setContextActionMessage(
-      didSummarize
-        ? 'Older messages are now summarized for AI, while the transcript stays intact.'
-        : 'There is not enough older context to compact yet.'
-    );
+    try {
+      const didSummarize = await summarizeContext({
+        maxMessages: settings.contextMaxMessages,
+        maxCharacters: settings.contextMaxCharacters
+      });
+
+      setContextActionMessage(
+        didSummarize
+          ? 'Older messages are now summarized for AI, while the transcript stays intact.'
+          : 'There is not enough older context to compact yet.'
+      );
+    } catch (error) {
+      setContextActionMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to summarize older context.'
+      );
+    }
   };
 
   const onPromptKeyDown = (
@@ -278,10 +289,11 @@ export function ChatApp(): React.JSX.Element {
                     ) : null}
                     <button
                       type="button"
-                      onClick={onSummarizeContext}
+                      onClick={() => { void onSummarizeContext(); }}
+                      disabled={isCompactingContext}
                       className="mt-3 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
                     >
-                      Summarize older context
+                      {isCompactingContext ? 'Summarizing...' : 'Summarize older context'}
                     </button>
                   </div>
                 </div>

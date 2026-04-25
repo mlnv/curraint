@@ -6,6 +6,7 @@ export type ChatSessionState = {
   status: string;
   isSending: boolean;
   isStopping: boolean;
+  isCompactingContext: boolean;
   compactedContext: CompactedContext | null;
 };
 
@@ -20,6 +21,7 @@ export type ChatSessionTransport = {
     onDelta: (delta: string) => void,
     options?: { signal?: AbortSignal; compactedContext?: CompactedContext | null }
   ) => Promise<ChatStreamResult>;
+  summarizeMessages: (messages: ChatMessage[]) => Promise<string>;
   cancelChatStream?: () => Promise<void>;
   clearSession?: () => Promise<void>;
 };
@@ -36,7 +38,7 @@ export type ChatSessionCore = {
   editUserMessage: (index: number, editedContent: string) => Promise<void>;
   retryLastMessage: () => Promise<void>;
   stopResponse: () => Promise<void>;
-  compactContext: (limits: ContextSafetyLimits) => boolean;
+  compactContext: (limits: ContextSafetyLimits) => Promise<boolean>;
   clearConversation: () => Promise<void>;
   loadConversation: (messages: ChatMessage[], compactedContext?: CompactedContext | null) => void;
 };

@@ -9,6 +9,7 @@ export const IPC_CHANNELS = {
   saveSettings: 'settings:save',
   settingsChanged: 'settings:changed',
   chatSend: 'chat:send',
+  chatSummarize: 'chat:summarize',
   chatStream: 'chat:stream',
   chatStreamChunk: 'chat:stream:chunk',
   chatCancel: 'chat:cancel',
@@ -47,6 +48,7 @@ export type CurraintApi = {
   openExternal: (url: string) => Promise<void>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   chat: (messages: ChatMessage[]) => Promise<string>;
+  summarizeMessages: (messages: ChatMessage[]) => Promise<string>;
   chatStream: (
     messages: ChatMessage[],
     onDelta: (delta: string) => void,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createChatSessionCore } from '@curraint/core';
+import { buildModelSummaryMessages, createChatSessionCore } from '@curraint/core';
 import type { ChatMessage, CompactedContext, SavedSession } from '@curraint/core';
 
 export type UseChatSessionResult = {
@@ -9,6 +9,7 @@ export type UseChatSessionResult = {
   status: string;
   isSending: boolean;
   isStopping: boolean;
+  isCompactingContext: boolean;
   canSend: boolean;
   totalTokens: number;
   setPrompt: (value: string) => void;
@@ -16,7 +17,7 @@ export type UseChatSessionResult = {
   editUserMessage: (index: number, editedContent: string) => void;
   retryLastMessage: () => void;
   stopResponse: () => void;
-  summarizeContext: (limits: { maxMessages: number; maxCharacters: number }) => boolean;
+  summarizeContext: (limits: { maxMessages: number; maxCharacters: number }) => Promise<boolean>;
   clearConversation: () => Promise<void>;
   loadSession: (session: SavedSession) => void;
 };
@@ -52,6 +53,7 @@ export function useChatSession(): UseChatSessionResult {
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [isCompactingContext, setIsCompactingContext] = useState(false);
 
   const enableSessionSavingRef = useRef(false);
 
@@ -90,6 +92,9 @@ export function useChatSession(): UseChatSessionResult {
     sessionCreatedAt: number
   ): SessionSlot => {
     const core = createChatSessionCore({
+      summarizeMessages: async (messages) => window.curraint.summarizeMessages(
+        buildModelSummaryMessages(messages)
+      ),
       streamChat: (messages, onDelta, options) =>
         window.curraint.chatStream(messages, onDelta, options?.compactedContext),
       cancelChatStream: () => window.curraint.cancelChatStream(),
@@ -132,6 +137,7 @@ export function useChatSession(): UseChatSessionResult {
           setStatus(nextState.status);
           setIsSending(nextState.isSending);
           setIsStopping(nextState.isStopping);
+          setIsCompactingContext(nextState.isCompactingContext);
         }
       }
     });
@@ -166,6 +172,7 @@ export function useChatSession(): UseChatSessionResult {
       setStatus(state.status);
       setIsSending(state.isSending);
       setIsStopping(state.isStopping);
+      setIsCompactingContext(state.isCompactingContext);
       return;
     }
 
@@ -184,6 +191,7 @@ export function useChatSession(): UseChatSessionResult {
     setCompactedContext(session.compactedContext ?? null);
     setIsSending(false);
     setIsStopping(false);
+    setIsCompactingContext(false);
     setStatus('');
 
     // Activate BEFORE loadConversation so the resulting onStateChange
@@ -225,8 +233,8 @@ export function useChatSession(): UseChatSessionResult {
     slotsRef.current.get(activeSlotKeyRef.current);
 
   const canSend = useMemo(
-    () => !isSending && prompt.trim().length > 0,
-    [isSending, prompt]
+    () => !isSending && !isCompactingContext && prompt.trim().length > 0,
+    [isCompactingContext, isSending, prompt]
   );
 
   const totalTokens = useMemo(
@@ -260,7 +268,7 @@ export function useChatSession(): UseChatSessionResult {
     return slot.core.clearConversation();
   };
 
-  const summarizeContext = (limits: { maxMessages: number; maxCharacters: number }): boolean => {
+  const summarizeContext = async (limits: { maxMessages: number; maxCharacters: number }): Promise<boolean> => {
     const slot = activeSlot();
     if (!slot) {
       return false;
@@ -280,6 +288,7 @@ export function useChatSession(): UseChatSessionResult {
     status,
     isSending,
     isStopping,
+    isCompactingContext,
     canSend,
     totalTokens,
     setPrompt,

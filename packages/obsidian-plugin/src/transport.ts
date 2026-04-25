@@ -1,5 +1,6 @@
 import { requestUrl, Platform } from 'obsidian';
 import {
+  buildModelSummaryMessages,
   chatCompletionStream,
   composeConversation,
 } from '@curraint/core';
@@ -237,6 +238,11 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
   }
 
   return {
+    summarizeMessages: async (messages) => {
+      const settings = await resolveSettings();
+      const summaryMessages = buildModelSummaryMessages(messages).map(({ role, content }) => ({ role, content }));
+      return corsFreeChatCompletion(settings, summaryMessages);
+    },
     streamChat: async (messages, onDelta, options) => {
       const settings = await resolveSettings();
 

@@ -335,7 +335,7 @@ export class ChatView extends ItemView {
     summarizeButton.type = 'button';
     summarizeButton.className = 'curraint-chat-header__context-action';
     summarizeButton.textContent = 'Summarize older context';
-    summarizeButton.addEventListener('click', () => this.handleSummarizeContext());
+    summarizeButton.addEventListener('click', () => { void this.handleSummarizeContext(); });
     contextPopup.appendChild(summarizeButton);
 
     contextPopover.appendChild(contextPopup);
@@ -464,19 +464,26 @@ export class ChatView extends ItemView {
     return line;
   }
 
-  private handleSummarizeContext(): void {
+  private async handleSummarizeContext(): Promise<void> {
     const slot = this.registry.getActiveSlot();
     if (!slot) {
       return;
     }
 
-    const didCompact = slot.core.compactContext({
-      maxMessages: this.plugin.settings.contextMaxMessages,
-      maxCharacters: this.plugin.settings.contextMaxCharacters
-    });
-    this.contextPopupStatus.textContent = didCompact
-      ? 'Older messages are now summarized for AI while the transcript stays visible.'
-      : 'There is not enough older context to compact yet.';
+    try {
+      this.contextPopupStatus.textContent = 'Summarizing older context...';
+      const didCompact = await slot.core.compactContext({
+        maxMessages: this.plugin.settings.contextMaxMessages,
+        maxCharacters: this.plugin.settings.contextMaxCharacters
+      });
+      this.contextPopupStatus.textContent = didCompact
+        ? 'Older messages are now summarized for AI while the transcript stays visible.'
+        : 'There is not enough older context to compact yet.';
+    } catch (error) {
+      this.contextPopupStatus.textContent = error instanceof Error
+        ? error.message
+        : 'Failed to summarize older context.';
+    }
     this.updateContextIndicator();
   }
 

@@ -2,7 +2,7 @@ import { stdout as output } from 'node:process';
 import { c } from '../theme';
 import type { CommandContext, CommandResult } from './types';
 
-export function runContext(ctx: CommandContext, text: string): CommandResult {
+export async function runContext(ctx: CommandContext, text: string): Promise<CommandResult> {
   const session = ctx.getSession();
   const action = text.slice('/context'.length).trim();
 
@@ -16,10 +16,20 @@ export function runContext(ctx: CommandContext, text: string): CommandResult {
     return 'continue';
   }
 
-  const didCompact = session.compactContext({
-    maxMessages: ctx.getSettings().contextMaxMessages,
-    maxCharacters: ctx.getSettings().contextMaxCharacters
-  });
+  let didCompact = false;
+  try {
+    output.write('Summarizing older context...\n');
+    didCompact = await session.compactContext({
+      maxMessages: ctx.getSettings().contextMaxMessages,
+      maxCharacters: ctx.getSettings().contextMaxCharacters
+    });
+  } catch (error) {
+    output.write(
+      `${c.red}Failed to summarize context:${c.reset} ${error instanceof Error ? error.message : 'Unknown error'}\n`
+    );
+    ctx.sessionUI.printContextUsage(session, ctx.getSettings());
+    return 'continue';
+  }
 
   if (!didCompact) {
     output.write('Nothing to summarize yet. There is not enough older context to compact.\n');

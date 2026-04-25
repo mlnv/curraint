@@ -42,6 +42,7 @@ function makeMockCore(initialConversation: ConvMessage[] = []): MockCore {
       status: '',
       isSending: currentIsSending,
       isStopping: false,
+      isCompactingContext: false,
     })),
     subscribe: vi.fn((sub: ChatSessionSubscriber) => {
       subscribers.add(sub);
@@ -51,6 +52,7 @@ function makeMockCore(initialConversation: ConvMessage[] = []): MockCore {
         status: '',
         isSending: false,
         isStopping: false,
+        isCompactingContext: false,
       });
       return () => subscribers.delete(sub);
     }),
@@ -58,6 +60,7 @@ function makeMockCore(initialConversation: ConvMessage[] = []): MockCore {
     editUserMessage: vi.fn(),
     retryLastMessage: vi.fn(),
     stopResponse: vi.fn(),
+    compactContext: vi.fn(),
     clearConversation: vi.fn(),
     loadConversation: vi.fn((msgs) => {
       currentConversation = msgs;
@@ -67,6 +70,7 @@ function makeMockCore(initialConversation: ConvMessage[] = []): MockCore {
           status: '',
           isSending: false,
           isStopping: false,
+          isCompactingContext: false,
         });
       }
     }),
@@ -80,6 +84,7 @@ function makeMockCore(initialConversation: ConvMessage[] = []): MockCore {
           status: '',
           isSending,
           isStopping: false,
+          isCompactingContext: false,
         });
       }
     },
@@ -89,7 +94,7 @@ function makeMockCore(initialConversation: ConvMessage[] = []): MockCore {
 }
 
 function makeTransport(): ChatSessionTransport {
-  return { streamChat: vi.fn() };
+  return { streamChat: vi.fn(), summarizeMessages: vi.fn() };
 }
 
 function makeCoreForCall(n: number): MockCore {

@@ -13,6 +13,7 @@ const stripTs = (msgs: { role: string; content: string; timestamp?: number }[]) 
 describe('chatSessionCore', () => {
   it('submits prompt and streams assistant response', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: async (_messages, onDelta) => {
         onDelta('Hel');
         onDelta('lo');
@@ -42,7 +43,7 @@ describe('chatSessionCore', () => {
       .mockResolvedValueOnce({ text: 'Answer 2' })
       .mockResolvedValueOnce({ text: 'Edited answer' });
 
-    const session = createChatSessionCore({ streamChat });
+    const session = createChatSessionCore({ streamChat, summarizeMessages: async () => 'unused' });
 
     await session.submitPrompt('first');
     await session.submitPrompt('second');
@@ -58,6 +59,7 @@ describe('chatSessionCore', () => {
     let rejectPending: ((reason?: unknown) => void) | null = null;
 
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: (_messages, _onDelta, options) =>
         new Promise<{ text: string }>((_resolve, reject) => {
           rejectPending = reject;
@@ -86,6 +88,7 @@ describe('chatSessionCore', () => {
 
   it('sets durationMs on the assistant message after a completed stream', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: async (_messages, onDelta) => {
         onDelta('Hi');
         return { text: 'Hi' };
@@ -105,6 +108,7 @@ describe('chatSessionCore', () => {
     let rejectPending: ((reason?: unknown) => void) | null = null;
 
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: (_messages, _onDelta, options) =>
         new Promise<{ text: string }>((_resolve, reject) => {
           rejectPending = reject;
@@ -129,6 +133,7 @@ describe('chatSessionCore', () => {
 
   it('stores token usage on the assistant message when transport returns it', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: async (_messages, onDelta) => {
         onDelta('Answer');
         return { text: 'Answer', usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } };
@@ -144,6 +149,7 @@ describe('chatSessionCore', () => {
 
   it('leaves usage undefined on the assistant message when transport does not return it', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: async (_messages, onDelta) => {
         onDelta('Answer');
         return { text: 'Answer' };
@@ -161,6 +167,7 @@ describe('chatSessionCore', () => {
     let rejectPending: ((reason?: unknown) => void) | null = null;
 
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'unused',
       streamChat: (_messages, onDelta, options) =>
         new Promise<{ text: string }>((_resolve, reject) => {
           rejectPending = reject;
@@ -187,7 +194,7 @@ describe('chatSessionCore', () => {
 
   it('loads a conversation without calling the transport', () => {
     const streamChat = vi.fn();
-    const session = createChatSessionCore({ streamChat });
+    const session = createChatSessionCore({ streamChat, summarizeMessages: async () => 'unused' });
 
     const states: ChatSessionState[] = [];
     session.subscribe({ onStateChange: (s) => states.push(s) });
@@ -204,8 +211,9 @@ describe('chatSessionCore', () => {
     expect(streamChat).not.toHaveBeenCalled();
   });
 
-  it('compacts older context without rewriting visible history', () => {
+  it('compacts older context without rewriting visible history', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'Model summary',
       streamChat: async () => ({ text: 'unused' })
     });
     const conversation = [
@@ -217,7 +225,7 @@ describe('chatSessionCore', () => {
 
     session.loadConversation(conversation);
 
-    const didCompact = session.compactContext({
+    const didCompact = await session.compactContext({
       maxMessages: 2,
       maxCharacters: 500
     });
@@ -226,12 +234,13 @@ describe('chatSessionCore', () => {
     expect(stripTs(session.getState().conversation)).toEqual(conversation);
     expect(session.getState().compactedContext).toMatchObject({
       sourceMessageCount: 2,
-      summary: expect.stringContaining('Message 1')
+      summary: 'Model summary'
     });
   });
 
-  it('proactively compacts older context even when the current request fits', () => {
+  it('proactively compacts older context even when the current request fits', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'Model summary',
       streamChat: async () => ({ text: 'unused' })
     });
 
@@ -244,7 +253,7 @@ describe('chatSessionCore', () => {
       { role: 'assistant', content: 'Reply 3 '.repeat(20) }
     ]);
 
-    const didCompact = session.compactContext({
+    const didCompact = await session.compactContext({
       maxMessages: 10,
       maxCharacters: 24000
     });
@@ -252,12 +261,13 @@ describe('chatSessionCore', () => {
     expect(didCompact).toBe(true);
     expect(session.getState().compactedContext).toMatchObject({
       sourceMessageCount: 4,
-      summary: expect.stringContaining('Message 1')
+      summary: 'Model summary'
     });
   });
 
-  it('reduces composed usage after a manual summarize', () => {
+  it('reduces composed usage after a manual summarize', async () => {
     const session = createChatSessionCore({
+      summarizeMessages: async () => 'Model summary',
       streamChat: async () => ({ text: 'unused' })
     });
     const settings = {
@@ -283,7 +293,7 @@ describe('chatSessionCore', () => {
     ]);
 
     const before = getContextUsage(settings, session.getState().conversation, session.getState().compactedContext);
-    const didCompact = session.compactContext({
+    const didCompact = await session.compactContext({
       maxMessages: settings.contextMaxMessages,
       maxCharacters: settings.contextMaxCharacters
     });
@@ -294,9 +304,37 @@ describe('chatSessionCore', () => {
     expect(after.percent).toBeLessThan(before.percent);
   });
 
+  it('uses the transport summarizer for manual compaction', async () => {
+    const summarizeMessages = vi.fn().mockResolvedValue('Model generated summary');
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' }),
+      summarizeMessages,
+    } as Parameters<typeof createChatSessionCore>[0]);
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 1 '.repeat(20) },
+      { role: 'user', content: 'Message 2 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 2 '.repeat(20) },
+      { role: 'user', content: 'Message 3 '.repeat(20) },
+      { role: 'assistant', content: 'Reply 3 '.repeat(20) }
+    ]);
+
+    const didCompact = await session.compactContext({
+      maxMessages: 10,
+      maxCharacters: 24000
+    });
+
+    expect(didCompact).toBe(true);
+    expect(summarizeMessages).toHaveBeenCalledTimes(1);
+    expect(session.getState().compactedContext).toMatchObject({
+      summary: 'Model generated summary'
+    });
+  });
+
   it('passes compacted context to the transport for future requests', async () => {
     const streamChat = vi.fn().mockResolvedValue({ text: 'Fresh answer' });
-    const session = createChatSessionCore({ streamChat });
+    const session = createChatSessionCore({ streamChat, summarizeMessages: async () => 'Model summary' });
 
     session.loadConversation([
       { role: 'user', content: 'Message 1' },
@@ -304,7 +342,7 @@ describe('chatSessionCore', () => {
       { role: 'user', content: 'Message 2' },
       { role: 'assistant', content: 'Reply 2' }
     ]);
-    session.compactContext({ maxMessages: 2, maxCharacters: 500 });
+    await session.compactContext({ maxMessages: 2, maxCharacters: 500 });
 
     await session.submitPrompt('Next question');
 
@@ -312,7 +350,7 @@ describe('chatSessionCore', () => {
     expect(call?.[2]).toMatchObject({
       compactedContext: {
         sourceMessageCount: 2,
-        summary: expect.stringContaining('Message 1')
+        summary: 'Model summary'
       }
     });
   });

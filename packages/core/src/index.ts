@@ -21,6 +21,7 @@ export {
 } from './api/openai/client';
 export type { StreamCallbacks, StreamOptions } from './api/openai/types';
 export {
+  copilotChatComplete,
   copilotChatStream,
   warmupCopilotSession,
   resetCopilotSession,
