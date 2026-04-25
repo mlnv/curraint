@@ -75,7 +75,7 @@ export function ChatMessageList({
     <div
       ref={containerRef}
       onScroll={onContainerScroll}
-      className="flex-1 space-y-1 overflow-y-auto p-3"
+      className="h-full min-h-0 space-y-1 overflow-y-auto p-3"
     >
       {messages.length === 0 ? (
         <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
