@@ -1,6 +1,7 @@
 # curraint
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=mlnv_curraint&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=mlnv_curraint)
 ![Node 22+](https://img.shields.io/badge/Node-22%2B-43853d)
 ![pnpm 10+](https://img.shields.io/badge/pnpm-10%2B-f69220)
 ![Status Alpha](https://img.shields.io/badge/status-alpha-c98a00)
