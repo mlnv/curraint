@@ -12,6 +12,7 @@ export function runHelp(): CommandResult {
   output.write(`  ${c.cyan}/provider${c.reset}       ${c.dim}Switch the AI provider${c.reset}\n`);
   output.write(`  ${c.cyan}/model${c.reset}          ${c.dim}Change the model for the current provider${c.reset}\n`);
   output.write(`  ${c.cyan}/context${c.reset}        ${c.dim}Show context usage or run /context summarize${c.reset}\n`);
+  output.write(`  ${c.cyan}/limits${c.reset}         ${c.dim}Show or change context limits${c.reset}\n`);
   output.write(`  ${c.cyan}/version${c.reset}        ${c.dim}Show version${c.reset}\n`);
   output.write(`  ${c.cyan}/clear${c.reset}          ${c.dim}Clear the screen${c.reset}\n`);
   output.write(`  ${c.cyan}/exit${c.reset}           ${c.dim}Quit${c.reset}\n`);

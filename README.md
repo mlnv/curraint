@@ -132,6 +132,8 @@ Set environment variables:
 | `CURRAINT_BASE_URL` | No | `https://api.openai.com/v1` | Point to LM Studio or any OpenAI-compatible API |
 | `CURRAINT_MODEL` | No | `gpt-4o-mini` | Any model your endpoint supports |
 | `CURRAINT_SYSTEM_PROMPT` | No | None | Optional system prompt |
+| `CURRAINT_CONTEXT_MAX_MESSAGES` | No | `40` | Max messages kept in the composed request. Clamped to `4-120` |
+| `CURRAINT_CONTEXT_MAX_CHARACTERS` | No | `24000` | Max characters kept in the composed request. Clamped to `4000-200000` |
 
 Run the CLI:
 
@@ -144,6 +146,7 @@ CLI behavior:
 - Streaming, stop, edit, and regenerate use the same core behavior as desktop.
 - Conversation history is not saved by default.
 - Use `/sessions-save on` to persist sessions and `/sessions` to browse and resume them.
+- Use `/limits` to inspect or update saved context limits. Environment variables still take precedence in the current shell.
 - Use `/context` to inspect the active request budget and `/context summarize` to condense older turns for AI while keeping the visible transcript intact.
 - Press `Ctrl+C` while streaming to stop the current response.
 
@@ -160,6 +163,7 @@ CLI behavior:
 | `/retry` | Regenerate the last assistant response |
 | `/provider` | Change the active provider interactively |
 | `/model` | Change the active model interactively |
+| `/limits` | Show or change context limits |
 | `/context` | Show context usage or run `/context summarize` |
 | `/version` | Print the CLI version |
 | `/clear` | Clear the screen and reset the current session |

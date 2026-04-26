@@ -36,11 +36,23 @@ export async function run(): Promise<number> {
   let currentSessionId: string | null = null;
   let currentSessionCreatedAt = 0;
 
-  const rebuildSession = (newSettings: EndpointSettings): void => {
+  const rebuildSession = (
+    newSettings: EndpointSettings,
+    options?: { preserveConversation?: boolean }
+  ): void => {
+    const previousState = options?.preserveConversation ? session.getState() : null;
+
     settings = newSettings;
     session = createChatSessionCore(buildTransport(newSettings));
     sessionUI.subscribe(session);
+
+    if (previousState) {
+      session.loadConversation(previousState.conversation, previousState.compactedContext);
+      return;
+    }
+
     currentSessionId = null;
+    currentSessionCreatedAt = 0;
   };
 
   const ctx: CommandContext = {

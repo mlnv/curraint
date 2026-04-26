@@ -7,6 +7,7 @@ import { runRetry } from './retry';
 import { runProvider } from './provider';
 import { runModel } from './model';
 import { runContext } from './context';
+import { runLimits } from './limits';
 import { runSessions } from './sessions';
 import { runSessionsSave } from './sessions-save';
 import type { CommandContext, CommandResult } from './types';
@@ -29,6 +30,7 @@ export async function dispatchSlashCommand(
   if (text === '/provider') return runProvider(ctx);
   if (text === '/model')    return runModel(ctx);
   if (text === '/context' || text.startsWith('/context ')) return runContext(ctx, text);
+  if (text === '/limits' || text.startsWith('/limits ')) return runLimits(ctx, text);
   if (text.startsWith('/edit')) return runEdit(text, ctx);
   if (text === '/retry')    return runRetry(ctx);
   if (text.startsWith('/')) {
