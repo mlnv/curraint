@@ -143,7 +143,7 @@ describe('runLimits', () => {
 
     expect(saveSettingsToFile).not.toHaveBeenCalled();
     expect(outputWrite).toHaveBeenCalledWith(
-      'Invalid messages limit "abc". Enter an integer between 4 and 120.\n'
+      'Invalid messages limit "abc". Enter an integer between 4 and 1200.\n'
     );
   });
 

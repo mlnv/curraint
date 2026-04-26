@@ -176,7 +176,7 @@ export function SettingsFormFields({
             <Input
               type="number"
               min={4}
-              max={120}
+              max={1200}
               value={form.contextMaxMessages}
               onChange={(event) =>
                 onFieldChange('contextMaxMessages', Number(event.target.value))
@@ -190,7 +190,7 @@ export function SettingsFormFields({
             <Input
               type="number"
               min={4000}
-              max={200000}
+              max={2000000}
               step={1000}
               value={form.contextMaxCharacters}
               onChange={(event) =>

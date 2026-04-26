@@ -132,8 +132,8 @@ Set environment variables:
 | `CURRAINT_BASE_URL` | No | `https://api.openai.com/v1` | Point to LM Studio or any OpenAI-compatible API |
 | `CURRAINT_MODEL` | No | `gpt-4o-mini` | Any model your endpoint supports |
 | `CURRAINT_SYSTEM_PROMPT` | No | None | Optional system prompt |
-| `CURRAINT_CONTEXT_MAX_MESSAGES` | No | `40` | Max messages kept in the composed request. Clamped to `4-120` |
-| `CURRAINT_CONTEXT_MAX_CHARACTERS` | No | `24000` | Max characters kept in the composed request. Clamped to `4000-200000` |
+| `CURRAINT_CONTEXT_MAX_MESSAGES` | No | `40` | Max messages kept in the composed request. Clamped to `4-1200` |
+| `CURRAINT_CONTEXT_MAX_CHARACTERS` | No | `24000` | Max characters kept in the composed request. Clamped to `4000-2000000` |
 
 Run the CLI:
 

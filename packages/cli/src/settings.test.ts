@@ -68,11 +68,11 @@ describe('loadSettings', () => {
 
   it('normalizes out-of-range env vars through the shared bounds', () => {
     process.env['CURRAINT_CONTEXT_MAX_MESSAGES'] = '9999';
-    process.env['CURRAINT_CONTEXT_MAX_CHARACTERS'] = '100';
+    process.env['CURRAINT_CONTEXT_MAX_CHARACTERS'] = '9999999';
 
     const result = loadSettings();
 
-    expect(result.contextMaxMessages).toBe(120);
-    expect(result.contextMaxCharacters).toBe(4000);
+    expect(result.contextMaxMessages).toBe(1200);
+    expect(result.contextMaxCharacters).toBe(2000000);
   });
 });

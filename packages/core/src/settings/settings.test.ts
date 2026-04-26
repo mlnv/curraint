@@ -58,9 +58,9 @@ describe('normalizeSettings', () => {
   });
 
   it('normalizes context limits into allowed bounds', () => {
-    const result = normalizeSettings({ contextMaxMessages: 9999, contextMaxCharacters: 100 });
-    expect(result.contextMaxMessages).toBe(120);
-    expect(result.contextMaxCharacters).toBe(4000);
+    const result = normalizeSettings({ contextMaxMessages: 9999, contextMaxCharacters: 9_999_999 });
+    expect(result.contextMaxMessages).toBe(1200);
+    expect(result.contextMaxCharacters).toBe(2_000_000);
   });
 
   it('defaults enableSessionSaving to false when not provided', () => {

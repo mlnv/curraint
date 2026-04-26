@@ -136,7 +136,7 @@ export class CurraintSettingTab extends PluginSettingTab {
 
     new Setting(el)
       .setName('Max messages')
-      .setDesc('Maximum number of messages kept in context (4-120).')
+      .setDesc('Maximum number of messages kept in context (4-1200).')
       .addText((text) =>
         text
           .setValue(String(this.plugin.settings.contextMaxMessages))
@@ -144,8 +144,8 @@ export class CurraintSettingTab extends PluginSettingTab {
             const previousValue = this.plugin.settings.contextMaxMessages;
             if (value === String(previousValue)) return;
             const num = Number.parseInt(value, 10);
-            if (Number.isNaN(num) || num < 4 || num > 120) {
-              new Notice('Max messages must be between 4 and 120.');
+            if (Number.isNaN(num) || num < 4 || num > 1200) {
+              new Notice('Max messages must be between 4 and 1200.');
               text.setValue(String(previousValue));
               return;
             }
@@ -156,7 +156,7 @@ export class CurraintSettingTab extends PluginSettingTab {
 
     new Setting(el)
       .setName('Max characters')
-      .setDesc('Maximum total characters kept in context (4000-200000).')
+      .setDesc('Maximum total characters kept in context (4000-2000000).')
       .addText((text) =>
         text
           .setValue(String(this.plugin.settings.contextMaxCharacters))
@@ -164,8 +164,8 @@ export class CurraintSettingTab extends PluginSettingTab {
             const previousValue = this.plugin.settings.contextMaxCharacters;
             if (value === String(previousValue)) return;
             const num = Number.parseInt(value, 10);
-            if (Number.isNaN(num) || num < 4000 || num > 200000) {
-              new Notice('Max characters must be between 4000 and 200000.');
+            if (Number.isNaN(num) || num < 4000 || num > 2000000) {
+              new Notice('Max characters must be between 4000 and 2000000.');
               text.setValue(String(previousValue));
               return;
             }

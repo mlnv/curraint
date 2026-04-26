@@ -30,9 +30,9 @@ export type CompactedContext = {
 
 export const CONTEXT_SAFETY_LIMIT_BOUNDS = {
   minMessages: 4,
-  maxMessages: 120,
+  maxMessages: 1_200,
   minCharacters: 4_000,
-  maxCharacters: 200_000,
+  maxCharacters: 2_000_000,
   summarySourceMessages: 8,
   summarySnippetChars: 180
 } as const;
