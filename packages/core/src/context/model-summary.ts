@@ -8,9 +8,21 @@ export type SummaryPromptOptions = {
   maxCharacters?: number;
 };
 
+function normalizePromptLimit(value: number | undefined, fallback: number): number {
+  const numeric = value ?? fallback;
+  if (!Number.isFinite(numeric)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.floor(numeric));
+}
+
 export function buildSummarySystemPrompt(options: SummaryPromptOptions = {}): string {
-  const maxBullets = options.maxBullets ?? DEFAULT_SUMMARY_MAX_BULLETS;
-  const maxCharacters = options.maxCharacters ?? DEFAULT_SUMMARY_MAX_CHARACTERS;
+  const maxBullets = normalizePromptLimit(options.maxBullets, DEFAULT_SUMMARY_MAX_BULLETS);
+  const maxCharacters = normalizePromptLimit(
+    options.maxCharacters,
+    DEFAULT_SUMMARY_MAX_CHARACTERS,
+  );
 
   return [
     'You compress earlier chat turns so they can be safely replaced in future context.',
@@ -22,7 +34,7 @@ export function buildSummarySystemPrompt(options: SummaryPromptOptions = {}): st
   ].join(' ');
 }
 
-function formatConversation(messages: ChatMessage[]): string {
+export function formatConversation(messages: ChatMessage[]): string {
   return messages
     .map((message) => `${message.role.toUpperCase()}:\n${message.content.trim()}`)
     .join('\n\n');

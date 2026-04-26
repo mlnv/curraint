@@ -136,12 +136,12 @@ export class InputBar {
       return;
     }
 
-    this.trailingAction?.remove();
-    this.trailingAction = element;
-
     if (!this.actionBar || !this.sendButton) {
       return;
     }
+
+    this.trailingAction?.remove();
+    this.trailingAction = element;
 
     this.actionBar.insertBefore(element, this.sendButton);
   }

@@ -10,7 +10,12 @@ import {
 } from './request';
 import { buildOpenAiPayload } from './payload';
 import { readStreamingCompletion } from './streaming';
-import type { CompletionResponse, StreamCallbacks, StreamOptions } from './types';
+import type {
+  AbortableRequestOptions,
+  CompletionResponse,
+  StreamCallbacks,
+  StreamOptions,
+} from './types';
 
 export async function testConnection(settings: EndpointSettings): Promise<string> {
   const baseUrl = validateSettingsForRequest(settings);
@@ -27,7 +32,7 @@ export async function testConnection(settings: EndpointSettings): Promise<string
 export async function chatCompletion(
   settings: EndpointSettings,
   messages: ChatMessage[],
-  options: StreamOptions = {}
+  options: AbortableRequestOptions = {}
 ): Promise<ChatResult> {
   const baseUrl = validateSettingsForRequest(settings);
   const url = `${baseUrl}/chat/completions`;

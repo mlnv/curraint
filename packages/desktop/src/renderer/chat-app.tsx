@@ -32,6 +32,7 @@ export function ChatApp(): React.JSX.Element {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
+  const previousConversationRef = useRef(conversation);
 
   // Focus the composer whenever the window is shown / gains focus
   useEffect(() => {
@@ -113,6 +114,13 @@ export function ChatApp(): React.JSX.Element {
     container.scrollTop = container.scrollHeight;
   }, [messages, isSending, shouldAutoScroll]);
 
+  useEffect(() => {
+    if (previousConversationRef.current !== conversation) {
+      setContextActionMessage('');
+      previousConversationRef.current = conversation;
+    }
+  }, [conversation]);
+
   const onMessagesScroll = (): void => {
     const container = messagesContainerRef.current;
     if (!container) {
@@ -127,6 +135,11 @@ export function ChatApp(): React.JSX.Element {
   const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     await submitPrompt(prompt);
+  };
+
+  const onClearConversation = async (): Promise<void> => {
+    setContextActionMessage('');
+    await clearConversation();
   };
 
   const onSummarizeContext = async (): Promise<void> => {
@@ -194,7 +207,7 @@ export function ChatApp(): React.JSX.Element {
               {conversation.length > 0 && !isSending && (
                 <button
                   type="button"
-                  onClick={() => { void clearConversation(); }}
+                  onClick={() => { void onClearConversation(); }}
                   className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
                   title="New chat"
                 >

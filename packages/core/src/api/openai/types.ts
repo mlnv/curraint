@@ -20,6 +20,8 @@ export type StreamCallbacks = {
   onDelta: (delta: string) => void;
 };
 
-export type StreamOptions = {
+export type AbortableRequestOptions = {
   signal?: AbortSignal;
 };
+
+export type StreamOptions = AbortableRequestOptions;

@@ -3,17 +3,45 @@ import { IPC_CHANNELS, type CurraintApi } from '../ipc';
 import type { AppSettings } from '../types';
 import type { SavedSession } from '@curraint/core';
 
-let activeStreamRequestId: string | null = null;
+let activeCancelableRequestId: string | null = null;
+
+function toAbortError(reason: unknown): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+
+  return new DOMException('The operation was aborted.', 'AbortError');
+}
 
 const api: CurraintApi = {
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.getSettings),
   getFeatureFlags: () => ipcRenderer.invoke(IPC_CHANNELS.getFeatureFlags),
   saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.saveSettings, settings),
   chat: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSend, messages),
-  summarizeMessages: (messages) => ipcRenderer.invoke(IPC_CHANNELS.chatSummarize, messages),
+  summarizeMessages: async (messages, options) => {
+    if (options?.signal?.aborted) {
+      throw toAbortError(options.signal.reason);
+    }
+
+    const requestId = crypto.randomUUID();
+    activeCancelableRequestId = requestId;
+    const onAbort = (): void => {
+      void ipcRenderer.invoke(IPC_CHANNELS.chatCancel, requestId);
+    };
+    options?.signal?.addEventListener('abort', onAbort, { once: true });
+
+    try {
+      return await ipcRenderer.invoke(IPC_CHANNELS.chatSummarize, { requestId, messages });
+    } finally {
+      options?.signal?.removeEventListener('abort', onAbort);
+      if (activeCancelableRequestId === requestId) {
+        activeCancelableRequestId = null;
+      }
+    }
+  },
   chatStream: async (messages, onDelta, options) => {
     const requestId = crypto.randomUUID();
-    activeStreamRequestId = requestId;
+    activeCancelableRequestId = requestId;
     const onChunk = (
       _event: Electron.IpcRendererEvent,
       payload: { requestId: string; delta: string }
@@ -37,17 +65,17 @@ const api: CurraintApi = {
       });
     } finally {
       ipcRenderer.removeListener(IPC_CHANNELS.chatStreamChunk, onChunk);
-      if (activeStreamRequestId === requestId) {
-        activeStreamRequestId = null;
+      if (activeCancelableRequestId === requestId) {
+        activeCancelableRequestId = null;
       }
     }
   },
   cancelChatStream: async () => {
-    if (!activeStreamRequestId) {
+    if (!activeCancelableRequestId) {
       return;
     }
 
-    await ipcRenderer.invoke(IPC_CHANNELS.chatCancel, activeStreamRequestId);
+    await ipcRenderer.invoke(IPC_CHANNELS.chatCancel, activeCancelableRequestId);
   },
   clearChatSession: () => ipcRenderer.invoke(IPC_CHANNELS.chatClear),
   testConnection: (settings) =>

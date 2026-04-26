@@ -19,7 +19,7 @@ export {
   chatCompletion,
   chatCompletionStream
 } from './api/openai/client';
-export type { StreamCallbacks, StreamOptions } from './api/openai/types';
+export type { AbortableRequestOptions, StreamCallbacks, StreamOptions } from './api/openai/types';
 export {
   copilotChatComplete,
   copilotChatStream,

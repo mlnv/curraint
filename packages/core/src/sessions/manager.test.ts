@@ -8,7 +8,7 @@ import {
   persistConversation,
   saveSession
 } from './manager';
-import type { SavedSession } from './types';
+import { COMPACTED_CONTEXT_SCHEMA_VERSION, type SavedSession } from './types';
 
 vi.mock('./storage', () => ({
   listSessionFiles: vi.fn(),
@@ -143,6 +143,29 @@ describe('getSession', () => {
     expect(readSession).toHaveBeenCalledWith('x');
   });
 
+  it('preserves compacted context returned from storage', () => {
+    const session: SavedSession = {
+      id: 'x',
+      title: 'T',
+      createdAt: 0,
+      updatedAt: 0,
+      messages: [{ role: 'user', content: 'Hello' }],
+      compactedContext: {
+        summary: 'Earlier summary',
+        sourceMessageCount: 1,
+        sourceCharacterCount: 42,
+      },
+      compactedContextSchemaVersion: COMPACTED_CONTEXT_SCHEMA_VERSION,
+    };
+    vi.mocked(readSession).mockReturnValue(session);
+
+    expect(getSession('x')).toEqual({
+      ...session,
+      compactedContextSchemaVersion: COMPACTED_CONTEXT_SCHEMA_VERSION,
+    });
+    expect(readSession).toHaveBeenCalledWith('x');
+  });
+
   it('returns null when the session does not exist', () => {
     vi.mocked(readSession).mockReturnValue(null);
     expect(getSession('missing')).toBeNull();
@@ -256,7 +279,7 @@ describe('persistConversation', () => {
       createdAt: 8000,
       updatedAt: 8000,
       compactedContext,
-      compactedContextSchemaVersion: 1,
+      compactedContextSchemaVersion: COMPACTED_CONTEXT_SCHEMA_VERSION,
       messages: [{ role: 'user', content: 'Continue' }]
     });
   });

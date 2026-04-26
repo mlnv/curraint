@@ -1,5 +1,10 @@
 import { ipcMain, shell, app } from 'electron';
-import { IPC_CHANNELS, type ChatStreamChunkPayload, type ChatStreamPayload } from '../ipc';
+import {
+  IPC_CHANNELS,
+  type ChatStreamChunkPayload,
+  type ChatStreamPayload,
+  type ChatSummarizePayload,
+} from '../ipc';
 import {
   ENABLE_COPILOT_PROVIDER,
   buildModelSummaryMessages,
@@ -76,6 +81,15 @@ function isChatStreamPayload(payload: unknown): payload is ChatStreamPayload {
   );
 }
 
+function isChatSummarizePayload(payload: unknown): payload is ChatSummarizePayload {
+  if (typeof payload !== 'object' || payload === null) {
+    return false;
+  }
+
+  const candidate = payload as { requestId?: unknown; messages?: unknown };
+  return typeof candidate.requestId === 'string' && isChatMessageArray(candidate.messages);
+}
+
 function isValidSavedSession(payload: unknown): payload is SavedSession {
   if (typeof payload !== 'object' || payload === null) return false;
   const s = payload as Record<string, unknown>;
@@ -130,7 +144,7 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.chatSend, async (_event, messages: unknown) => {
-    if (!isChatMessageArray(messages)) {
+    if (!isChatMessageArray(messages) || messages.length === 0) {
       throw new Error('Invalid chat payload.');
     }
 
@@ -152,21 +166,27 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     return result.message;
   });
 
-  ipcMain.handle(IPC_CHANNELS.chatSummarize, async (_event, messages: unknown) => {
-    if (!isChatMessageArray(messages)) {
+  ipcMain.handle(IPC_CHANNELS.chatSummarize, async (_event, payload: unknown) => {
+    if (!isChatSummarizePayload(payload) || payload.messages.length === 0) {
       throw new Error('Invalid summarize payload.');
     }
 
     const settings = settingsAccess.getSettings();
-    const summaryMessages = buildModelSummaryMessages(messages);
+    const summaryMessages = buildModelSummaryMessages(payload.messages);
+    const controller = new AbortController();
+    activeStreamControllers.set(payload.requestId, controller);
 
-    if (settings.provider === 'copilot') {
-      const result = await copilotChatComplete(settings.model, summaryMessages);
+    try {
+      if (settings.provider === 'copilot') {
+        const result = await copilotChatComplete(settings.model, summaryMessages, controller.signal);
+        return result.message;
+      }
+
+      const result = await chatCompletion(settings, summaryMessages, { signal: controller.signal });
       return result.message;
+    } finally {
+      activeStreamControllers.delete(payload.requestId);
     }
-
-    const result = await chatCompletion(settings, summaryMessages);
-    return result.message;
   });
 
   ipcMain.handle(IPC_CHANNELS.chatStream, async (event, payload: unknown) => {

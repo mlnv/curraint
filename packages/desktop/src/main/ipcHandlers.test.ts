@@ -63,6 +63,7 @@ describe('registerIpcHandlers', () => {
 
     const chatSend = handlers.get(IPC_CHANNELS.chatSend);
     await expect(chatSend?.({}, 'invalid')).rejects.toThrow('Invalid chat payload.');
+    await expect(chatSend?.({}, [])).rejects.toThrow('Invalid chat payload.');
   });
 
   it.each(['openai', 'custom', 'lmstudio'] as const)(
@@ -78,13 +79,14 @@ describe('registerIpcHandlers', () => {
 
       const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
       const messages = [{ role: 'user', content: 'Summarize this' }];
-      const result = await chatSummarize?.({}, messages);
+      const result = await chatSummarize?.({}, { requestId: 'sum-1', messages });
 
       expect(result).toBe(`${provider} summary`);
       expect(buildModelSummaryMessagesMock).toHaveBeenCalledWith(messages);
       expect(chatCompletionMock).toHaveBeenCalledWith(
         expect.objectContaining({ provider }),
-        buildModelSummaryMessagesMock.mock.results[0]?.value
+        buildModelSummaryMessagesMock.mock.results[0]?.value,
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
       expect(copilotChatCompleteMock).not.toHaveBeenCalled();
     }
@@ -101,13 +103,14 @@ describe('registerIpcHandlers', () => {
 
     const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
     const messages = [{ role: 'user', content: 'Summarize this' }];
-    const result = await chatSummarize?.({}, messages);
+    const result = await chatSummarize?.({}, { requestId: 'sum-2', messages });
 
     expect(result).toBe('copilot summary');
     expect(buildModelSummaryMessagesMock).toHaveBeenCalledWith(messages);
     expect(copilotChatCompleteMock).toHaveBeenCalledWith(
       DEFAULT_APP_SETTINGS.model,
-      buildModelSummaryMessagesMock.mock.results[0]?.value
+      buildModelSummaryMessagesMock.mock.results[0]?.value,
+      expect.any(AbortSignal)
     );
     expect(chatCompletionMock).not.toHaveBeenCalled();
   });
@@ -121,6 +124,7 @@ describe('registerIpcHandlers', () => {
 
     const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
     await expect(chatSummarize?.({}, 'invalid')).rejects.toThrow('Invalid summarize payload.');
+    await expect(chatSummarize?.({}, { requestId: 'sum-3', messages: [] })).rejects.toThrow('Invalid summarize payload.');
   });
 
   it('propagates summarize failures for OpenAI-compatible providers', async () => {
@@ -133,7 +137,10 @@ describe('registerIpcHandlers', () => {
     });
 
     const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
-    await expect(chatSummarize?.({}, [{ role: 'user', content: 'Summarize this' }])).rejects.toThrow('summary failed');
+    await expect(chatSummarize?.({}, {
+      requestId: 'sum-4',
+      messages: [{ role: 'user', content: 'Summarize this' }],
+    })).rejects.toThrow('summary failed');
   });
 
   it('propagates summarize failures for copilot', async () => {
@@ -146,7 +153,38 @@ describe('registerIpcHandlers', () => {
     });
 
     const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
-    await expect(chatSummarize?.({}, [{ role: 'user', content: 'Summarize this' }])).rejects.toThrow('copilot summary failed');
+    await expect(chatSummarize?.({}, {
+      requestId: 'sum-5',
+      messages: [{ role: 'user', content: 'Summarize this' }],
+    })).rejects.toThrow('copilot summary failed');
+  });
+
+  it('aborts summarize requests through chatCancel', async () => {
+    chatCompletionMock.mockImplementation(
+      async (_settings, _messages, options) => new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => {
+          reject(new DOMException('This operation was aborted', 'AbortError'));
+        });
+      })
+    );
+
+    const { registerIpcHandlers } = await import('./ipcHandlers');
+    registerIpcHandlers({
+      getSettings: () => DEFAULT_APP_SETTINGS,
+      saveSettings: (next) => next,
+    });
+
+    const chatSummarize = handlers.get(IPC_CHANNELS.chatSummarize);
+    const chatCancel = handlers.get(IPC_CHANNELS.chatCancel);
+
+    const summarizePromise = chatSummarize?.({}, {
+      requestId: 'sum-6',
+      messages: [{ role: 'user', content: 'Summarize this' }],
+    });
+
+    await chatCancel?.({}, 'sum-6');
+
+    await expect(summarizePromise).rejects.toThrow(/aborted/i);
   });
 
   it('streams deltas and returns final streamed message', async () => {

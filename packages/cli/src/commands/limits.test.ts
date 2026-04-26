@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EndpointSettings } from '@curraint/core';
+import { CONTEXT_SAFETY_LIMIT_BOUNDS, type EndpointSettings } from '@curraint/core';
 import type { CommandContext } from './types';
 
 vi.mock('@curraint/core', async (importActual) => {
@@ -143,7 +143,22 @@ describe('runLimits', () => {
 
     expect(saveSettingsToFile).not.toHaveBeenCalled();
     expect(outputWrite).toHaveBeenCalledWith(
-      'Invalid messages limit "abc". Enter an integer between 4 and 1200.\n'
+      `Invalid messages limit "abc". Enter an integer between ${CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages} and ${CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages}.\n`
+    );
+  });
+
+  it.each([
+    ['/limits set messages 999999', 'messages', CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages, CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages],
+    ['/limits set chars 0', 'chars', CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters, CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters],
+  ])('rejects out-of-range input for %s', async (command, label, min, max) => {
+    const outputWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const ctx = makeCtx();
+
+    await expect(runLimits(ctx, command)).resolves.toBe('continue');
+
+    expect(saveSettingsToFile).not.toHaveBeenCalled();
+    expect(outputWrite).toHaveBeenCalledWith(
+      `Invalid ${label} limit "${command.split(/\s+/).at(-1)}". Enter an integer between ${min} and ${max}.\n`
     );
   });
 

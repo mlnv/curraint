@@ -7,12 +7,33 @@ import {
 
 describe('normalizeContextLimit', () => {
   it('returns fallback for invalid values', () => {
-    expect(normalizeContextLimit('abc', 40, 4, 1200)).toBe(40);
+    expect(
+      normalizeContextLimit(
+        'abc',
+        40,
+        CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages,
+        CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages,
+      )
+    ).toBe(40);
   });
 
   it('applies min and max bounds', () => {
-    expect(normalizeContextLimit(1, 40, 4, 1200)).toBe(4);
-    expect(normalizeContextLimit(9999, 40, 4, 1200)).toBe(1200);
+    expect(
+      normalizeContextLimit(
+        1,
+        40,
+        CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages,
+        CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages,
+      )
+    ).toBe(CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages);
+    expect(
+      normalizeContextLimit(
+        9999,
+        40,
+        CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages,
+        CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages,
+      )
+    ).toBe(CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages);
   });
 });
 

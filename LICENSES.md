@@ -1,24 +1,24 @@
 # Third-Party Licenses
 
-> Auto-generated on 2026-04-25 by `pnpm build`. Do not edit manually.
+> Auto-generated on 2026-04-26 by `pnpm build`. Do not edit manually.
 
 ## License summary
 
 | License | Packages |
 | ------- | -------: |
 | BSD-3-Clause | 1 |
+| GitHub Copilot CLI License | 2 |
 | ISC | 6 |
 | MIT | 145 |
-| Unknown | 2 |
 
 ## All packages
 
 | Package | Version | License | Author |
 | ------- | ------- | ------- | ------ |
 | [@colors/colors](https://github.com/DABH/colors.js) | 1.5.0 | MIT | DABH |
-| [@github/copilot](https://github.com/github/copilot-cli/#readme) | 1.0.11 | Unknown | GitHub |
+| [@github/copilot](https://github.com/github/copilot-cli/#readme) | 1.0.11 | [GitHub Copilot CLI License](https://github.com/github/copilot-cli/blob/main/LICENSE.md) | GitHub |
 | [@github/copilot-sdk](https://github.com/github/copilot-sdk#readme) | 0.2.0 | MIT | GitHub |
-| [@github/copilot-win32-x64](https://github.com/github/copilot-cli/#readme) | 1.0.11 | Unknown |  |
+| [@github/copilot-win32-x64](https://github.com/github/copilot-cli/#readme) | 1.0.11 | [GitHub Copilot CLI License](https://github.com/github/copilot-cli/blob/main/LICENSE.md) |  |
 | [@sindresorhus/is](https://github.com/sindresorhus/is#readme) | 4.6.0 | MIT | Sindre Sorhus |
 | [@types/debug](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/debug) | 4.1.12 | MIT |  |
 | [@types/estree](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/estree) | 1.0.8 | MIT |  |

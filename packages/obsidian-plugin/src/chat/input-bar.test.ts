@@ -6,16 +6,25 @@ vi.mock('obsidian', () => ({
   setIcon: () => {},
 }));
 
-describe('InputBar', () => {
-  it('renders trailing actions in the bottom bar beside add notes', () => {
-    const container = document.createElement('div');
-    const inputBar = new InputBar(container, {
+function createInputBar(container = document.createElement('div')): {
+  container: HTMLDivElement;
+  inputBar: InputBar;
+} {
+  return {
+    container,
+    inputBar: new InputBar(container, {
       onSubmit: () => {},
       onAddCurrentNote: () => {},
       onNoteAdd: () => {},
       onNoteRemove: () => {},
       onStop: () => {},
-    });
+    }),
+  };
+}
+
+describe('InputBar', () => {
+  it('renders trailing actions in the bottom bar beside add notes', () => {
+    const { container, inputBar } = createInputBar();
 
     const trailingAction = document.createElement('div');
     trailingAction.className = 'test-trailing-action';
@@ -23,21 +32,17 @@ describe('InputBar', () => {
 
     const mainRow = container.querySelector('.curraint-input-bar');
     const bottomBar = container.querySelector('.curraint-input-bottom-bar');
+    const actionBar = container.querySelector('.curraint-input-bar__actions');
+    const sendButton = actionBar?.querySelector('button');
 
     expect(mainRow?.querySelector('.test-trailing-action')).toBeNull();
     expect(bottomBar?.querySelector('.test-trailing-action')).toBe(trailingAction);
     expect(bottomBar?.querySelector('.curraint-input-bar__note-add')).not.toBeNull();
+    expect(trailingAction.nextElementSibling).toBe(sendButton);
   });
 
   it('replaces the previous trailing action and does not duplicate the same node', () => {
-    const container = document.createElement('div');
-    const inputBar = new InputBar(container, {
-      onSubmit: () => {},
-      onAddCurrentNote: () => {},
-      onNoteAdd: () => {},
-      onNoteRemove: () => {},
-      onStop: () => {},
-    });
+    const { container, inputBar } = createInputBar();
 
     const firstAction = document.createElement('div');
     firstAction.className = 'first-trailing-action';
@@ -54,14 +59,7 @@ describe('InputBar', () => {
   });
 
   it('removes trailing actions on destroy', () => {
-    const container = document.createElement('div');
-    const inputBar = new InputBar(container, {
-      onSubmit: () => {},
-      onAddCurrentNote: () => {},
-      onNoteAdd: () => {},
-      onNoteRemove: () => {},
-      onStop: () => {},
-    });
+    const { container, inputBar } = createInputBar();
 
     const trailingAction = document.createElement('div');
     trailingAction.className = 'test-trailing-action';
@@ -73,14 +71,7 @@ describe('InputBar', () => {
   });
 
   it('keeps trailing actions when mounted into the document later', () => {
-    const container = document.createElement('div');
-    const inputBar = new InputBar(container, {
-      onSubmit: () => {},
-      onAddCurrentNote: () => {},
-      onNoteAdd: () => {},
-      onNoteRemove: () => {},
-      onStop: () => {},
-    });
+    const { container, inputBar } = createInputBar();
 
     const trailingAction = document.createElement('div');
     trailingAction.className = 'test-trailing-action';

@@ -103,6 +103,20 @@ describe('buildTransport', () => {
     );
   });
 
+  it('forwards AbortSignal to OpenAI streaming requests', async () => {
+    const transport = buildTransport(baseSettings);
+    const controller = new AbortController();
+
+    await transport.streamChat(messages, vi.fn(), { signal: controller.signal });
+
+    expect(chatCompletionStream).toHaveBeenCalledWith(
+      baseSettings,
+      composedConversation,
+      expect.objectContaining({ onDelta: expect.any(Function) }),
+      { signal: controller.signal },
+    );
+  });
+
   it('passes compacted context into Copilot request composition', async () => {
     const transport = buildTransport({ ...baseSettings, provider: 'copilot' });
 
@@ -118,6 +132,20 @@ describe('buildTransport', () => {
       composedConversation,
       expect.objectContaining({ onDelta: expect.any(Function) }),
       { signal: undefined },
+    );
+  });
+
+  it('forwards AbortSignal to Copilot streaming requests', async () => {
+    const transport = buildTransport({ ...baseSettings, provider: 'copilot' });
+    const controller = new AbortController();
+
+    await transport.streamChat(messages, vi.fn(), { signal: controller.signal });
+
+    expect(copilotChatStream).toHaveBeenCalledWith(
+      'test-model',
+      composedConversation,
+      expect.objectContaining({ onDelta: expect.any(Function) }),
+      { signal: controller.signal },
     );
   });
 

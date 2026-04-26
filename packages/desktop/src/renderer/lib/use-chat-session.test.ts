@@ -287,9 +287,18 @@ describe('useChatSession', () => {
     });
 
     expect(summarizeMessagesMock).toHaveBeenCalledTimes(1);
+    expect(summarizeMessagesMock).toHaveBeenCalledWith(
+      [
+        { role: 'user', content: 'First' },
+        { role: 'assistant', content: 'Reply' },
+      ],
+      undefined,
+    );
     expect(saveSessionMock).toHaveBeenCalledTimes(1);
-    expect((saveSessionMock.mock.calls[0][0] as SavedSession).compactedContext).toMatchObject({
+    const saved = saveSessionMock.mock.calls[0][0] as SavedSession;
+    expect(saved.compactedContext).toMatchObject({
       summary: 'Condensed summary'
     });
+    expect(saved.compactedContext?.sourceMessageCount).toBe(2);
   });
 });

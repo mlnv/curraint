@@ -324,9 +324,50 @@ describe('chatSessionCore', () => {
 
     expect(didCompact).toBe(true);
     expect(summarizeMessages).toHaveBeenCalledTimes(1);
+    expect(summarizeMessages).toHaveBeenCalledWith(
+      [
+        { role: 'user', content: 'Message 1 '.repeat(20) },
+        { role: 'assistant', content: 'Reply 1 '.repeat(20) },
+        { role: 'user', content: 'Message 2 '.repeat(20) },
+        { role: 'assistant', content: 'Reply 2 '.repeat(20) },
+      ],
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
     expect(session.getState().compactedContext).toMatchObject({
       summary: 'Model generated summary'
     });
+  });
+
+  it('aborts an in-flight summary when stopResponse is called during compaction', async () => {
+    let rejectSummary: ((reason?: unknown) => void) | null = null;
+    const summarizeMessages = vi.fn().mockImplementation(
+      (_messages, options) => new Promise<string>((_resolve, reject) => {
+        rejectSummary = reject;
+        options?.signal?.addEventListener('abort', () => {
+          reject(new DOMException('aborted', 'AbortError'));
+        });
+      })
+    );
+    const session = createChatSessionCore({
+      streamChat: async () => ({ text: 'unused' }),
+      summarizeMessages,
+    });
+
+    session.loadConversation([
+      { role: 'user', content: 'Message 1' },
+      { role: 'assistant', content: 'Reply 1' },
+      { role: 'user', content: 'Message 2' },
+    ]);
+
+    const pending = session.compactContext({ maxMessages: 1, maxCharacters: 2000 });
+    await Promise.resolve();
+
+    await session.stopResponse();
+    rejectSummary?.(new DOMException('aborted', 'AbortError'));
+
+    await expect(pending).rejects.toThrow('Summary stopped');
+    expect(session.getState().isCompactingContext).toBe(false);
+    expect(session.getState().status).toBe('Summary stopped');
   });
 
   it('surfaces summarize failures and stores the error status', async () => {

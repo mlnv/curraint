@@ -6,6 +6,13 @@ import { applyStateUpdate, createInitialState, emitStateChange, snapshotState } 
 import { runStream } from './stream';
 import type { ChatSessionCore, ChatSessionSubscriber, ChatSessionTransport } from './types';
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
 const MIN_MESSAGES_TO_KEEP = 1;
 const MIN_MESSAGES_TO_KEEP_FOR_LONG_HISTORY = 2;
 const LONG_HISTORY_THRESHOLD = 4;
@@ -79,6 +86,7 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
   const state = createInitialState();
   let _isCancelling = false;
   let _activeController: AbortController | null = null;
+  let _compactionController: AbortController | null = null;
 
   const setState = (next: Parameters<typeof applyStateUpdate>[1]) => {
     applyStateUpdate(state, next);
@@ -131,6 +139,13 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       await resend(state.conversation.slice(0, lastUserIndex + 1));
     },
     stopResponse: async () => {
+      if (state.isCompactingContext) {
+        if (state.isStopping) return;
+        setState({ isStopping: true, status: 'Cancelling summary...' });
+        _compactionController?.abort();
+        return;
+      }
+
       if (!state.isSending || state.isStopping) return;
       _isCancelling = true;
       setState({ isStopping: true, status: 'Stopping response...' });
@@ -154,6 +169,11 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         return false;
       }
       const { sourceMessages, sourceMessageCount: nonEmptySourceMessageCount } = selection;
+      // sourceMessageCount stays in the original state.conversation index space.
+      // We choose summary inputs from the compacted nonEmpty slice, then map the
+      // selected boundary back through nonEmptyEntries[index].index and add 1 so
+      // editUserMessage and composeConversation(messages.slice(sourceMessageCount))
+      // continue to use the raw conversation array boundary.
       const sourceMessageCount = nonEmptyEntries[nonEmptySourceMessageCount - 1]!.index + 1;
 
       const sourceCharacterCount = sourceMessages.reduce(
@@ -161,10 +181,15 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         0
       );
 
-      setState({ isCompactingContext: true, status: 'Summarizing older context...' });
+      const controller = new AbortController();
+      _compactionController = controller;
+
+      setState({ isCompactingContext: true, isStopping: false, status: 'Summarizing older context...' });
 
       try {
-        const summary = (await transport.summarizeMessages(sourceMessages)).trim();
+        const summary = (await transport.summarizeMessages(sourceMessages, {
+          signal: controller.signal,
+        })).trim();
         if (!summary) {
           throw new Error('Summary request returned an empty response.');
         }
@@ -188,13 +213,23 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
         });
         return true;
       } catch (error) {
+        if (isAbortError(error)) {
+          const abortError = new Error('Summary stopped');
+          abortError.name = 'AbortError';
+          setState({ status: abortError.message });
+          throw abortError;
+        }
+
         const message = error instanceof Error
           ? error.message
           : 'Failed to summarize older context.';
         setState({ status: message });
         throw error instanceof Error ? error : new Error(message);
       } finally {
-        setState({ isCompactingContext: false });
+        if (_compactionController === controller) {
+          _compactionController = null;
+        }
+        setState({ isCompactingContext: false, isStopping: false });
       }
     },
     clearConversation: async () => {

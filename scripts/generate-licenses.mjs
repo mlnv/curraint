@@ -12,6 +12,17 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 
+const LICENSE_OVERRIDES = {
+  '@github/copilot': {
+    licenseName: 'GitHub Copilot CLI License',
+    licenseUrl: 'https://github.com/github/copilot-cli/blob/main/LICENSE.md',
+  },
+  '@github/copilot-win32-x64': {
+    licenseName: 'GitHub Copilot CLI License',
+    licenseUrl: 'https://github.com/github/copilot-cli/blob/main/LICENSE.md',
+  },
+};
+
 const raw = execSync('pnpm licenses list --json --prod', {
   cwd: rootDir,
   encoding: 'utf8',
@@ -22,10 +33,12 @@ const byLicense = JSON.parse(raw);
 const packages = [];
 for (const [license, pkgs] of Object.entries(byLicense)) {
   for (const pkg of pkgs) {
+    const override = LICENSE_OVERRIDES[pkg.name];
     packages.push({
       name: pkg.name,
       version: pkg.versions.join(', '),
-      license,
+      license: override?.licenseName ?? license,
+      licenseUrl: override?.licenseUrl ?? '',
       author: pkg.author || '',
       homepage: pkg.homepage || '',
     });
@@ -58,10 +71,11 @@ const lines = [
   '',
   '| Package | Version | License | Author |',
   '| ------- | ------- | ------- | ------ |',
-  ...packages.map(({ name, version, license, author, homepage }) => {
+  ...packages.map(({ name, version, license, licenseUrl, author, homepage }) => {
     const nameCell = homepage ? `[${name}](${homepage})` : name;
+    const licenseCell = licenseUrl ? `[${license}](${licenseUrl})` : license;
     const authorCell = author.replace(/[|]/g, '\\|');
-    return `| ${nameCell} | ${version} | ${license} | ${authorCell} |`;
+    return `| ${nameCell} | ${version} | ${licenseCell} | ${authorCell} |`;
   }),
   '',
 ];

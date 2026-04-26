@@ -188,6 +188,8 @@ describe('buildTransport abort handling', () => {
         },
       }
     );
+    // lmStudioBodies only records native /api/v1/chat fallback requests, so
+    // the third call intentionally stays on the streaming success path.
     await transport.streamChat([{ role: 'user', content: 'Third' }], vi.fn());
 
     expect(lmStudioBodies).toHaveLength(2);

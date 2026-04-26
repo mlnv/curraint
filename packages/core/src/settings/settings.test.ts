@@ -165,6 +165,8 @@ describe('composeConversation', () => {
     });
     expect(result[0]?.content).toContain('Earlier conversation was truncated');
     expect(getContextUsage(settings, messages).percent).toBe(getExpectedPercent(settings, messages));
+    expect(getContextUsage(settings, messages).hasCompactedContext).toBe(false);
+    expect(getContextUsage(settings, messages).compactedMessages).toBe(0);
   });
 
   it('keeps the composed request within message limits after adding compacted context', () => {

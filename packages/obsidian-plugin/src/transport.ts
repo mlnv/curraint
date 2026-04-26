@@ -1,11 +1,5 @@
 import { requestUrl, Platform } from 'obsidian';
-import {
-  buildModelSummaryMessages,
-  chatCompletionStream,
-  composeConversation,
-} from '@curraint/core';
-import type { CompactedContext, EndpointSettings, ChatSessionTransport } from '@curraint/core';
-import type { ChatMessage, TokenUsage } from '@curraint/core';
+import { buildModelSummaryMessages, chatCompletionStream, composeConversation, type CompactedContext, type EndpointSettings, type ChatSessionTransport, type ChatMessage, type TokenUsage } from '@curraint/core';
 import type CurraintPlugin from './main';
 
 type TransportPlugin = Pick<CurraintPlugin, 'settings' | 'secrets'>;
@@ -15,6 +9,14 @@ function isAbortError(error: unknown): boolean {
     (error instanceof DOMException && error.name === 'AbortError') ||
     (error instanceof Error && error.name === 'AbortError')
   );
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) {
+    return;
+  }
+
+  throw new DOMException('Aborted', 'AbortError');
 }
 
 // --- LM Studio native API (/api/v1/chat) ------------------------------------
@@ -238,7 +240,7 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
   }
 
   return {
-    summarizeMessages: async (messages) => {
+    summarizeMessages: async (messages, options) => {
       const settings = await resolveSettings();
 
       if (settings.provider === 'lmstudio' && Platform.isMobile) {
@@ -247,8 +249,12 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
         );
       }
 
+      throwIfAborted(options?.signal);
+
       const summaryMessages = buildModelSummaryMessages(messages).map(({ role, content }) => ({ role, content }));
-      return corsFreeChatCompletion(settings, summaryMessages);
+      const summary = await corsFreeChatCompletion(settings, summaryMessages);
+      throwIfAborted(options?.signal);
+      return summary;
     },
     streamChat: async (messages, onDelta, options) => {
       const settings = await resolveSettings();

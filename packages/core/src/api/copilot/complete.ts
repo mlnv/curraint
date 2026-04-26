@@ -40,19 +40,21 @@ export async function copilotChatComplete(
   signal?: AbortSignal
 ): Promise<ChatResult> {
   const { prompt, systemPrompt } = extractPrompt(messages);
+  if (signal?.aborted) {
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new DOMException('The operation was aborted.', 'AbortError');
+  }
+
   const session = await createEphemeralSession(model, systemPrompt);
   let fullMessage = '';
   let usage: TokenUsage | undefined;
   const onAbort = () => {
-    void session.abort().catch(() => {});
+    session.abort().catch(() => {});
   };
 
   if (signal) {
-    if (signal.aborted) {
-      onAbort();
-    } else {
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
+    signal.addEventListener('abort', onAbort, { once: true });
   }
 
   const unsubDelta = session.on('assistant.message_delta', (event) => {

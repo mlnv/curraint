@@ -3,6 +3,10 @@ import type { CompactedContext } from '../context/types';
 import type { ChatMessage } from '../types';
 import type { EndpointSettings } from './types';
 
+type ComposeConversationOptions = {
+  warn?: (message: string) => void;
+};
+
 function fitsWithinLimits(
   settings: EndpointSettings,
   usedMessages: number,
@@ -28,6 +32,7 @@ function buildSystemPrefixContent(
 function clampSourceMessageCount(
   messages: ChatMessage[],
   compactedContext: CompactedContext,
+  warn: (message: string) => void,
 ): number {
   const clampedCount = Math.min(
     Math.max(compactedContext.sourceMessageCount, 0),
@@ -35,7 +40,7 @@ function clampSourceMessageCount(
   );
 
   if (clampedCount !== compactedContext.sourceMessageCount) {
-    console.warn(
+    warn(
       `[context] Clamped stale compacted-context boundary from ${compactedContext.sourceMessageCount} to ${clampedCount}.`,
     );
   }
@@ -46,10 +51,12 @@ function clampSourceMessageCount(
 export function composeConversation(
   settings: EndpointSettings,
   messages: ChatMessage[],
-  compactedContext: CompactedContext | null = null
+  compactedContext: CompactedContext | null = null,
+  options: ComposeConversationOptions = {}
 ): ChatMessage[] {
+  const warn = options.warn ?? console.warn;
   const sourceMessageCount = compactedContext
-    ? clampSourceMessageCount(messages, compactedContext)
+    ? clampSourceMessageCount(messages, compactedContext, warn)
     : 0;
   const liveMessages = compactedContext
     ? messages.slice(sourceMessageCount)
@@ -100,6 +107,19 @@ export function composeConversation(
     if (fitsWithinLimits(settings, usedMessages, usedCharacters)) {
       return [...prefixWithSummary, ...liveMessages.slice(droppedCount)];
     }
+  }
+
+  if (liveMessages.length > 0) {
+    const messagePercent = settings.contextMaxMessages > 0
+      ? Math.round((prefix.length / settings.contextMaxMessages) * 100)
+      : 0;
+    const characterPercent = settings.contextMaxCharacters > 0
+      ? Math.round((prefixCharacters / settings.contextMaxCharacters) * 100)
+      : 0;
+    const percent = Math.max(messagePercent, characterPercent);
+    throw new Error(
+      `Context overflow: system prompt and summarized context consume ${percent}% of the request budget.`,
+    );
   }
 
   if (!fitsWithinLimits(settings, prefix.length, prefixCharacters)) {

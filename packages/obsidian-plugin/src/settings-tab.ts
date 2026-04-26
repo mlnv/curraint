@@ -1,5 +1,5 @@
 import { App, Platform, PluginSettingTab, Setting, Notice } from 'obsidian';
-import { PROVIDER_OPTIONS, testConnection } from '@curraint/core';
+import { CONTEXT_SAFETY_LIMIT_BOUNDS, PROVIDER_OPTIONS, testConnection } from '@curraint/core';
 import type CurraintPlugin from './main';
 import { testLmStudioConnection } from './transport';
 
@@ -136,7 +136,9 @@ export class CurraintSettingTab extends PluginSettingTab {
 
     new Setting(el)
       .setName('Max messages')
-      .setDesc('Maximum number of messages kept in context (4-1200).')
+      .setDesc(
+        `Maximum number of messages kept in context (${CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages}-${CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages}).`
+      )
       .addText((text) =>
         text
           .setValue(String(this.plugin.settings.contextMaxMessages))
@@ -144,8 +146,14 @@ export class CurraintSettingTab extends PluginSettingTab {
             const previousValue = this.plugin.settings.contextMaxMessages;
             if (value === String(previousValue)) return;
             const num = Number.parseInt(value, 10);
-            if (Number.isNaN(num) || num < 4 || num > 1200) {
-              new Notice('Max messages must be between 4 and 1200.');
+            if (
+              Number.isNaN(num) ||
+              num < CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages ||
+              num > CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages
+            ) {
+              new Notice(
+                `Max messages must be between ${CONTEXT_SAFETY_LIMIT_BOUNDS.minMessages} and ${CONTEXT_SAFETY_LIMIT_BOUNDS.maxMessages}.`
+              );
               text.setValue(String(previousValue));
               return;
             }
@@ -156,7 +164,9 @@ export class CurraintSettingTab extends PluginSettingTab {
 
     new Setting(el)
       .setName('Max characters')
-      .setDesc('Maximum total characters kept in context (4000-2000000).')
+      .setDesc(
+        `Maximum total characters kept in context (${CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters}-${CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters}).`
+      )
       .addText((text) =>
         text
           .setValue(String(this.plugin.settings.contextMaxCharacters))
@@ -164,8 +174,14 @@ export class CurraintSettingTab extends PluginSettingTab {
             const previousValue = this.plugin.settings.contextMaxCharacters;
             if (value === String(previousValue)) return;
             const num = Number.parseInt(value, 10);
-            if (Number.isNaN(num) || num < 4000 || num > 2000000) {
-              new Notice('Max characters must be between 4000 and 2000000.');
+            if (
+              Number.isNaN(num) ||
+              num < CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters ||
+              num > CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters
+            ) {
+              new Notice(
+                `Max characters must be between ${CONTEXT_SAFETY_LIMIT_BOUNDS.minCharacters} and ${CONTEXT_SAFETY_LIMIT_BOUNDS.maxCharacters}.`
+              );
               text.setValue(String(previousValue));
               return;
             }

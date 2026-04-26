@@ -543,19 +543,31 @@ export class ChatView extends ItemView {
       return;
     }
 
+    const submissionKey = this.registry.activeKey;
+    const isThisConvActive = (): boolean => this.registry.activeKey === submissionKey;
+
     try {
       this.contextPopupStatus.textContent = 'Summarizing older context...';
       const didCompact = await slot.core.compactContext({
         maxMessages: this.plugin.settings.contextMaxMessages,
         maxCharacters: this.plugin.settings.contextMaxCharacters
       });
+      if (!isThisConvActive()) {
+        return;
+      }
       this.contextPopupStatus.textContent = didCompact
         ? 'Older messages are now summarized for AI while the transcript stays visible.'
         : 'There is not enough older context to compact yet.';
     } catch (error) {
+      if (!isThisConvActive()) {
+        return;
+      }
       this.contextPopupStatus.textContent = error instanceof Error
         ? error.message
         : 'Failed to summarize older context.';
+    }
+    if (!isThisConvActive()) {
+      return;
     }
     this.updateContextIndicator();
   }

@@ -19,7 +19,7 @@ export type SavedSession = {
    * Use this to distinguish legacy `sourceMessageCount` semantics from the
    * current slice-index representation.
    */
-  compactedContextSchemaVersion?: typeof COMPACTED_CONTEXT_SCHEMA_VERSION;
+  compactedContextSchemaVersion?: number;
 };
 
 export type SessionSummary = {

@@ -90,17 +90,26 @@ export function SettingsApp(): React.JSX.Element {
   };
 
   useEffect(() => {
-    Promise.all([window.curraint.getSettings(), window.curraint.getFeatureFlags()])
-      .then(([settings, nextFeatureFlags]) => {
-        setFeatureFlags(nextFeatureFlags);
+    void window.curraint.getSettings()
+      .then((settings) => {
         if (!settings) {
           return;
         }
+
         setForm(settings);
         applyTheme(settings.theme);
       })
       .catch((error: unknown) => {
         setStatus(toErrorMessage(error, 'Failed to load settings'));
+      });
+
+    void window.curraint.getFeatureFlags()
+      .then((nextFeatureFlags) => {
+        setFeatureFlags(nextFeatureFlags);
+      })
+      .catch((error: unknown) => {
+        setFeatureFlags(DEFAULT_FEATURE_FLAGS);
+        setStatus(toErrorMessage(error, 'Failed to load feature flags'));
       });
   }, []);
 

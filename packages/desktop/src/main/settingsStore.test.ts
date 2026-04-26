@@ -40,6 +40,15 @@ describe('settingsStore', () => {
     expect(result.theme).toBe('monokai');
   });
 
+  it('preserves a stored copilot provider while normalizing saved settings', async () => {
+    loadRawMock.mockReturnValue({ provider: 'copilot' });
+
+    const { loadSettings } = await import('./settingsStore');
+    const result = loadSettings();
+
+    expect(result.provider).toBe('copilot');
+  });
+
   it('returns default app settings when file is empty', async () => {
     loadRawMock.mockReturnValue({});
 

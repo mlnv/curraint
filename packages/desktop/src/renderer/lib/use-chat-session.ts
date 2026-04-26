@@ -112,7 +112,7 @@ export function useChatSession(): UseChatSessionResult {
     sessionCreatedAt: number
   ): SessionSlot => {
     const core = createChatSessionCore({
-      summarizeMessages: async (messages) => window.curraint.summarizeMessages(messages),
+      summarizeMessages: async (messages, options) => window.curraint.summarizeMessages(messages, options),
       streamChat: (messages, onDelta, options) =>
         window.curraint.chatStream(messages, onDelta, options),
       cancelChatStream: () => window.curraint.cancelChatStream(),
@@ -131,6 +131,7 @@ export function useChatSession(): UseChatSessionResult {
     slot.unsubscribe = core.subscribe({
       onStateChange: (nextState) => {
         const wasSending = slot.prevIsSending;
+        let didAutoSave = false;
         slot.prevIsSending = nextState.isSending;
         const compactedContextChanged = !areCompactedContextsEqual(
           slot.prevCompactedContext,
@@ -143,10 +144,12 @@ export function useChatSession(): UseChatSessionResult {
           // Save as soon as the user message is added so the session
           // appears in the sessions list while the response is pending.
           autoSave(slot, nextState.conversation, nextState.compactedContext);
+          didAutoSave = true;
         }
 
         if (wasSending && !nextState.isSending) {
           autoSave(slot, nextState.conversation, nextState.compactedContext);
+          didAutoSave = true;
           if (!isActive) {
             // Background slot finished — unsubscribe and remove.
             slot.unsubscribe();
@@ -155,7 +158,7 @@ export function useChatSession(): UseChatSessionResult {
           }
         }
 
-        if (!nextState.isSending && compactedContextChanged) {
+        if (!nextState.isSending && compactedContextChanged && !didAutoSave) {
           autoSave(slot, nextState.conversation, nextState.compactedContext);
         }
 

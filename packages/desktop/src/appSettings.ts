@@ -1,6 +1,7 @@
-import { ENABLE_COPILOT_PROVIDER, normalizeSettings, isProviderId } from '@curraint/core';
+import { normalizeSettings, isProviderId } from '@curraint/core';
 import type { AppSettings, SavedConnection, ThemeId } from './types';
 
+const APP_PROVIDER_IDS: AppSettings['provider'][] = ['openai', 'lmstudio', 'custom', 'copilot'];
 const THEME_IDS: ThemeId[] = ['black', 'white', 'dark', 'monokai', 'retro-sand', 'retro-green'];
 
 function isThemeId(value: unknown): value is ThemeId {
@@ -56,26 +57,24 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 function normalizeProvider(provider: unknown): AppSettings['provider'] {
-  if (!isProviderId(provider)) {
+  if (typeof provider !== 'string' || !APP_PROVIDER_IDS.includes(provider as AppSettings['provider'])) {
     return DEFAULT_APP_SETTINGS.provider;
   }
 
-  if (provider === 'copilot' && !ENABLE_COPILOT_PROVIDER) {
-    return DEFAULT_APP_SETTINGS.provider;
-  }
-
-  return provider;
+  return provider as AppSettings['provider'];
 }
 
 export function normalizeAppSettings(
   input: Partial<AppSettings> | AppSettings
 ): AppSettings {
+  const provider = normalizeProvider(input.provider);
   const core = normalizeSettings({
     ...input,
-    provider: normalizeProvider(input.provider)
+    provider: provider === 'copilot' ? DEFAULT_APP_SETTINGS.provider : provider
   });
   return {
     ...core,
+    provider,
     enableThinkTagFolding:
       input.enableThinkTagFolding ?? DEFAULT_APP_SETTINGS.enableThinkTagFolding,
     enableDebugLogging:

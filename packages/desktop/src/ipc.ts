@@ -7,6 +7,10 @@ export type ChatStreamOptions = {
   compactedContext?: CompactedContext | null;
 };
 
+export type AbortableRequestOptions = {
+  signal?: AbortSignal;
+};
+
 export const IPC_CHANNELS = {
   getSettings: 'settings:get',
   getFeatureFlags: 'app:getFeatureFlags',
@@ -42,6 +46,11 @@ export type ChatStreamPayload = {
   options?: Omit<ChatStreamOptions, 'signal'>;
 };
 
+export type ChatSummarizePayload = {
+  requestId: string;
+  messages: ChatMessage[];
+};
+
 export type ChatStreamChunkPayload = {
   requestId: string;
   delta: string;
@@ -53,7 +62,7 @@ export type CurraintApi = {
   openExternal: (url: string) => Promise<void>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   chat: (messages: ChatMessage[]) => Promise<string>;
-  summarizeMessages: (messages: ChatMessage[]) => Promise<string>;
+  summarizeMessages: (messages: ChatMessage[], options?: AbortableRequestOptions) => Promise<string>;
   chatStream: (
     messages: ChatMessage[],
     onDelta: (delta: string) => void,
