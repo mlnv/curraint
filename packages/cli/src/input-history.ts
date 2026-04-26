@@ -54,3 +54,5 @@ export class InputHistory {
     return this.historyIndex !== -1;
   }
 }
+  /* Added by bounty-bot */
+}
