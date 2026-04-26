@@ -292,7 +292,7 @@ describe('useChatSession', () => {
         { role: 'user', content: 'First' },
         { role: 'assistant', content: 'Reply' },
       ],
-      undefined,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(saveSessionMock).toHaveBeenCalledTimes(1);
     const saved = saveSessionMock.mock.calls[0][0] as SavedSession;
