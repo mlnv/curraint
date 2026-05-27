@@ -18,6 +18,8 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
+    "@earendil-works/pi-agent-core": "^0.75.5",
+    "@earendil-works/pi-ai": "^0.75.5",
     "electron-log": "^5.4.3"
   },
   "optionalDependencies": {

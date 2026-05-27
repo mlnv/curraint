@@ -4,6 +4,10 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
   outDir: 'dist',
+  external: [
+    '@earendil-works/pi-agent-core',
+    '@earendil-works/pi-ai'
+  ],
   dts: {
     compilerOptions: {
       composite: false

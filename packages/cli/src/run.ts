@@ -3,8 +3,6 @@ import { stdin as input, stdout as output } from 'node:process';
 import {
   createChatSessionCore,
   settingsFilePath,
-  ENABLE_COPILOT_PROVIDER,
-  stopCopilotClient,
 } from '@curraint/core';
 import type { ChatSessionCore, EndpointSettings } from '@curraint/core';
 import { c, divider } from './theme';
@@ -70,13 +68,6 @@ export async function run(): Promise<number> {
 
     isShuttingDown = true;
     rl.close();
-    if (ENABLE_COPILOT_PROVIDER && settings.provider === 'copilot') {
-      try {
-        await stopCopilotClient();
-      } catch {
-        // ignore shutdown errors
-      }
-    }
   };
 
   const cleanupSigintHandler = installSigintHandler({

@@ -28,3 +28,16 @@ export {
   stopCopilotClient
 } from './api/copilot';
 export type { CopilotStreamCallbacks, CopilotStreamOptions } from './api/copilot';
+
+// Pi-backed runtime adapter (optional, requires @earendil-works/pi-agent-core)
+export {
+  createPiChatSessionCore,
+  buildPiTransport,
+  curraintToPiMessages,
+  piToCurraintMessages,
+  extractPiAssistantContent,
+  extractPiUsage,
+  resolvePiModel,
+  resolveApiKey
+} from './pi';
+export type { PiSessionSettings, ResolvedModel } from './pi';
