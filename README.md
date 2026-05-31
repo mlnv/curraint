@@ -42,7 +42,7 @@ Most AI chat tools make you choose one surface and live with its tradeoffs. curr
 - **Terminal-first when automation matters.** Keep prompts and results in the same place as the rest of your workflow.
 - **Vault-aware when notes matter.** Pull active or selected Obsidian notes directly into the conversation.
 - **Same conversation controls everywhere.** Stream responses, stop mid-generation, edit earlier messages, and regenerate from that point.
-- **Hosted or local models.** Use OpenAI, LM Studio, or any OpenAI-compatible endpoint.
+- **Hosted or local models.** Use OpenAI, DeepSeek, GitHub Copilot, LM Studio, or any OpenAI-compatible endpoint.
 - **Context safety built in.** Long chats are truncated safely with a summary fallback instead of failing abruptly.
 
 ## Choose your interface
@@ -68,7 +68,7 @@ flowchart TD
     CLI --> Core
     Obsidian --> Core
 
-    Core --> Providers["Providers<br/>OpenAI, LM Studio, Custom"]
+    Core --> Providers["Providers<br/>OpenAI, DeepSeek, Copilot, LM Studio, Custom"]
     Core --> Sessions["Sessions and settings"]
     Core --> Context["Context truncation and summaries"]
 ```
@@ -125,7 +125,7 @@ Set environment variables:
 
 | Variable | Required | Default | Notes |
 |---|---|---|---|
-| `CURRAINT_PROVIDER` | No | `openai` | `openai`, `lmstudio`, or `custom` |
+| `CURRAINT_PROVIDER` | No | `openai` | `openai`, `deepseek`, `copilot`, `lmstudio`, or `custom` |
 | `CURRAINT_API_KEY` | OpenAI only | None | Optional for LM Studio and custom endpoints |
 | `CURRAINT_BASE_URL` | No | `https://api.openai.com/v1` | Point to LM Studio or any OpenAI-compatible API |
 | `CURRAINT_MODEL` | No | `gpt-4o-mini` | Any model your endpoint supports |

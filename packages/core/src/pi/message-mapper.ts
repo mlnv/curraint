@@ -70,7 +70,7 @@ export function piToCurraintMessages(messages: AgentMessage[]): ChatMessage[] {
         }
       ).join('');
 
-      const usage: TokenUsage | undefined = msg.usage
+      const usage: TokenUsage | undefined = msg.usage && msg.usage.totalTokens > 0
         ? {
             prompt_tokens: msg.usage.input,
             completion_tokens: msg.usage.output,

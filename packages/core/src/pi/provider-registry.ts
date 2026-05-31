@@ -8,11 +8,12 @@ export interface ResolvedModel {
   model: Model<any>;
 }
 
-function createCustomModel(settings: EndpointSettings): Model<'openai-completions'> {
+function createCustomModel(settings: EndpointSettings, fallbackId?: string): Model<'openai-completions'> {
   const config = PROVIDER_CONFIGS[settings.provider];
+  const id = settings.model || fallbackId || config.defaultModel;
   return {
-    id: settings.model,
-    name: settings.model,
+    id,
+    name: id,
     api: 'openai-completions',
     provider: 'openai',
     baseUrl: settings.baseUrl || config.defaultBaseUrl,
@@ -53,13 +54,13 @@ export function resolvePiModel(settings: EndpointSettings): ResolvedModel {
   if (settings.provider === 'copilot') {
     const modelId = settings.model || PI_MODEL_MAP.copilot;
     const model = tryGetModel('github-copilot', modelId);
-    return { model: model ?? createCustomModel(settings) };
+    return { model: model ?? createCustomModel(settings, modelId) };
   }
 
   if (settings.provider === 'openai') {
     const modelId = settings.model || PI_MODEL_MAP.openai;
     const model = tryGetModel('openrouter', modelId);
-    return { model: model ?? createCustomModel(settings) };
+    return { model: model ?? createCustomModel(settings, modelId) };
   }
 
   if (settings.provider === 'deepseek') {
@@ -105,6 +106,5 @@ export function resolveApiKey(settings: EndpointSettings): string | undefined {
   if (settings.apiKey) return settings.apiKey;
   const config = PROVIDER_CONFIGS[settings.provider];
   if (config?.requiresApiKey) return undefined;
-  if (settings.provider === 'copilot') return undefined;
-  return 'not-needed';
+  return undefined;
 }
