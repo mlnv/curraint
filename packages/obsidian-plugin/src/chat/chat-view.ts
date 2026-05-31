@@ -170,8 +170,7 @@ export class ChatView extends ItemView {
 
     let hasStarted = false;
     const unlock = this.createUnlockOnce(isThisConvActive);
-    let unsubscribe: () => void;
-    unsubscribe = core.subscribe({
+    const unsubscribe = core.subscribe({
       onDelta: (delta: string) => {
         if (isThisConvActive()) this.messageRenderer.appendDelta(delta);
       },

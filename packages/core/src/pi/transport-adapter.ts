@@ -1,8 +1,7 @@
 import { streamSimple } from '@earendil-works/pi-ai';
-import type { Context, SimpleStreamOptions, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai';
+import type { Context, SimpleStreamOptions, Usage } from '@earendil-works/pi-ai';
 
-import type { ChatMessage, TokenUsage } from '../types';
-import type { ChatStreamResult } from '../chat/types';
+import type { TokenUsage } from '../types';
 import type { EndpointSettings } from '../settings/types';
 import type { ChatSessionTransport } from '../chat/types';
 import { composeConversation } from '../settings/composer';

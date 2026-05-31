@@ -1,10 +1,9 @@
 import { Agent } from '@earendil-works/pi-agent-core';
 import type { AgentEvent, AgentMessage } from '@earendil-works/pi-agent-core';
-import type { Message } from '@earendil-works/pi-ai';
+import type { Message, TextContent, ImageContent } from '@earendil-works/pi-ai';
 
 import type { ChatMessage } from '../types';
 import type { EndpointSettings } from '../settings/types';
-import { composeConversation } from '../settings/composer';
 import { debugLog } from '../debug/log';
 import {
   createInitialState,
@@ -15,7 +14,7 @@ import {
 } from '../chat/state';
 import type { MutableState } from '../chat/state';
 import type { ChatSessionCore, ChatSessionSubscriber } from '../chat/types';
-import { curraintToPiMessages, piToCurraintMessages } from './message-mapper';
+import { curraintToPiMessages, piToCurraintMessages, extractPiAssistantContent } from './message-mapper';
 import { resolvePiModel, resolveApiKey } from './provider-registry';
 
 export interface PiSessionSettings {
@@ -58,8 +57,6 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
     getApiKey: async () => resolveApiKey(settings.endpoint)
   });
 
-  let previousAssistantContent = '';
-
   const setState = (next: Partial<MutableState>) => {
     applyStateUpdate(state, next);
   };
@@ -71,7 +68,6 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
   agent.subscribe((event: AgentEvent, _signal: AbortSignal) => {
     switch (event.type) {
       case 'agent_start': {
-        previousAssistantContent = '';
         setState({ isSending: true, isStopping: false, status: 'Thinking...' });
         notifyState();
         break;
@@ -79,7 +75,6 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
 
       case 'message_start': {
         if (event.message.role === 'assistant') {
-          previousAssistantContent = '';
           setState({
             conversation: [
               ...state.conversation,
@@ -90,7 +85,7 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
         } else if (event.message.role === 'user') {
           const content = typeof event.message.content === 'string'
             ? event.message.content
-            : event.message.content.map((c: any) => c.text ?? '').join('');
+            : event.message.content.map((c: TextContent | ImageContent) => c.type === 'text' ? c.text : '').join('');
           // Guard against duplicate: submitPrompt / edit / retry all push the
           // user message immediately so the UI shows it synchronously, then the
           // agent replays it via message_start.  Skip the agent-driven append
@@ -146,9 +141,7 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
           const msgs = [...state.conversation];
           const lastIdx = msgs.length - 1;
           if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
-            const content = event.message.content
-              .map((c: any) => c.text ?? c.thinking ?? '')
-              .join('');
+            const content = extractPiAssistantContent(event.message);
             msgs[lastIdx] = {
               ...msgs[lastIdx]!,
               content,

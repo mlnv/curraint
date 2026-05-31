@@ -1,23 +1,23 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import type { AgentEvent } from '@earendil-works/pi-agent-core';
-import type { AgentMessage, AssistantMessage, UserMessage } from '@earendil-works/pi-ai';
+import type { AgentMessage, AssistantMessage, UserMessage, TextContent, ImageContent } from '@earendil-works/pi-ai';
 
+import { extractPiAssistantContent } from './message-mapper';
 import {
   createInitialState,
-  snapshotState,
   applyStateUpdate,
   emitStateChange,
   emitDelta
 } from '../chat/state';
 import type { MutableState } from '../chat/state';
-import type { ChatSessionSubscriber } from '../chat/types';
+import type { ChatSessionSubscriber, ChatSessionState } from '../chat/types';
 
 function makeSubscriber() {
-  const stateChanges: any[] = [];
+  const stateChanges: ChatSessionState[] = [];
   const deltas: string[] = [];
   return {
     subscriber: {
-      onStateChange: (s: any) => stateChanges.push(s),
+      onStateChange: (s: ChatSessionState) => stateChanges.push(s),
       onDelta: (d: string) => deltas.push(d)
     },
     stateChanges,
@@ -49,15 +49,12 @@ function makeUserMsg(content: string): UserMessage {
 type PiEventHandler = (event: AgentEvent, state: MutableState, subscribers: Set<ChatSessionSubscriber>) => void;
 
 function createEventHandler(): PiEventHandler {
-  let previousAssistantContent = '';
-
   return (event, state, subscribers) => {
     const setState = (next: Partial<MutableState>) => applyStateUpdate(state, next);
     const notifyState = () => emitStateChange(subscribers, state);
 
     switch (event.type) {
       case 'agent_start': {
-        previousAssistantContent = '';
         setState({ isSending: true, isStopping: false, status: 'Thinking...' });
         notifyState();
         break;
@@ -65,7 +62,6 @@ function createEventHandler(): PiEventHandler {
 
       case 'message_start': {
         if (event.message.role === 'assistant') {
-          previousAssistantContent = '';
           setState({
             conversation: [
               ...state.conversation,
@@ -76,7 +72,7 @@ function createEventHandler(): PiEventHandler {
         } else if (event.message.role === 'user') {
           const content = typeof event.message.content === 'string'
             ? event.message.content
-            : event.message.content.map((c: any) => c.text ?? '').join('');
+            : event.message.content.map((c: TextContent | ImageContent) => c.type === 'text' ? c.text : '').join('');
           setState({
             conversation: [
               ...state.conversation,
@@ -122,9 +118,7 @@ function createEventHandler(): PiEventHandler {
           const msgs = [...state.conversation];
           const lastIdx = msgs.length - 1;
           if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
-            const content = msg.content
-              .map((c: any) => c.text ?? c.thinking ?? '')
-              .join('');
+            const content = extractPiAssistantContent(msg);
             msgs[lastIdx] = {
               ...msgs[lastIdx]!,
               content,
@@ -154,14 +148,14 @@ function createEventHandler(): PiEventHandler {
               if (m.role === 'user') {
                 return {
                   role: 'user' as const,
-                  content: typeof m.content === 'string' ? m.content : m.content.map((c: any) => c.text ?? '').join(''),
+                  content: typeof m.content === 'string' ? m.content : m.content.map((c: TextContent | ImageContent) => c.type === 'text' ? c.text : '').join(''),
                   timestamp: m.timestamp
                 };
               }
               const am = m as AssistantMessage;
               return {
                 role: 'assistant' as const,
-                content: am.content.map((c: any) => c.text ?? c.thinking ?? '').join(''),
+                content: extractPiAssistantContent(am),
                 timestamp: am.timestamp,
                 usage: am.usage
                   ? { prompt_tokens: am.usage.input, completion_tokens: am.usage.output, total_tokens: am.usage.totalTokens }
@@ -223,14 +217,14 @@ describe('pi event handler', () => {
     handler({
       type: 'message_update',
       message: makeAssistantMsg({ content: [{ type: 'text', text: 'Hel' }] }),
-      assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'Hel' }
-    } as any, state, subscribers);
+      assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'Hel', partial: makeAssistantMsg({ content: [{ type: 'text', text: 'Hel' }] }) }
+    }, state, subscribers);
 
     handler({
       type: 'message_update',
       message: makeAssistantMsg({ content: [{ type: 'text', text: 'Hello' }] }),
-      assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'lo' }
-    } as any, state, subscribers);
+      assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'lo', partial: makeAssistantMsg({ content: [{ type: 'text', text: 'Hello' }] }) }
+    }, state, subscribers);
 
     expect(sub.deltas).toEqual(['Hel', 'lo']);
     expect(state.conversation[0]!.content).toBe('Hello');
@@ -248,8 +242,8 @@ describe('pi event handler', () => {
     handler({
       type: 'message_update',
       message: makeAssistantMsg({ content: [{ type: 'thinking', thinking: 'Hmm' }] }),
-      assistantMessageEvent: { type: 'thinking_delta', contentIndex: 0, delta: 'Hmm' }
-    } as any, state, subscribers);
+      assistantMessageEvent: { type: 'thinking_delta', contentIndex: 0, delta: 'Hmm', partial: makeAssistantMsg({ content: [{ type: 'thinking', thinking: 'Hmm' }] }) }
+    }, state, subscribers);
 
     expect(sub.deltas).toEqual(['Hmm']);
   });
@@ -314,10 +308,48 @@ describe('pi event handler', () => {
     handler({
       type: 'message_start',
       message: makeUserMsg('Hello world')
-    } as any, state, subscribers);
+    }, state, subscribers);
 
     expect(state.conversation).toHaveLength(1);
     expect(state.conversation[0]!.role).toBe('user');
     expect(state.conversation[0]!.content).toBe('Hello world');
+  });
+
+  it('maps user message with image content to empty string', () => {
+    const msg: UserMessage = {
+      role: 'user',
+      content: [{ type: 'image', data: 'base64...', mimeType: 'image/png' }],
+      timestamp: Date.now()
+    };
+    handler({ type: 'message_start', message: msg }, state, subscribers);
+    expect(state.conversation).toHaveLength(1);
+    expect(state.conversation[0]!.role).toBe('user');
+    expect(state.conversation[0]!.content).toBe('');
+  });
+
+  it('maps user message with empty content array to empty string', () => {
+    const msg: UserMessage = {
+      role: 'user',
+      content: [],
+      timestamp: Date.now()
+    };
+    handler({ type: 'message_start', message: msg }, state, subscribers);
+    expect(state.conversation).toHaveLength(1);
+    expect(state.conversation[0]!.role).toBe('user');
+    expect(state.conversation[0]!.content).toBe('');
+  });
+
+  it('maps user message with unknown content type to empty string', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unknown = { type: 'future_type', foo: 'bar' } as any;
+    const msg: UserMessage = {
+      role: 'user',
+      content: [unknown],
+      timestamp: Date.now()
+    };
+    handler({ type: 'message_start', message: msg }, state, subscribers);
+    expect(state.conversation).toHaveLength(1);
+    expect(state.conversation[0]!.role).toBe('user');
+    expect(state.conversation[0]!.content).toBe('');
   });
 });

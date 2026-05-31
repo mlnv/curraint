@@ -215,7 +215,7 @@ export function createQuickInputWindow(): BrowserWindow {
 export function showQuickInputWindowCentered(win: BrowserWindow): void {
   const display = screen.getPrimaryDisplay();
   const { width: screenWidth, height: screenHeight } = display.workArea;
-  const { width, height } = win.getBounds();
+  const { width } = win.getBounds();
   const x = Math.round(display.workArea.x + (screenWidth - width) / 2);
   const y = Math.round(display.workArea.y + screenHeight * 0.3);
   win.setPosition(x, y, false);

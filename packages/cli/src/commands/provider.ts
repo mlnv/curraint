@@ -1,10 +1,8 @@
 import { stdout as output } from 'node:process';
 import {
-  ENABLE_COPILOT_PROVIDER,
   getProviderConfig,
   normalizeSettings,
   PROVIDER_OPTIONS,
-  requiresApiKeyForProvider,
   saveSettingsToFile,
   settingsFilePath,
 } from '@curraint/core';

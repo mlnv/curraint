@@ -5,7 +5,7 @@ import type { EndpointSettings } from '../settings/types';
 import { PROVIDER_CONFIGS } from '../providers/configs';
 
 export interface ResolvedModel {
-  model: Model<any>;
+  model: Model<Api>;
 }
 
 function createCustomModel(settings: EndpointSettings, fallbackId?: string): Model<'openai-completions'> {
@@ -33,14 +33,6 @@ function createCustomModel(settings: EndpointSettings, fallbackId?: string): Mod
     }
   };
 }
-
-const PI_PROVIDER_MAP: Record<ProviderId, string> = {
-  openai: 'openrouter',
-  copilot: 'github-copilot',
-  lmstudio: 'openai',
-  custom: 'openai',
-  deepseek: 'openai'
-};
 
 const PI_MODEL_MAP: Record<ProviderId, string> = {
   openai: 'openai/gpt-4o-mini',
@@ -94,8 +86,12 @@ export function resolvePiModel(settings: EndpointSettings): ResolvedModel {
   return { model: createCustomModel(settings) };
 }
 
-function tryGetModel<TProvider extends string>(provider: TProvider, modelId: string): Model<any> | undefined {
+function tryGetModel<TProvider extends string>(provider: TProvider, modelId: string): Model<Api> | undefined {
   try {
+    // tryGetModel accepts arbitrary runtime strings that may not
+    // match KnownProvider or valid model IDs, so the casts are needed
+    // for the try/catch guard to work.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return getModel(provider as any, modelId as any);
   } catch {
     return undefined;

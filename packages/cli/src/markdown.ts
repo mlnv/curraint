@@ -1,4 +1,4 @@
-import { Marked, marked } from 'marked';
+import { Marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 
 const HEADING_STYLES = [

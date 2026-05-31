@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { curraintToPiMessages, piToCurraintMessages, extractPiAssistantContent, extractPiUsage } from './message-mapper';
 import type { ChatMessage } from '../types';
-import type { UserMessage, AssistantMessage, ToolResultMessage } from '@earendil-works/pi-ai';
+import type { UserMessage, AssistantMessage, Usage, ToolCall } from '@earendil-works/pi-ai';
 
 describe('message-mapper', () => {
   describe('curraintToPiMessages', () => {
@@ -221,6 +221,88 @@ describe('message-mapper', () => {
       };
       expect(extractPiAssistantContent(msg)).toBe('Let me think...');
     });
+
+    it('returns empty string for toolCall content blocks', () => {
+      const tc: ToolCall = {
+        type: 'toolCall',
+        id: 'call_1',
+        name: 'search',
+        arguments: { query: 'test' }
+      };
+      const msg: AssistantMessage = {
+        role: 'assistant',
+        content: [tc],
+        api: 'openai-completions',
+        provider: 'openai',
+        model: 'gpt-4o',
+        usage: {
+          input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+        },
+        stopReason: 'toolUse',
+        timestamp: 0
+      };
+      expect(extractPiAssistantContent(msg)).toBe('');
+    });
+
+    it('returns empty string for unknown content types', () => {
+      // Construct a content block with a type not in the known union to test
+      // the runtime fallback path for future/unknown content types.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unknown = { type: 'future_unknown_type', foo: 'bar' } as any;
+      const msg: AssistantMessage = {
+        role: 'assistant',
+        content: [unknown],
+        api: 'openai-completions',
+        provider: 'openai',
+        model: 'gpt-4o',
+        usage: {
+          input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+        },
+        stopReason: 'stop',
+        timestamp: 0
+      };
+      expect(extractPiAssistantContent(msg)).toBe('');
+    });
+
+    it('returns empty string for empty content array', () => {
+      const msg: AssistantMessage = {
+        role: 'assistant',
+        content: [],
+        api: 'openai-completions',
+        provider: 'openai',
+        model: 'gpt-4o',
+        usage: {
+          input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+        },
+        stopReason: 'stop',
+        timestamp: 0
+      };
+      expect(extractPiAssistantContent(msg)).toBe('');
+    });
+
+    it('joins mixed content blocks with correct delimiters', () => {
+      const msg: AssistantMessage = {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello' },
+          { type: 'thinking', thinking: 'Hmm' },
+          { type: 'text', text: 'World' }
+        ],
+        api: 'openai-completions',
+        provider: 'openai',
+        model: 'gpt-4o',
+        usage: {
+          input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+        },
+        stopReason: 'stop',
+        timestamp: 0
+      };
+      expect(extractPiAssistantContent(msg)).toBe('HelloHmmWorld');
+    });
   });
 
   describe('extractPiUsage', () => {
@@ -231,7 +313,7 @@ describe('message-mapper', () => {
         api: 'openai-completions',
         provider: 'openai',
         model: 'gpt-4o',
-        usage: undefined as any,
+        usage: undefined as unknown as Usage,
         stopReason: 'stop',
         timestamp: 0
       };

@@ -39,8 +39,7 @@ test.describe('chat window', () => {
 
     // Invoke the IPC directly from the renderer context (same path as pressing Escape)
     await chatPage.evaluate(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (window as any).curraint.hideChatWindow();
+      await window.curraint.hideChatWindow();
     });
 
     // Poll — the main-process hide is async over IPC

@@ -1,6 +1,6 @@
 import { ipcMain, shell, app } from 'electron';
 import { IPC_CHANNELS, type ChatStreamChunkPayload, type ChatStreamPayload } from '../ipc';
-import { debugLog, setDebugEnabled } from '@curraint/core';
+import { setDebugEnabled } from '@curraint/core';
 import {
   chatCompletion,
   testConnection
