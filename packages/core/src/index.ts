@@ -21,13 +21,11 @@ export {
 } from './api/openai/client';
 export type { StreamCallbacks, StreamOptions } from './api/openai/types';
 export {
-  copilotChatStream,
   warmupCopilotSession,
   resetCopilotSession,
   copilotTestConnection,
   stopCopilotClient
 } from './api/copilot';
-export type { CopilotStreamCallbacks, CopilotStreamOptions } from './api/copilot';
 
 // Pi-backed runtime adapter (optional, requires @earendil-works/pi-agent-core)
 export {

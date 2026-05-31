@@ -75,5 +75,6 @@ export function resolveApiKey(settings: EndpointSettings): string | undefined {
   if (settings.apiKey) return settings.apiKey;
   const config = PROVIDER_CONFIGS[settings.provider];
   if (config?.requiresApiKey) return undefined;
+  if (settings.provider === 'copilot') return undefined;
   return 'not-needed';
 }

@@ -5,7 +5,6 @@ import {
   chatCompletion,
   testConnection
 } from '@curraint/core';
-import { copilotTestConnection } from '@curraint/core';
 import { composeConversation } from '@curraint/core';
 import { listSessions, getSession, saveSession, deleteSession } from '@curraint/core';
 import { buildPiTransport } from '@curraint/core';
@@ -164,9 +163,6 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     IPC_CHANNELS.testConnection,
     async (_event, payload: AppSettings) => {
       const settings = normalizeAppSettings(payload);
-      if (settings.provider === 'copilot') {
-        return copilotTestConnection(settings.model);
-      }
       return testConnection(settings);
     }
   );

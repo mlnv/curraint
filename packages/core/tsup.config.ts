@@ -4,7 +4,7 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
   outDir: 'dist',
-  external: [
+  noExternal: [
     '@earendil-works/pi-agent-core',
     '@earendil-works/pi-ai'
   ],
