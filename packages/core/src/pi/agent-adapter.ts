@@ -1,6 +1,6 @@
 import { Agent } from '@earendil-works/pi-agent-core';
 import type { AgentEvent, AgentMessage } from '@earendil-works/pi-agent-core';
-import type { Message, TextContent, ImageContent, ThinkingContent, ToolCall } from '@earendil-works/pi-ai';
+import type { Message, TextContent, ImageContent } from '@earendil-works/pi-ai';
 
 import type { ChatMessage } from '../types';
 import type { EndpointSettings } from '../settings/types';
@@ -14,7 +14,7 @@ import {
 } from '../chat/state';
 import type { MutableState } from '../chat/state';
 import type { ChatSessionCore, ChatSessionSubscriber } from '../chat/types';
-import { curraintToPiMessages, piToCurraintMessages } from './message-mapper';
+import { curraintToPiMessages, piToCurraintMessages, extractPiAssistantContent } from './message-mapper';
 import { resolvePiModel, resolveApiKey } from './provider-registry';
 
 export interface PiSessionSettings {
@@ -141,11 +141,7 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
           const msgs = [...state.conversation];
           const lastIdx = msgs.length - 1;
           if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
-            const content = event.message.content
-                .map((c: TextContent | ThinkingContent | ToolCall) =>
-                  c.type === 'text' ? c.text : c.type === 'thinking' ? c.thinking : ''
-                )
-              .join('');
+            const content = extractPiAssistantContent(event.message);
             msgs[lastIdx] = {
               ...msgs[lastIdx]!,
               content,

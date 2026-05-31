@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import type { AgentEvent } from '@earendil-works/pi-agent-core';
-import type { AgentMessage, AssistantMessage, UserMessage, TextContent, ImageContent, ThinkingContent, ToolCall } from '@earendil-works/pi-ai';
+import type { AgentMessage, AssistantMessage, UserMessage, TextContent, ImageContent } from '@earendil-works/pi-ai';
 
+import { extractPiAssistantContent } from './message-mapper';
 import {
   createInitialState,
   applyStateUpdate,
@@ -117,11 +118,7 @@ function createEventHandler(): PiEventHandler {
           const msgs = [...state.conversation];
           const lastIdx = msgs.length - 1;
           if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
-            const content = msg.content
-              .map((c: TextContent | ThinkingContent | ToolCall) =>
-                c.type === 'text' ? c.text : c.type === 'thinking' ? c.thinking : ''
-              )
-              .join('');
+            const content = extractPiAssistantContent(msg);
             msgs[lastIdx] = {
               ...msgs[lastIdx]!,
               content,
@@ -158,7 +155,7 @@ function createEventHandler(): PiEventHandler {
               const am = m as AssistantMessage;
               return {
                 role: 'assistant' as const,
-                content: am.content.map((c: TextContent | ThinkingContent | ToolCall) => c.type === 'text' ? c.text : c.type === 'thinking' ? c.thinking : '').join(''),
+                content: extractPiAssistantContent(am),
                 timestamp: am.timestamp,
                 usage: am.usage
                   ? { prompt_tokens: am.usage.input, completion_tokens: am.usage.output, total_tokens: am.usage.totalTokens }
@@ -316,5 +313,43 @@ describe('pi event handler', () => {
     expect(state.conversation).toHaveLength(1);
     expect(state.conversation[0]!.role).toBe('user');
     expect(state.conversation[0]!.content).toBe('Hello world');
+  });
+
+  it('maps user message with image content to empty string', () => {
+    const msg: UserMessage = {
+      role: 'user',
+      content: [{ type: 'image', data: 'base64...', mimeType: 'image/png' }],
+      timestamp: Date.now()
+    };
+    handler({ type: 'message_start', message: msg }, state, subscribers);
+    expect(state.conversation).toHaveLength(1);
+    expect(state.conversation[0]!.role).toBe('user');
+    expect(state.conversation[0]!.content).toBe('');
+  });
+
+  it('maps user message with empty content array to empty string', () => {
+    const msg: UserMessage = {
+      role: 'user',
+      content: [],
+      timestamp: Date.now()
+    };
+    handler({ type: 'message_start', message: msg }, state, subscribers);
+    expect(state.conversation).toHaveLength(1);
+    expect(state.conversation[0]!.role).toBe('user');
+    expect(state.conversation[0]!.content).toBe('');
+  });
+
+  it('maps user message with unknown content type to empty string', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unknown = { type: 'future_type', foo: 'bar' } as any;
+    const msg: UserMessage = {
+      role: 'user',
+      content: [unknown],
+      timestamp: Date.now()
+    };
+    handler({ type: 'message_start', message: msg }, state, subscribers);
+    expect(state.conversation).toHaveLength(1);
+    expect(state.conversation[0]!.role).toBe('user');
+    expect(state.conversation[0]!.content).toBe('');
   });
 });
