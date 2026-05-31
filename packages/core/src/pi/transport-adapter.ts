@@ -89,9 +89,9 @@ export function buildPiTransport(settings: EndpointSettings): ChatSessionTranspo
         });
 
         return {
-          text: streamedText.trim() || eventStream as any,
+          text: streamedText,
           usage: convertUsage(finalUsage)
-        } as ChatStreamResult;
+        };
       } catch (error) {
         if (isAbortError(error)) {
           return { text: streamedText };

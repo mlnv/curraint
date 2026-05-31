@@ -32,10 +32,23 @@ function defaultConvertToLlm(messages: AgentMessage[]): Message[] {
 
 function createContextTransformer(settings: EndpointSettings) {
   return async (messages: AgentMessage[], _signal?: AbortSignal): Promise<AgentMessage[]> => {
-    if (!settings.systemPrompt && settings.contextMaxMessages <= 0) {
+    if (settings.contextMaxMessages <= 0) {
       return messages;
     }
-    return messages;
+
+    const hasSystemMsg = messages.length > 0 && messages[0]?.role === 'system';
+
+    const trimmed: AgentMessage[] = [];
+    if (hasSystemMsg && settings.systemPrompt) {
+      trimmed.push(messages[0]!);
+    }
+
+    const nonSystem = messages.filter(m => m.role !== 'system');
+    const limit = Math.max(1, settings.contextMaxMessages);
+    const slice = nonSystem.slice(-limit);
+    trimmed.push(...slice);
+
+    return trimmed;
   };
 }
 
@@ -90,6 +103,14 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
           const content = typeof event.message.content === 'string'
             ? event.message.content
             : event.message.content.map((c: any) => c.text ?? '').join('');
+          // Guard against duplicate: submitPrompt / edit / retry all push the
+          // user message immediately so the UI shows it synchronously, then the
+          // agent replays it via message_start.  Skip the agent-driven append
+          // when the conversation already ends with a matching user message.
+          const lastMsg = state.conversation[state.conversation.length - 1];
+          if (lastMsg?.role === 'user' && lastMsg?.content === content) {
+            break;
+          }
           setState({
             conversation: [
               ...state.conversation,

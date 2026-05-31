@@ -145,12 +145,12 @@ describe('provider-registry', () => {
       expect(resolveApiKey(settings)).toBeUndefined();
     });
 
-    it('returns placeholder for providers that do not require api key', () => {
+    it('returns undefined for providers that do not require api key', () => {
       const settings = makeSettings({
         provider: 'lmstudio',
         apiKey: ''
       });
-      expect(resolveApiKey(settings)).toBe('not-needed');
+      expect(resolveApiKey(settings)).toBeUndefined();
     });
   });
 });
