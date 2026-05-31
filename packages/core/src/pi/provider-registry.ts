@@ -34,14 +34,6 @@ function createCustomModel(settings: EndpointSettings, fallbackId?: string): Mod
   };
 }
 
-const PI_PROVIDER_MAP: Record<ProviderId, string> = {
-  openai: 'openrouter',
-  copilot: 'github-copilot',
-  lmstudio: 'openai',
-  custom: 'openai',
-  deepseek: 'openai'
-};
-
 const PI_MODEL_MAP: Record<ProviderId, string> = {
   openai: 'openai/gpt-4o-mini',
   copilot: 'claude-haiku-4.5',

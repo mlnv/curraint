@@ -4,7 +4,6 @@ import type { Message, TextContent, ImageContent, ThinkingContent, ToolCall } fr
 
 import type { ChatMessage } from '../types';
 import type { EndpointSettings } from '../settings/types';
-import { composeConversation } from '../settings/composer';
 import { debugLog } from '../debug/log';
 import {
   createInitialState,
@@ -58,8 +57,6 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
     getApiKey: async () => resolveApiKey(settings.endpoint)
   });
 
-  let previousAssistantContent = '';
-
   const setState = (next: Partial<MutableState>) => {
     applyStateUpdate(state, next);
   };
@@ -71,7 +68,6 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
   agent.subscribe((event: AgentEvent, _signal: AbortSignal) => {
     switch (event.type) {
       case 'agent_start': {
-        previousAssistantContent = '';
         setState({ isSending: true, isStopping: false, status: 'Thinking...' });
         notifyState();
         break;
@@ -79,7 +75,6 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
 
       case 'message_start': {
         if (event.message.role === 'assistant') {
-          previousAssistantContent = '';
           setState({
             conversation: [
               ...state.conversation,

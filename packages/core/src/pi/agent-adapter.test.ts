@@ -1,10 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import type { AgentEvent } from '@earendil-works/pi-agent-core';
 import type { AgentMessage, AssistantMessage, UserMessage, TextContent, ImageContent, ThinkingContent, ToolCall } from '@earendil-works/pi-ai';
 
 import {
   createInitialState,
-  snapshotState,
   applyStateUpdate,
   emitStateChange,
   emitDelta
@@ -49,15 +48,12 @@ function makeUserMsg(content: string): UserMessage {
 type PiEventHandler = (event: AgentEvent, state: MutableState, subscribers: Set<ChatSessionSubscriber>) => void;
 
 function createEventHandler(): PiEventHandler {
-  let previousAssistantContent = '';
-
   return (event, state, subscribers) => {
     const setState = (next: Partial<MutableState>) => applyStateUpdate(state, next);
     const notifyState = () => emitStateChange(subscribers, state);
 
     switch (event.type) {
       case 'agent_start': {
-        previousAssistantContent = '';
         setState({ isSending: true, isStopping: false, status: 'Thinking...' });
         notifyState();
         break;
@@ -65,7 +61,6 @@ function createEventHandler(): PiEventHandler {
 
       case 'message_start': {
         if (event.message.role === 'assistant') {
-          previousAssistantContent = '';
           setState({
             conversation: [
               ...state.conversation,
