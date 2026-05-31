@@ -71,6 +71,27 @@ describe('provider-registry', () => {
       expect(model.baseUrl).toBe('https://my-endpoint.example.com/v1');
     });
 
+    it('resolves deepseek provider model', () => {
+      const settings = makeSettings({
+        provider: 'deepseek',
+        model: 'deepseek-v4-pro'
+      });
+      const { model } = resolvePiModel(settings);
+      expect(model.id).toBe('deepseek-v4-pro');
+      expect(model.api).toBe('openai-completions');
+      expect(model.provider).toBe('openai');
+      expect(model.baseUrl).toBe('https://api.deepseek.com');
+      expect(model.contextWindow).toBe(1000000);
+      expect(model.maxTokens).toBe(384000);
+    });
+
+    it('uses default model for deepseek when not specified', () => {
+      const settings = makeSettings({ provider: 'deepseek', model: '' });
+      const { model } = resolvePiModel(settings);
+      expect(model.id).toBe('deepseek-v4-flash');
+      expect(model.baseUrl).toBe('https://api.deepseek.com');
+    });
+
     it('uses default baseUrl for lmstudio when not provided', () => {
       const settings = makeSettings({
         provider: 'lmstudio',
@@ -100,9 +121,25 @@ describe('provider-registry', () => {
       expect(resolveApiKey(settings)).toBe('sk-test-key');
     });
 
+    it('returns api key for deepseek', () => {
+      const settings = makeSettings({
+        provider: 'deepseek',
+        apiKey: 'sk-deepseek-key'
+      });
+      expect(resolveApiKey(settings)).toBe('sk-deepseek-key');
+    });
+
     it('returns undefined for openai when key is empty', () => {
       const settings = makeSettings({
         provider: 'openai',
+        apiKey: ''
+      });
+      expect(resolveApiKey(settings)).toBeUndefined();
+    });
+
+    it('returns undefined for deepseek when key is empty', () => {
+      const settings = makeSettings({
+        provider: 'deepseek',
         apiKey: ''
       });
       expect(resolveApiKey(settings)).toBeUndefined();

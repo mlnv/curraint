@@ -37,14 +37,16 @@ const PI_PROVIDER_MAP: Record<ProviderId, string> = {
   openai: 'openrouter',
   copilot: 'github-copilot',
   lmstudio: 'openai',
-  custom: 'openai'
+  custom: 'openai',
+  deepseek: 'openai'
 };
 
 const PI_MODEL_MAP: Record<ProviderId, string> = {
   openai: 'openai/gpt-4o-mini',
   copilot: 'claude-haiku-4.5',
   lmstudio: 'local-model',
-  custom: 'gpt-4o-mini'
+  custom: 'gpt-4o-mini',
+  deepseek: 'deepseek-v4-flash'
 };
 
 export function resolvePiModel(settings: EndpointSettings): ResolvedModel {
@@ -58,6 +60,34 @@ export function resolvePiModel(settings: EndpointSettings): ResolvedModel {
     const modelId = settings.model || PI_MODEL_MAP.openai;
     const model = tryGetModel('openrouter', modelId);
     return { model: model ?? createCustomModel(settings) };
+  }
+
+  if (settings.provider === 'deepseek') {
+    const config = PROVIDER_CONFIGS.deepseek;
+    const modelId = settings.model || config.defaultModel;
+    return {
+      model: {
+        id: modelId,
+        name: modelId,
+        api: 'openai-completions',
+        provider: 'openai',
+        baseUrl: settings.baseUrl || config.defaultBaseUrl,
+        reasoning: false,
+        input: ['text'],
+        cost: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0
+        },
+        contextWindow: 1000000,
+        maxTokens: 384000,
+        compat: {
+          supportsUsageInStreaming: true,
+          maxTokensField: 'max_completion_tokens'
+        }
+      }
+    };
   }
 
   return { model: createCustomModel(settings) };
