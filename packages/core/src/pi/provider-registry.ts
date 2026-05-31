@@ -96,6 +96,10 @@ export function resolvePiModel(settings: EndpointSettings): ResolvedModel {
 
 function tryGetModel<TProvider extends string>(provider: TProvider, modelId: string): Model<Api> | undefined {
   try {
+    // tryGetModel accepts arbitrary runtime strings that may not
+    // match KnownProvider or valid model IDs, so the casts are needed
+    // for the try/catch guard to work.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return getModel(provider as any, modelId as any);
   } catch {
     return undefined;
