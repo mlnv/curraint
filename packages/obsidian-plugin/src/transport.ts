@@ -1,20 +1,9 @@
 import { requestUrl, Platform } from 'obsidian';
-import {
-  chatCompletionStream,
-  composeConversation,
-} from '@curraint/core';
+import { buildPiTransport } from '@curraint/core';
 import type { EndpointSettings, ChatSessionTransport } from '@curraint/core';
-import type { ChatMessage, TokenUsage } from '@curraint/core';
 import type CurraintPlugin from './main';
 
 type TransportPlugin = Pick<CurraintPlugin, 'settings' | 'secrets'>;
-
-function isAbortError(error: unknown): boolean {
-  return (
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (error instanceof Error && error.name === 'AbortError')
-  );
-}
 
 // --- LM Studio native API (/api/v1/chat) ------------------------------------
 
@@ -26,16 +15,10 @@ type LmsResponse = {
 };
 
 export function buildLmsUrl(baseUrl: string): string {
-  // Strip trailing slash and any /v1 suffix left over from the old default URL.
   const base = baseUrl.trim().replace(/\/v1\/?$/, '').replace(/\/$/, '');
   return `${base}/api/v1/chat`;
 }
 
-// Sends a message to LM Studio using its native stateful chat API.
-// Uses Obsidian's requestUrl to bypass CORS preflight restrictions - native
-// fetch triggers an OPTIONS preflight that LM Studio rejects. requestUrl
-// routes through Electron's main process and is not subject to CORS.
-// Passes previous_response_id so the server maintains conversation history.
 async function lmStudioChat(
   settings: EndpointSettings,
   lastUserMessage: string,
@@ -61,40 +44,6 @@ async function lmStudioChat(
   return { text, responseId: json.response_id ?? null };
 }
 
-// --- OpenAI-compatible fallback (for openai / custom providers) -------------
-
-export function buildCompletionsUrl(baseUrl: string): string {
-  const trimmed = baseUrl.trim().replace(/\/$/, '');
-  const base = trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
-  return `${base}/chat/completions`;
-}
-
-// Uses Obsidian's requestUrl to bypass the Chromium CORS preflight that native
-// fetch triggers for cross-origin requests to local servers.
-async function corsFreeChatCompletion(
-  settings: EndpointSettings,
-  messages: { role: string; content: string }[]
-): Promise<string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (settings.apiKey.trim()) headers['Authorization'] = `Bearer ${settings.apiKey.trim()}`;
-  const res = await requestUrl({
-    url: buildCompletionsUrl(settings.baseUrl),
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ model: settings.model.trim(), messages }),
-    throw: false,
-  });
-  if (res.status < 200 || res.status >= 300) {
-    const detail =
-      (res.json as { error?: { message?: string } } | undefined)?.error?.message ?? res.text;
-    throw new Error(`Request failed (${res.status}): ${detail}`);
-  }
-  const text = (res.json as { choices?: { message?: { content?: string } }[] } | undefined)
-    ?.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error('Endpoint returned an empty response.');
-  return text;
-}
-
 // --- LM Studio connection test ---------------------------------------------
 
 export async function testLmStudioConnection(settings: EndpointSettings): Promise<string> {
@@ -112,10 +61,6 @@ export async function testLmStudioConnection(settings: EndpointSettings): Promis
 
 // --- LM Studio system prompt merge ------------------------------------------
 
-// Merges any conversation-level system messages (e.g. note context injected
-// per-turn) with the static system prompt from settings, returning a settings
-// object with the combined prompt. Returns the original settings unchanged
-// when no merge is needed.
 export function resolveEffectiveLmsSettings(
   settings: EndpointSettings,
   messages: { role: string; content: string }[]
@@ -133,9 +78,6 @@ export function resolveEffectiveLmsSettings(
 
 // --- LM Studio stream --------------------------------------------------------
 
-// Sends a single turn to LM Studio using its native stateful API and calls
-// onDelta with the full response text. Returns the updated response ID so the
-// caller can thread subsequent turns through the server-side conversation.
 async function streamLmStudio(
   settings: EndpointSettings,
   messages: { role: string; content: string }[],
@@ -149,8 +91,6 @@ async function streamLmStudio(
   const lmsSettings = resolveEffectiveLmsSettings(settings, messages);
   const { text, responseId } = await lmStudioChat(lmsSettings, lastUser.content, lmsResponseId);
 
-  // requestUrl cannot be aborted - check if Stop was pressed while waiting
-  // and surface it as an AbortError so the core handles it as a cancellation.
   if (signal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
@@ -159,61 +99,11 @@ async function streamLmStudio(
   return { text, responseId };
 }
 
-// --- OpenAI-compatible stream ------------------------------------------------
-
-// Streams a chat completion using the OpenAI-compatible API. Falls back to a
-// single non-streaming requestUrl call if SSE streaming fails before any
-// chunks arrive (e.g. providers that do not support streaming in all configs).
-async function streamOpenAiCompat(
-  settings: EndpointSettings,
-  messages: ChatMessage[],
-  onDelta: (delta: string) => void,
-  signal?: AbortSignal
-): Promise<{ text: string; usage?: TokenUsage }> {
-  const composed = composeConversation(settings, messages);
-  const apiMessages = composed.map(({ role, content }) => ({ role, content }));
-  let hasStreamedChunk = false;
-  let streamedMessage = '';
-
-  try {
-    const result = await chatCompletionStream(
-      settings,
-      composed,
-      {
-        onDelta: (delta) => {
-          hasStreamedChunk = true;
-          streamedMessage += delta;
-          onDelta(delta);
-        },
-      },
-      { signal }
-    );
-    return { text: result.message, usage: result.usage };
-  } catch (error) {
-    if (isAbortError(error)) return { text: streamedMessage };
-    if (hasStreamedChunk) throw error;
-
-    if (signal?.aborted) return { text: streamedMessage };
-
-    const text = await corsFreeChatCompletion(settings, apiMessages);
-
-    if (signal?.aborted) return { text: streamedMessage };
-
-    onDelta(text);
-    return { text };
-  }
-}
-
 // --- Transport factory -------------------------------------------------------
 
 export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
-  // Tracks the LM Studio server-side conversation so the full history does not
-  // need to be re-sent on every turn. Reset when the session is cleared.
   let lmsResponseId: string | null = null;
 
-  // Cache the last-decrypted API key so PBKDF2 and AES-GCM do not run on
-  // every message send. Invalidated automatically when the encrypted value
-  // changes (i.e. when the user updates their key in settings).
   let cachedEncrypted: string | null = null;
   let cachedApiKey = '';
 
@@ -239,18 +129,14 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
     streamChat: async (messages, onDelta, options) => {
       const settings = await resolveSettings();
 
-      // LM Studio requires a local server - it is not reachable on mobile.
       if (settings.provider === 'lmstudio' && Platform.isMobile) {
         throw new Error(
           'LM Studio is not available on mobile. Switch to a cloud provider in Settings.'
         );
       }
 
-      // LM Studio native API - stateful, no full-history re-send.
-      // Only use the native API when server-side context exists (lmsResponseId
-      // set) or this is the very first message of a fresh conversation.
-      // For sessions loaded from disk, lmsResponseId is null but prior history
-      // exists - fall through to OpenAI-compatible path to send full history.
+      // LM Studio native API via requestUrl (bypasses CORS for local endpoints).
+      // Only use when server-side context exists or this is a fresh conversation.
       const nonSystemMessages = messages.filter((m) => m.role !== 'system');
       if (settings.provider === 'lmstudio' && (lmsResponseId !== null || nonSystemMessages.length <= 1)) {
         const { text, responseId } = await streamLmStudio(
@@ -260,7 +146,8 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
         return { text };
       }
 
-      return streamOpenAiCompat(settings, messages, onDelta, options?.signal);
+      const piTransport = buildPiTransport(settings);
+      return piTransport.streamChat(messages, onDelta, options);
     },
 
     clearSession: async () => {

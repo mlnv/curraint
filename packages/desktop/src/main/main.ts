@@ -19,7 +19,6 @@ import {
 } from './windows';
 import { registerIpcHandlers } from './ipcHandlers';
 import { loadSettings, saveSettings } from './settingsStore';
-import { warmupCopilotSession } from '@curraint/core';
 import { TrayManager } from './trayManager';
 
 configureAppRuntime();
@@ -181,20 +180,11 @@ app.whenReady().then(() => {
 
   registerQuickInputShortcut(settings.quickInputShortcut);
 
-  // Pre-warm Copilot if it is already the active provider.
-  if (settings.provider === 'copilot') {
-    void warmupCopilotSession(settings.model, settings.systemPrompt);
-  }
-
   registerIpcHandlers({
     getSettings: () => settings,
     saveSettings: (next) => {
       settings = saveSettings(next);
       registerQuickInputShortcut(settings.quickInputShortcut);
-      if (settings.provider === 'copilot') {
-        void warmupCopilotSession(settings.model, settings.systemPrompt);
-      }
-      // Broadcast updated settings to all windows (chat, quick-input, etc.)
       for (const win of BrowserWindow.getAllWindows()) {
         if (!win.isDestroyed()) {
           win.webContents.send(IPC_CHANNELS.settingsChanged, settings);

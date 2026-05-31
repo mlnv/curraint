@@ -1,104 +1,100 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestUrl, chatCompletionStream, composeConversation } = vi.hoisted(() => ({
+const { buildPiTransport } = vi.hoisted(() => ({
+  buildPiTransport: vi.fn(),
+}));
+
+const { requestUrl, Platform } = vi.hoisted(() => ({
   requestUrl: vi.fn(),
-  chatCompletionStream: vi.fn(),
-  composeConversation: vi.fn(),
+  Platform: { isMobile: false },
 }));
 
 vi.mock('obsidian', () => ({
   requestUrl,
-  Platform: { isMobile: false },
+  Platform,
 }));
 
 vi.mock('@curraint/core', () => ({
-  chatCompletionStream,
-  composeConversation,
+  buildPiTransport,
 }));
 
 import { buildTransport } from './transport';
 import type CurraintPlugin from './main';
 
-describe('buildTransport abort handling', () => {
+function makePlugin(provider = 'openai') {
+  return {
+    settings: {
+      provider,
+      apiKeyEncrypted: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o-mini',
+      systemPrompt: '',
+      contextMaxMessages: 40,
+      contextMaxCharacters: 24000,
+      enableSessionSaving: false,
+      mobileDeviceKey: '',
+    },
+    secrets: { decrypt: vi.fn().mockResolvedValue(''), encrypt: vi.fn() },
+  } satisfies Pick<CurraintPlugin, 'settings' | 'secrets'>;
+}
+
+describe('buildTransport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    composeConversation.mockImplementation((_settings, messages) => messages);
+    Platform.isMobile = false;
   });
 
-  it('does not start the non-streaming fallback when the signal is already aborted', async () => {
-    const controller = new AbortController();
-    controller.abort();
-    chatCompletionStream.mockRejectedValueOnce(new Error('stream failed'));
+  it('delegates to buildPiTransport for openai provider', async () => {
+    const piTransport = {
+      streamChat: vi.fn().mockResolvedValue({ text: 'Hello', usage: undefined }),
+      clearSession: vi.fn(),
+    };
+    buildPiTransport.mockReturnValue(piTransport);
 
-    const plugin = {
-      settings: {
-        provider: 'openai',
-        apiKeyEncrypted: '',
-        baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-4o-mini',
-        systemPrompt: '',
-        contextMaxMessages: 40,
-        contextMaxCharacters: 24000,
-        enableSessionSaving: false,
-        mobileDeviceKey: '',
-      },
-      secrets: { decrypt: vi.fn(), encrypt: vi.fn() },
-    } satisfies Pick<CurraintPlugin, 'settings' | 'secrets'>;
-
-    const transport = buildTransport(plugin);
-
+    const transport = buildTransport(makePlugin('openai'));
     const onDelta = vi.fn();
     const result = await transport.streamChat(
-      [{ role: 'user', content: 'Hello' }],
+      [{ role: 'user', content: 'Hi' }],
+      onDelta
+    );
+
+    expect(result).toEqual({ text: 'Hello', usage: undefined });
+    expect(buildPiTransport).toHaveBeenCalledTimes(1);
+    expect(piTransport.streamChat).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the abort signal to the pi transport', async () => {
+    const controller = new AbortController();
+    const piTransport = {
+      streamChat: vi.fn().mockResolvedValue({ text: '' }),
+      clearSession: vi.fn(),
+    };
+    buildPiTransport.mockReturnValue(piTransport);
+
+    const transport = buildTransport(makePlugin('openai'));
+    const onDelta = vi.fn();
+    await transport.streamChat(
+      [{ role: 'user', content: 'Hi' }],
       onDelta,
       { signal: controller.signal }
     );
 
-    expect(result).toEqual({ text: '' });
-    expect(requestUrl).not.toHaveBeenCalled();
-    expect(onDelta).not.toHaveBeenCalled();
-  });
-
-  it('drops the non-streaming fallback result when the signal aborts while waiting', async () => {
-    const controller = new AbortController();
-    chatCompletionStream.mockRejectedValueOnce(new Error('stream failed'));
-    requestUrl.mockImplementationOnce(async () => {
-      controller.abort();
-      return {
-        status: 200,
-        json: {
-          choices: [{ message: { content: 'Fallback response' } }],
-        },
-        text: '',
-      };
-    });
-
-    const plugin = {
-      settings: {
-        provider: 'openai',
-        apiKeyEncrypted: '',
-        baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-4o-mini',
-        systemPrompt: '',
-        contextMaxMessages: 40,
-        contextMaxCharacters: 24000,
-        enableSessionSaving: false,
-        mobileDeviceKey: '',
-      },
-      secrets: { decrypt: vi.fn(), encrypt: vi.fn() },
-    } satisfies Pick<CurraintPlugin, 'settings' | 'secrets'>;
-
-    const transport = buildTransport(plugin);
-
-    const onDelta = vi.fn();
-    const result = await transport.streamChat(
-      [{ role: 'user', content: 'Hello' }],
-      onDelta,
+    expect(piTransport.streamChat).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.any(Function),
       { signal: controller.signal }
     );
+  });
 
-    expect(result).toEqual({ text: '' });
-    expect(requestUrl).toHaveBeenCalledTimes(1);
-    expect(onDelta).not.toHaveBeenCalled();
+  it('throws for LM Studio on mobile', async () => {
+    Platform.isMobile = true;
+
+    const plugin = makePlugin('lmstudio');
+    const transport = buildTransport(plugin);
+    const onDelta = vi.fn();
+
+    await expect(
+      transport.streamChat([{ role: 'user', content: 'Hi' }], onDelta)
+    ).rejects.toThrow('LM Studio is not available on mobile');
   });
 });

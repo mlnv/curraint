@@ -6,6 +6,7 @@ describe('isProviderId', () => {
     expect(isProviderId('openai')).toBe(true);
     expect(isProviderId('lmstudio')).toBe(true);
     expect(isProviderId('custom')).toBe(true);
+    expect(isProviderId('deepseek')).toBe(true);
   });
 
   it('returns false for unknown provider values', () => {
@@ -24,10 +25,13 @@ describe('provider configs', () => {
   it('returns provider config by id', () => {
     expect(getProviderConfig('openai').label).toBe('OpenAI (Cloud)');
     expect(getProviderConfig('lmstudio').defaultBaseUrl).toBe('http://127.0.0.1:1234');
+    expect(getProviderConfig('deepseek').defaultModel).toBe('deepseek-v4-flash');
+    expect(getProviderConfig('deepseek').defaultBaseUrl).toBe('https://api.deepseek.com');
   });
 
   it('applies expected API key requirements', () => {
     expect(requiresApiKeyForProvider('openai')).toBe(true);
+    expect(requiresApiKeyForProvider('deepseek')).toBe(true);
     expect(requiresApiKeyForProvider('lmstudio')).toBe(false);
     expect(requiresApiKeyForProvider('custom')).toBe(false);
   });

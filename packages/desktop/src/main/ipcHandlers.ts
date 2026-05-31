@@ -3,12 +3,11 @@ import { IPC_CHANNELS, type ChatStreamChunkPayload, type ChatStreamPayload } fro
 import { debugLog, setDebugEnabled } from '@curraint/core';
 import {
   chatCompletion,
-  chatCompletionStream,
   testConnection
 } from '@curraint/core';
-import { copilotChatStream, copilotTestConnection, resetCopilotSession } from '@curraint/core';
 import { composeConversation } from '@curraint/core';
 import { listSessions, getSession, saveSession, deleteSession } from '@curraint/core';
+import { buildPiTransport } from '@curraint/core';
 import type { ChatMessage, SavedSession } from '@curraint/core';
 import { normalizeAppSettings } from '../appSettings';
 import type { AppSettings } from '../types';
@@ -102,17 +101,6 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
 
     const settings = settingsAccess.getSettings();
     const composed = composeConversation(settings, messages);
-
-    if (settings.provider === 'copilot') {
-      const result = await copilotChatStream(
-        settings.model,
-        composed,
-        { onDelta: () => {} }
-      );
-      settingsAccess.onAssistantMessage?.();
-      return result.message;
-    }
-
     const result = await chatCompletion(settings, composed);
     settingsAccess.onAssistantMessage?.();
     return result.message;
@@ -124,65 +112,15 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     }
 
     const settings = settingsAccess.getSettings();
-    const composed = composeConversation(settings, payload.messages);
-    let hasStreamedChunk = false;
-    let streamedMessage = '';
     const controller = new AbortController();
     activeStreamControllers.set(payload.requestId, controller);
 
-    // --- performance timing ---
-    const _perfT0 = performance.now();
-    let _perfFirstChunk = false;
-    debugLog('PERF:main', 'chatStream IPC handler invoked', { provider: settings.provider });
-
-    if (settings.provider === 'copilot') {
-      try {
-        const result = await copilotChatStream(
-          settings.model,
-          composed,
-          {
-            onDelta: (delta) => {
-              if (!_perfFirstChunk) {
-                _perfFirstChunk = true;
-                debugLog('PERF:main', `first chunk sent to renderer +${(performance.now() - _perfT0).toFixed(0)}ms since IPC handler start`);
-              }
-              hasStreamedChunk = true;
-              streamedMessage += delta;
-              const chunkPayload: ChatStreamChunkPayload = {
-                requestId: payload.requestId,
-                delta
-              };
-              try {
-                event.sender.send(IPC_CHANNELS.chatStreamChunk, chunkPayload);
-              } catch {
-                // renderer window closed mid-stream
-              }
-            }
-          },
-          { signal: controller.signal }
-        );
-        debugLog('PERF:main', `copilotChatStream resolved +${(performance.now() - _perfT0).toFixed(0)}ms total`);
-        settingsAccess.onAssistantMessage?.();
-        return { text: result.message, usage: result.usage };
-      } catch (error) {
-        if (isAbortError(error)) {
-          return { text: streamedMessage };
-        }
-        throw error;
-      } finally {
-        activeStreamControllers.delete(payload.requestId);
-      }
-    }
+    const piTransport = buildPiTransport(settings);
 
     try {
-      const result = await chatCompletionStream(settings, composed, {
-        onDelta: (delta) => {
-          if (!_perfFirstChunk) {
-            _perfFirstChunk = true;
-            debugLog('PERF:main', `first chunk sent to renderer +${(performance.now() - _perfT0).toFixed(0)}ms since IPC handler start`);
-          }
-          hasStreamedChunk = true;
-          streamedMessage += delta;
+      const result = await piTransport.streamChat(
+        payload.messages,
+        (delta) => {
           const chunkPayload: ChatStreamChunkPayload = {
             requestId: payload.requestId,
             delta
@@ -192,35 +130,18 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
           } catch {
             // renderer window closed mid-stream
           }
-        }
-      }, {
-        signal: controller.signal
-      });
-
-      debugLog('PERF:main', `chatCompletionStream resolved +${(performance.now() - _perfT0).toFixed(0)}ms total`);
+        },
+        { signal: controller.signal }
+      );
       settingsAccess.onAssistantMessage?.();
-      return { text: result.message, usage: result.usage };
+      return { text: result.text, usage: result.usage };
     } catch (error) {
       if (isAbortError(error)) {
-        return { text: streamedMessage };
+        return { text: '' };
       }
-
-      if (hasStreamedChunk) {
-        throw error;
-      }
-
-      const fallback = await chatCompletion(settings, composed);
-      settingsAccess.onAssistantMessage?.();
-      return { text: fallback.message, usage: fallback.usage };
+      throw error;
     } finally {
       activeStreamControllers.delete(payload.requestId);
-    }
-  });
-
-  ipcMain.handle(IPC_CHANNELS.chatClear, async () => {
-    const settings = settingsAccess.getSettings();
-    if (settings.provider === 'copilot') {
-      await resetCopilotSession(settings.model, settings.systemPrompt);
     }
   });
 
@@ -242,9 +163,6 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
     IPC_CHANNELS.testConnection,
     async (_event, payload: AppSettings) => {
       const settings = normalizeAppSettings(payload);
-      if (settings.provider === 'copilot') {
-        return copilotTestConnection(settings.model);
-      }
       return testConnection(settings);
     }
   );

@@ -7,7 +7,6 @@ import {
   requiresApiKeyForProvider,
   saveSettingsToFile,
   settingsFilePath,
-  stopCopilotClient,
 } from '@curraint/core';
 import { askSecret } from '../ask-secret';
 import { loadSettings } from '../settings';
@@ -54,10 +53,6 @@ export async function runProvider(ctx: CommandContext): Promise<CommandResult> {
   if (chosen.id === currentSettings.provider) {
     output.write(`Already using ${chosen.label}.\n`);
     return 'continue';
-  }
-
-  if (ENABLE_COPILOT_PROVIDER && currentSettings.provider === 'copilot') {
-    await stopCopilotClient();
   }
 
   const providerDefaults = getProviderConfig(chosen.id);

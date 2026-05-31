@@ -34,11 +34,20 @@ export const PROVIDER_CONFIGS: Record<ProviderId, ProviderConfig> = {
     defaultModel: 'gpt-4o',
     requiresApiKey: false,
     requiresBaseUrl: false
+  },
+  deepseek: {
+    id: 'deepseek',
+    label: 'DeepSeek (Cloud)',
+    defaultBaseUrl: 'https://api.deepseek.com',
+    defaultModel: 'deepseek-v4-flash',
+    requiresApiKey: true,
+    requiresBaseUrl: true
   }
 };
 
 export const PROVIDER_OPTIONS: ProviderConfig[] = [
   PROVIDER_CONFIGS.openai,
+  PROVIDER_CONFIGS.deepseek,
   PROVIDER_CONFIGS.lmstudio,
   PROVIDER_CONFIGS.custom,
   ...(ENABLE_COPILOT_PROVIDER ? [PROVIDER_CONFIGS.copilot] : [])

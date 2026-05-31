@@ -1,4 +1,4 @@
-export type ProviderId = 'openai' | 'lmstudio' | 'custom' | 'copilot';
+export type ProviderId = 'openai' | 'lmstudio' | 'custom' | 'copilot' | 'deepseek';
 
 export type TokenUsage = {
   prompt_tokens?: number;

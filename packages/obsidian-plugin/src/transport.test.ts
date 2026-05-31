@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildLmsUrl,
-  buildCompletionsUrl,
   resolveEffectiveLmsSettings,
 } from './transport';
 import type { EndpointSettings } from '@curraint/core';
@@ -40,36 +39,6 @@ describe('buildLmsUrl', () => {
 
   it('strips /v1/ (with trailing slash) as well', () => {
     expect(buildLmsUrl('http://localhost:1234/v1/')).toBe('http://localhost:1234/api/v1/chat');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// buildCompletionsUrl
-// ---------------------------------------------------------------------------
-
-describe('buildCompletionsUrl', () => {
-  it('appends /v1/chat/completions to a plain base URL', () => {
-    expect(buildCompletionsUrl('http://localhost:11434')).toBe(
-      'http://localhost:11434/v1/chat/completions'
-    );
-  });
-
-  it('strips a trailing slash before appending the path', () => {
-    expect(buildCompletionsUrl('http://localhost:11434/')).toBe(
-      'http://localhost:11434/v1/chat/completions'
-    );
-  });
-
-  it('does not double /v1 when the base URL already ends with /v1', () => {
-    expect(buildCompletionsUrl('https://api.openai.com/v1')).toBe(
-      'https://api.openai.com/v1/chat/completions'
-    );
-  });
-
-  it('does not double /v1 when the base URL already ends with /v1/', () => {
-    expect(buildCompletionsUrl('https://api.openai.com/v1/')).toBe(
-      'https://api.openai.com/v1/chat/completions'
-    );
   });
 });
 

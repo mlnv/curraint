@@ -1,8 +1,6 @@
 import { stdout as output } from 'node:process';
 import {
-  ENABLE_COPILOT_PROVIDER,
   normalizeSettings,
-  resetCopilotSession,
   saveSettingsToFile,
   settingsFilePath,
 } from '@curraint/core';
@@ -23,10 +21,6 @@ export async function runModel(ctx: CommandContext): Promise<CommandResult> {
   }
 
   const updated = normalizeSettings({ ...settings, model: newModel });
-
-  if (ENABLE_COPILOT_PROVIDER && updated.provider === 'copilot') {
-    await resetCopilotSession(updated.model, updated.systemPrompt);
-  }
 
   ctx.rebuildSession(updated);
 
