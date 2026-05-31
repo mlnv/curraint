@@ -1,0 +1,240 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch/tag/SHA to build from (empty = current branch)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  version:
+    name: Compute version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || '' }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${TAG#v}"
+            IS_PRE="false"
+          else
+            ROOT_VER=$(node -p "require('./package.json').version")
+            BRANCH=$(echo "${{ github.event.inputs.ref || github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-40)
+            TS=$(date -u +'%Y%m%d%H%M%S')
+            VERSION="${ROOT_VER}-dev.${BRANCH}.${TS}"
+            TAG="${VERSION}"
+            IS_PRE="true"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${IS_PRE}" >> "$GITHUB_OUTPUT"
+          echo "Version: ${VERSION}, Tag: ${TAG}, Prerelease: ${IS_PRE}"
+
+  build-core:
+    name: Build core
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || '' }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @curraint/core build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-dist
+          path: packages/core/dist/
+
+  build-obsidian:
+    name: Build Obsidian plugin
+    needs: [version, build-core]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || '' }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-dist
+          path: packages/core/dist/
+
+      - run: pnpm --filter @curraint/obsidian-plugin build
+
+      - name: Set manifest version
+        shell: bash
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          cd packages/obsidian-plugin/dist
+          jq ".version = \"${VERSION}\"" manifest.json > tmp.json && mv tmp.json manifest.json
+          echo "manifest.json version set to: ${VERSION}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-plugin
+          path: |
+            packages/obsidian-plugin/dist/main.js
+            packages/obsidian-plugin/dist/manifest.json
+            packages/obsidian-plugin/dist/styles.css
+
+  build-cli:
+    name: Build CLI
+    needs: [version, build-core]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || '' }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-dist
+          path: packages/core/dist/
+
+      - run: pnpm --filter @curraint/cli package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli
+          path: packages/cli/dist/index.js
+
+  desktop-matrix:
+    name: Package Desktop (${{ matrix.os }})
+    needs: [version, build-core]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            runner: windows-latest
+            build-flag: --win
+            artifact-pattern: |
+              packages/desktop/dist/**/*.exe
+              packages/desktop/dist/**/latest*.yml
+          - os: macos
+            runner: macos-latest
+            build-flag: --mac
+            artifact-pattern: |
+              packages/desktop/dist/**/*.dmg
+              packages/desktop/dist/**/*.zip
+          - os: linux
+            runner: ubuntu-latest
+            build-flag: --linux
+            artifact-pattern: |
+              packages/desktop/dist/**/*.AppImage
+              packages/desktop/dist/**/*.deb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || '' }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-dist
+          path: packages/core/dist/
+
+      - run: pnpm --filter @curraint/desktop package -- ${{ matrix.build-flag }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: ${{ matrix.artifact-pattern }}
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: [version, build-obsidian, build-cli, desktop-matrix]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          prerelease: ${{ needs.version.outputs.is_prerelease == 'true' }}
+          generate_release_notes: true
+          files: release-artifacts/**/*
+
+      - name: Print usage info
+        shell: bash
+        run: |
+          TAG="${{ needs.version.outputs.tag }}"
+          REPO="${{ github.repository }}"
+          echo ""
+          echo "Release created: ${TAG}"
+          echo ""
+
+          if [[ "${{ needs.version.outputs.is_prerelease }}" == "true" ]]; then
+            echo "=== Obsidian (BRAT) ==="
+            echo "  Repository:    ${REPO}"
+            echo "  Frozen version: ${TAG}"
+            echo ""
+            echo "  Add this repo in BRAT settings with the frozen version above."
+          fi
