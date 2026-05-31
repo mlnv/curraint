@@ -39,8 +39,7 @@ test.describe('tray chat window', () => {
 
     // Hide via the IPC call (same path as pressing Escape)
     await chatPage.evaluate(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (window as any).curraint.hideChatWindow();
+      await window.curraint.hideChatWindow();
     });
 
     await expect

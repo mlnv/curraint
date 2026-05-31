@@ -5,7 +5,7 @@ import type { EndpointSettings } from '../settings/types';
 import { PROVIDER_CONFIGS } from '../providers/configs';
 
 export interface ResolvedModel {
-  model: Model<any>;
+  model: Model<Api>;
 }
 
 function createCustomModel(settings: EndpointSettings, fallbackId?: string): Model<'openai-completions'> {
@@ -94,7 +94,7 @@ export function resolvePiModel(settings: EndpointSettings): ResolvedModel {
   return { model: createCustomModel(settings) };
 }
 
-function tryGetModel<TProvider extends string>(provider: TProvider, modelId: string): Model<any> | undefined {
+function tryGetModel<TProvider extends string>(provider: TProvider, modelId: string): Model<Api> | undefined {
   try {
     return getModel(provider as any, modelId as any);
   } catch {

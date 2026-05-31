@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { curraintToPiMessages, piToCurraintMessages, extractPiAssistantContent, extractPiUsage } from './message-mapper';
 import type { ChatMessage } from '../types';
-import type { UserMessage, AssistantMessage, ToolResultMessage } from '@earendil-works/pi-ai';
+import type { UserMessage, AssistantMessage, ToolResultMessage, Usage } from '@earendil-works/pi-ai';
 
 describe('message-mapper', () => {
   describe('curraintToPiMessages', () => {
@@ -231,7 +231,7 @@ describe('message-mapper', () => {
         api: 'openai-completions',
         provider: 'openai',
         model: 'gpt-4o',
-        usage: undefined as any,
+        usage: undefined as unknown as Usage,
         stopReason: 'stop',
         timestamp: 0
       };

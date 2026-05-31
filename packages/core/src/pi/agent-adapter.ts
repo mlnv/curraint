@@ -1,6 +1,6 @@
 import { Agent } from '@earendil-works/pi-agent-core';
 import type { AgentEvent, AgentMessage } from '@earendil-works/pi-agent-core';
-import type { Message } from '@earendil-works/pi-ai';
+import type { Message, TextContent, ImageContent, ThinkingContent, ToolCall } from '@earendil-works/pi-ai';
 
 import type { ChatMessage } from '../types';
 import type { EndpointSettings } from '../settings/types';
@@ -90,7 +90,7 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
         } else if (event.message.role === 'user') {
           const content = typeof event.message.content === 'string'
             ? event.message.content
-            : event.message.content.map((c: any) => c.text ?? '').join('');
+            : event.message.content.map((c: TextContent | ImageContent) => c.type === 'text' ? c.text : '').join('');
           // Guard against duplicate: submitPrompt / edit / retry all push the
           // user message immediately so the UI shows it synchronously, then the
           // agent replays it via message_start.  Skip the agent-driven append
@@ -147,7 +147,9 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
           const lastIdx = msgs.length - 1;
           if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
             const content = event.message.content
-              .map((c: any) => c.text ?? c.thinking ?? '')
+                .map((c: TextContent | ThinkingContent | ToolCall) =>
+                  c.type === 'text' ? c.text : c.type === 'thinking' ? c.thinking : ''
+                )
               .join('');
             msgs[lastIdx] = {
               ...msgs[lastIdx]!,
