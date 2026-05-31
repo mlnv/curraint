@@ -53,15 +53,27 @@ async function showWindow(app: ElectronApplication, urlFragment: string): Promis
   );
 }
 
+const APP_CLOSE_TIMEOUT_MS = 10_000;
+
 async function closeElectronApp(app: ElectronApplication): Promise<void> {
   try {
     const closed = app.waitForEvent('close', { timeout: 5_000 });
-    await app.evaluate(({ app: electronApp }) => {
-      electronApp.quit();
-    });
+    const quitTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Timed out waiting for app.quit()')), APP_CLOSE_TIMEOUT_MS),
+    );
+    await Promise.race([
+      app.evaluate(({ app: electronApp }) => {
+        electronApp.quit();
+      }),
+      quitTimeout,
+    ]);
     await closed;
   } catch {
-    await app.close();
+    try {
+      await app.close();
+    } catch {
+      // Process is completely unresponsive; let worker teardown handle it
+    }
   }
 }
 
@@ -73,7 +85,12 @@ export const test = base.extend<ElectronFixtures>({
     try {
       const app = await electronLauncher.launch({
         executablePath: electronExecutable,
-        args: [desktopMain, ...(process.env.CI ? ['--no-sandbox', '--disable-dev-shm-usage'] : [])],
+        args: [
+          desktopMain,
+          ...(process.env.CI
+            ? ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+            : []),
+        ],
         env: {
           ...process.env,
           NODE_ENV: 'test',
