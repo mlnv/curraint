@@ -35,20 +35,8 @@ function createContextTransformer(settings: EndpointSettings) {
     if (settings.contextMaxMessages <= 0) {
       return messages;
     }
-
-    const hasSystemMsg = messages.length > 0 && messages[0]?.role === 'system';
-
-    const trimmed: AgentMessage[] = [];
-    if (hasSystemMsg && settings.systemPrompt) {
-      trimmed.push(messages[0]!);
-    }
-
-    const nonSystem = messages.filter(m => m.role !== 'system');
     const limit = Math.max(1, settings.contextMaxMessages);
-    const slice = nonSystem.slice(-limit);
-    trimmed.push(...slice);
-
-    return trimmed;
+    return messages.slice(-limit);
   };
 }
 
