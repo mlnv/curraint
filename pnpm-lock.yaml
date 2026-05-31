@@ -60,10 +60,6 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.11)(jsdom@28.1.0)
-    optionalDependencies:
-      '@github/copilot-sdk':
-        specifier: ^0.2.0
-        version: 0.2.0
 
   packages/desktop:
     dependencies:
