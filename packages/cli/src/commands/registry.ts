@@ -8,6 +8,7 @@ import { runProvider } from './provider';
 import { runModel } from './model';
 import { runSessions } from './sessions';
 import { runSessionsSave } from './sessions-save';
+import { runProfile } from './profile';
 import type { CommandContext, CommandResult } from './types';
 
 export async function dispatchSlashCommand(
@@ -27,6 +28,7 @@ export async function dispatchSlashCommand(
   if (text === '/exit')     return 'break';
   if (text === '/provider') return runProvider(ctx);
   if (text === '/model')    return runModel(ctx);
+  if (text.startsWith('/profile')) return runProfile(ctx, text.slice('/profile'.length).trim());
   if (text.startsWith('/edit')) return runEdit(text, ctx);
   if (text === '/retry')    return runRetry(ctx);
   if (text.startsWith('/')) {
