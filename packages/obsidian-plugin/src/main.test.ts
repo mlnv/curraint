@@ -35,8 +35,13 @@ describe('CurraintPlugin - mobile onload', () => {
     vi.spyOn(plugin, 'loadSettings').mockImplementation(async () => {
       plugin.settings = {
         ...DEFAULT_PLUGIN_SETTINGS,
-        provider: 'lmstudio',
-        baseUrl: 'http://127.0.0.1:1234/v1',
+        profiles: {
+          default: {
+            ...DEFAULT_PLUGIN_SETTINGS.profiles.default,
+            provider: 'lmstudio' as const,
+            baseUrl: 'http://127.0.0.1:1234/v1',
+          },
+        },
         mobileDeviceKey: '',
       };
     });
@@ -51,8 +56,8 @@ describe('CurraintPlugin - mobile onload', () => {
     expect(generateMobileDeviceKey).toHaveBeenCalledTimes(1);
     expect(saveSettings).toHaveBeenCalledTimes(1);
     expect(plugin.settings.mobileDeviceKey).toBe('generated-mobile-key');
-    expect(plugin.settings.provider).toBe('openai');
-    expect(plugin.settings.baseUrl).toBe(PROVIDER_CONFIGS.openai.defaultBaseUrl);
+    expect(plugin.settings.profiles.default.provider).toBe('openai');
+    expect(plugin.settings.profiles.default.baseUrl).toBe(PROVIDER_CONFIGS.openai.defaultBaseUrl);
     expect(createSecretsStrategy).toHaveBeenCalledWith(true, 'generated-mobile-key');
   });
 });

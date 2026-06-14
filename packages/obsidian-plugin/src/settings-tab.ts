@@ -16,12 +16,14 @@ export class CurraintSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
+    const profile = this.plugin.settings.profiles[this.plugin.settings.activeProfileId];
+
     // Pre-decrypt before rendering so the API key field can be populated
     // synchronously inside the Obsidian Settings builder callbacks.
     let decryptedApiKey = '';
-    if (this.plugin.settings.apiKeyEncrypted) {
+    if (profile?.apiKeyEncrypted) {
       try {
-        decryptedApiKey = await this.plugin.secrets.decrypt(this.plugin.settings.apiKeyEncrypted);
+        decryptedApiKey = await this.plugin.secrets.decrypt(profile.apiKeyEncrypted);
       } catch {
         new Notice('Failed to decrypt the stored API key. Re-enter it to continue.');
       }
@@ -34,9 +36,51 @@ export class CurraintSettingTab extends PluginSettingTab {
       ? PROVIDER_OPTIONS.filter((p) => p.id !== 'lmstudio')
       : PROVIDER_OPTIONS;
 
-    this.renderProviderSection(containerEl, providerOptions, decryptedApiKey);
+    this.renderProfileSelector(containerEl);
+    this.renderProviderSection(containerEl, providerOptions, decryptedApiKey, profile);
     this.renderContextLimitsSection(containerEl);
     this.renderSessionsSection(containerEl);
+  }
+
+  private renderProfileSelector(el: HTMLElement): void {
+    const profiles = this.plugin.settings.profiles;
+    const activeId = this.plugin.settings.activeProfileId;
+    const entries = Object.values(profiles);
+
+    if (entries.length <= 1) return;
+
+    new Setting(el)
+      .setName('Active profile')
+      .setDesc('Select the profile to use for chat.')
+      .addDropdown((drop) => {
+        for (const p of entries) {
+          drop.addOption(p.id, p.name);
+        }
+        drop.setValue(activeId);
+        drop.onChange(async (value) => {
+          this.plugin.settings.activeProfileId = value;
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+  }
+
+  private activeProfile(): NonNullable<typeof this.plugin.settings.profiles[string]> {
+    return (
+      this.plugin.settings.profiles[this.plugin.settings.activeProfileId] ??
+      (() => {
+        this.plugin.settings.profiles.default = {
+          id: 'default', name: 'Default', provider: 'openai',
+          apiKeyEncrypted: '', baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini',
+          systemPrompt: 'You are a helpful assistant.',
+          contextMaxMessages: 40, contextMaxCharacters: 24000,
+          enableSessionSaving: false,
+        };
+        this.plugin.settings.activeProfileId = 'default';
+        return this.plugin.settings.profiles.default!;
+      })()
+    );
   }
 
   private renderProviderSection(
@@ -44,6 +88,7 @@ export class CurraintSettingTab extends PluginSettingTab {
     providerOptions: typeof PROVIDER_OPTIONS,
     decryptedApiKey: string,
   ): void {
+    const profile = this.activeProfile();
     new Setting(el)
       .setName('Provider')
       .setDesc('AI provider to use for chat completions.')
@@ -51,20 +96,20 @@ export class CurraintSettingTab extends PluginSettingTab {
         for (const p of providerOptions) {
           drop.addOption(p.id, p.label);
         }
-        drop.setValue(this.plugin.settings.provider);
+        drop.setValue(profile.provider);
         drop.onChange(async (value) => {
-          const newProvider = value as typeof this.plugin.settings.provider;
+          const newProvider = value as typeof profile.provider;
           const config = PROVIDER_OPTIONS.find((p) => p.id === newProvider);
-          this.plugin.settings.provider = newProvider;
-          this.plugin.settings.baseUrl = config?.defaultBaseUrl ?? '';
-          this.plugin.settings.model = config?.defaultModel ?? '';
+          profile.provider = newProvider;
+          profile.baseUrl = config?.defaultBaseUrl ?? '';
+          profile.model = config?.defaultModel ?? '';
           await this.plugin.saveSettings();
           this.display();
         });
       });
 
     const selectedProvider = PROVIDER_OPTIONS.find(
-      (p) => p.id === this.plugin.settings.provider
+      (p) => p.id === profile.provider
     );
 
     if (selectedProvider?.requiresBaseUrl) {
@@ -74,9 +119,9 @@ export class CurraintSettingTab extends PluginSettingTab {
         .addText((text) =>
           text
             .setPlaceholder(selectedProvider.defaultBaseUrl)
-            .setValue(this.plugin.settings.baseUrl)
+            .setValue(profile.baseUrl ?? '')
             .onChange(async (value) => {
-              this.plugin.settings.baseUrl = value.trim();
+              profile.baseUrl = value.trim();
               await this.plugin.saveSettings();
             })
         );
@@ -88,9 +133,9 @@ export class CurraintSettingTab extends PluginSettingTab {
       .addText((text) =>
         text
           .setPlaceholder(selectedProvider?.defaultModel ?? 'gpt-4o-mini')
-          .setValue(this.plugin.settings.model)
+          .setValue(profile.model ?? '')
           .onChange(async (value) => {
-            this.plugin.settings.model = value.trim();
+            profile.model = value.trim();
             await this.plugin.saveSettings();
           })
       );
@@ -112,7 +157,7 @@ export class CurraintSettingTab extends PluginSettingTab {
                 ? await this.plugin.secrets.encrypt(value.trim())
                 : '';
               if (requestId !== this.apiKeyRequestId) return;
-              this.plugin.settings.apiKeyEncrypted = encrypted;
+              profile.apiKeyEncrypted = encrypted;
               await this.plugin.saveSettings();
             });
         });
@@ -123,15 +168,16 @@ export class CurraintSettingTab extends PluginSettingTab {
       .setDesc('Default system prompt prepended to every conversation.')
       .addTextArea((text) =>
         text
-          .setValue(this.plugin.settings.systemPrompt)
+          .setValue(profile.systemPrompt ?? '')
           .onChange(async (value) => {
-            this.plugin.settings.systemPrompt = value;
+            profile.systemPrompt = value;
             await this.plugin.saveSettings();
           })
       );
   }
 
   private renderContextLimitsSection(el: HTMLElement): void {
+    const profile = this.activeProfile();
     new Setting(el).setName('Context limits').setHeading();
 
     new Setting(el)
@@ -139,9 +185,9 @@ export class CurraintSettingTab extends PluginSettingTab {
       .setDesc('Maximum number of messages kept in context (4-120).')
       .addText((text) =>
         text
-          .setValue(String(this.plugin.settings.contextMaxMessages))
+          .setValue(String(profile.contextMaxMessages ?? 40))
           .onChange(async (value) => {
-            const previousValue = this.plugin.settings.contextMaxMessages;
+            const previousValue = profile.contextMaxMessages ?? 40;
             if (value === String(previousValue)) return;
             const num = Number.parseInt(value, 10);
             if (Number.isNaN(num) || num < 4 || num > 120) {
@@ -149,7 +195,7 @@ export class CurraintSettingTab extends PluginSettingTab {
               text.setValue(String(previousValue));
               return;
             }
-            this.plugin.settings.contextMaxMessages = num;
+            profile.contextMaxMessages = num;
             await this.plugin.saveSettings();
           })
       );
@@ -159,9 +205,9 @@ export class CurraintSettingTab extends PluginSettingTab {
       .setDesc('Maximum total characters kept in context (4000-200000).')
       .addText((text) =>
         text
-          .setValue(String(this.plugin.settings.contextMaxCharacters))
+          .setValue(String(profile.contextMaxCharacters ?? 24000))
           .onChange(async (value) => {
-            const previousValue = this.plugin.settings.contextMaxCharacters;
+            const previousValue = profile.contextMaxCharacters ?? 24000;
             if (value === String(previousValue)) return;
             const num = Number.parseInt(value, 10);
             if (Number.isNaN(num) || num < 4000 || num > 200000) {
@@ -169,13 +215,14 @@ export class CurraintSettingTab extends PluginSettingTab {
               text.setValue(String(previousValue));
               return;
             }
-            this.plugin.settings.contextMaxCharacters = num;
+            profile.contextMaxCharacters = num;
             await this.plugin.saveSettings();
           })
       );
   }
 
   private renderSessionsSection(el: HTMLElement): void {
+    const profile = this.activeProfile();
     new Setting(el).setName('Sessions').setHeading();
 
     new Setting(el)
@@ -186,9 +233,9 @@ export class CurraintSettingTab extends PluginSettingTab {
       )
       .addToggle((toggle) =>
         toggle
-          .setValue(this.plugin.settings.enableSessionSaving)
+          .setValue(profile.enableSessionSaving ?? false)
           .onChange(async (value) => {
-            this.plugin.settings.enableSessionSaving = value;
+            profile.enableSessionSaving = value;
             await this.plugin.saveSettings();
           })
       );
@@ -201,21 +248,22 @@ export class CurraintSettingTab extends PluginSettingTab {
           btn.setDisabled(true);
           btn.setButtonText('Testing...');
           try {
-            const apiKey = this.plugin.settings.apiKeyEncrypted
-              ? await this.plugin.secrets.decrypt(this.plugin.settings.apiKeyEncrypted)
+            const p = this.activeProfile();
+            const apiKey = p.apiKeyEncrypted
+              ? await this.plugin.secrets.decrypt(p.apiKeyEncrypted)
               : '';
             const endpointSettings = {
-              provider: this.plugin.settings.provider,
+              provider: p.provider,
               apiKey,
-              baseUrl: this.plugin.settings.baseUrl,
-              model: this.plugin.settings.model,
-              systemPrompt: this.plugin.settings.systemPrompt,
-              contextMaxMessages: this.plugin.settings.contextMaxMessages,
-              contextMaxCharacters: this.plugin.settings.contextMaxCharacters,
-              enableSessionSaving: this.plugin.settings.enableSessionSaving,
+              baseUrl: p.baseUrl ?? '',
+              model: p.model ?? '',
+              systemPrompt: p.systemPrompt ?? '',
+              contextMaxMessages: p.contextMaxMessages ?? 40,
+              contextMaxCharacters: p.contextMaxCharacters ?? 24000,
+              enableSessionSaving: p.enableSessionSaving ?? false,
             };
             const message =
-              this.plugin.settings.provider === 'lmstudio' && !Platform.isMobile
+              p.provider === 'lmstudio' && !Platform.isMobile
                 ? await testLmStudioConnection(endpointSettings)
                 : await testConnection(endpointSettings);
             new Notice(message);

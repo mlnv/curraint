@@ -24,14 +24,21 @@ import type CurraintPlugin from './main';
 function makePlugin(provider = 'openai') {
   return {
     settings: {
-      provider,
-      apiKeyEncrypted: '',
-      baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4o-mini',
-      systemPrompt: '',
-      contextMaxMessages: 40,
-      contextMaxCharacters: 24000,
-      enableSessionSaving: false,
+      activeProfileId: 'default',
+      profiles: {
+        default: {
+          id: 'default',
+          name: 'Default',
+          provider,
+          apiKeyEncrypted: '',
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini',
+          systemPrompt: '',
+          contextMaxMessages: 40,
+          contextMaxCharacters: 24000,
+          enableSessionSaving: false,
+        },
+      },
       mobileDeviceKey: '',
     },
     secrets: { decrypt: vi.fn().mockResolvedValue(''), encrypt: vi.fn() },

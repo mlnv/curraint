@@ -1,7 +1,7 @@
 import { Plugin, Platform } from 'obsidian';
 import { CurraintSettingTab } from './settings-tab';
 import { ChatView, CHAT_VIEW_TYPE } from './chat/chat-view';
-import type { PluginSettings } from './types';
+import type { PluginSettings, PluginProfile } from './types';
 import { PROVIDER_CONFIGS } from '@curraint/core';
 import {
   type SecretsStrategy,
@@ -9,7 +9,9 @@ import {
   generateMobileDeviceKey,
 } from './secrets';
 
-export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
+const DEFAULT_PROFILE: PluginProfile = {
+  id: 'default',
+  name: 'Default',
   provider: 'openai',
   apiKeyEncrypted: '',
   baseUrl: 'https://api.openai.com/v1',
@@ -18,8 +20,43 @@ export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
   contextMaxMessages: 40,
   contextMaxCharacters: 24000,
   enableSessionSaving: false,
+};
+
+export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
+  activeProfileId: 'default',
+  profiles: { default: { ...DEFAULT_PROFILE } },
   mobileDeviceKey: '',
 };
+
+function migrateLegacySettings(raw: Record<string, unknown>): PluginSettings | null {
+  if (typeof raw['activeProfileId'] === 'string' && typeof raw['profiles'] === 'object') {
+    return null;
+  }
+
+  const provider = (raw['provider'] as string) ?? 'openai';
+  const validProvider = (PROVIDER_CONFIGS as Record<string, unknown>)[provider]
+    ? (provider as PluginProfile['provider'])
+    : 'openai';
+
+  const profile: PluginProfile = {
+    id: 'default',
+    name: 'Default',
+    provider: validProvider,
+    apiKeyEncrypted: (raw['apiKeyEncrypted'] as string) ?? '',
+    baseUrl: (raw['baseUrl'] as string) || undefined,
+    model: (raw['model'] as string) || undefined,
+    systemPrompt: (raw['systemPrompt'] as string) || undefined,
+    contextMaxMessages: typeof raw['contextMaxMessages'] === 'number' ? raw['contextMaxMessages'] as number : undefined,
+    contextMaxCharacters: typeof raw['contextMaxCharacters'] === 'number' ? raw['contextMaxCharacters'] as number : undefined,
+    enableSessionSaving: typeof raw['enableSessionSaving'] === 'boolean' ? raw['enableSessionSaving'] as boolean : undefined,
+  };
+
+  return {
+    activeProfileId: 'default',
+    profiles: { default: profile },
+    mobileDeviceKey: (raw['mobileDeviceKey'] as string) ?? '',
+  };
+}
 
 export default class CurraintPlugin extends Plugin {
   settings: PluginSettings = { ...DEFAULT_PLUGIN_SETTINGS };
@@ -31,16 +68,15 @@ export default class CurraintPlugin extends Plugin {
     if (Platform.isMobile) {
       let shouldSaveSettings = false;
 
-      // Generate a device key on first mobile run - used by MobileSecretsStrategy.
       if (!this.settings.mobileDeviceKey) {
         this.settings.mobileDeviceKey = generateMobileDeviceKey();
         shouldSaveSettings = true;
       }
-      // LM Studio requires a local server, which is not reachable from mobile.
-      // Reset to OpenAI if the provider was synced from a desktop vault.
-      if (this.settings.provider === 'lmstudio') {
-        this.settings.provider = 'openai';
-        this.settings.baseUrl = PROVIDER_CONFIGS.openai.defaultBaseUrl;
+
+      const activeProfile = this.settings.profiles[this.settings.activeProfileId];
+      if (activeProfile && activeProfile.provider === 'lmstudio') {
+        activeProfile.provider = 'openai';
+        activeProfile.baseUrl = PROVIDER_CONFIGS.openai.defaultBaseUrl;
         shouldSaveSettings = true;
       }
 
@@ -61,14 +97,14 @@ export default class CurraintPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'open-chat',
+      id: 'open-curraint-chat',
       name: 'Open chat',
       callback: () => this.activateChatView(),
     });
 
     this.addCommand({
-      id: 'open-chat-with-note',
-      name: 'Open chat with current note as context',
+      id: 'open-curraint-chat-with-note',
+      name: 'Open chat with current note',
       callback: () => this.activateChatView({ injectNote: true }),
     });
 
@@ -85,10 +121,14 @@ export default class CurraintPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = {
-      ...DEFAULT_PLUGIN_SETTINGS,
-      ...(await this.loadData()),
-    };
+    const raw = (await this.loadData()) ?? {};
+    const migrated = migrateLegacySettings(raw);
+    if (migrated) {
+      this.settings = migrated;
+      await this.saveSettings();
+      return;
+    }
+    this.settings = Object.assign({ ...DEFAULT_PLUGIN_SETTINGS }, raw) as PluginSettings;
   }
 
   async saveSettings(): Promise<void> {
