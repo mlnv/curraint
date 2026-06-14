@@ -1,45 +1,46 @@
 import { getProviderConfig, PROVIDER_OPTIONS } from '@curraint/core';
-import type { AppSettings, SavedConnection } from '@curraint/core';
+import type { AppSettings, Profile, SettingsFileV2 } from '@curraint/core';
 import { THEME_OPTIONS } from '../../lib/theme';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
-import { SavedConnections } from './saved-connections';
+import { Profiles } from './profiles';
 import { ShortcutRecorder } from './shortcut-recorder';
 
 type Props = {
   form: AppSettings;
   shortcutRegistered: boolean | undefined;
+  profiles: SettingsFileV2;
   onProviderChange: (provider: AppSettings['provider']) => void;
   onFieldChange: <K extends keyof AppSettings>(
     key: K,
     value: AppSettings[K]
   ) => void;
-  onLoadConnection: (connection: SavedConnection) => void;
-  onSaveConnection: (name: string) => void;
-  onDeleteConnection: (id: string) => void;
+  onLoadProfile: (profile: Profile) => void;
+  onSaveProfile: (name: string) => void;
+  onDeleteProfile: (id: string) => void;
   onOpenLogFolder: () => void;
 };
-
 export function SettingsFormFields({
   form,
   shortcutRegistered,
+  profiles,
   onProviderChange,
   onFieldChange,
-  onLoadConnection,
-  onSaveConnection,
-  onDeleteConnection,
+  onLoadProfile,
+  onSaveProfile,
+  onDeleteProfile,
   onOpenLogFolder
 }: Props): React.JSX.Element {
   const providerConfig = getProviderConfig(form.provider);
 
   return (
     <>
-      <SavedConnections
-        connections={form.savedConnections}
-        onLoad={onLoadConnection}
-        onSave={onSaveConnection}
-        onDelete={onDeleteConnection}
+      <Profiles
+        profiles={profiles}
+        onLoad={onLoadProfile}
+        onSave={onSaveProfile}
+        onDelete={onDeleteProfile}
       />
 
       <div className="space-y-1.5">

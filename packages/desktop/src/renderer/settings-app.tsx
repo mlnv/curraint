@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { getProviderConfig } from '@curraint/core';
-import type { AppSettings, SavedConnection } from '@curraint/core';
+import { getProviderConfig, DEFAULT_PROFILE_ID } from '@curraint/core';
+import type { AppSettings, Profile, SettingsFileV2 } from '@curraint/core';
 import { Card } from './components/ui/card';
 import { SettingsFormActions } from './components/settings/settings-form-actions';
 import { SettingsFormFields } from './components/settings/settings-form-fields';
@@ -20,7 +20,6 @@ const EMPTY_FORM: FormState = {
   enableSessionSaving: false,
   contextMaxMessages: 40,
   contextMaxCharacters: 24000,
-  savedConnections: [],
   quickInputShortcut: 'CommandOrControl+Shift+A',
   theme: 'black'
 };
@@ -31,6 +30,11 @@ export function SettingsApp(): React.JSX.Element {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [shortcutRegistered, setShortcutRegistered] = useState<boolean | undefined>(undefined);
+  const [profiles, setProfiles] = useState<SettingsFileV2>({
+    version: 2,
+    activeProfileId: DEFAULT_PROFILE_ID,
+    profiles: {}
+  });
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -51,37 +55,53 @@ export function SettingsApp(): React.JSX.Element {
     }));
   };
 
-  const loadConnection = (conn: SavedConnection): void => {
+  const loadProfile = (profile: Profile): void => {
     setForm((prev) => ({
       ...prev,
-      provider: conn.provider,
-      apiKey: conn.apiKey,
-      baseUrl: conn.baseUrl,
-      model: conn.model
+      provider: profile.provider,
+      baseUrl: profile.baseUrl ?? prev.baseUrl,
+      model: profile.model ?? prev.model,
+      systemPrompt: profile.systemPrompt ?? prev.systemPrompt,
+      contextMaxMessages: profile.contextMaxMessages ?? prev.contextMaxMessages,
+      contextMaxCharacters: profile.contextMaxCharacters ?? prev.contextMaxCharacters,
+      enableSessionSaving: profile.enableSessionSaving ?? prev.enableSessionSaving
     }));
   };
 
-  const saveConnection = (name: string): void => {
-    const newConn: SavedConnection = {
-      id: Date.now().toString(36),
+  const saveProfile = (name: string): void => {
+    const id = Date.now().toString(36);
+    const newProfile: Profile = {
+      id,
       name,
       provider: form.provider,
-      apiKey: form.apiKey.trim(),
       baseUrl: form.baseUrl.trim(),
-      model: form.model.trim()
+      model: form.model.trim(),
+      systemPrompt: form.systemPrompt.trim(),
+      contextMaxMessages: form.contextMaxMessages,
+      contextMaxCharacters: form.contextMaxCharacters,
+      enableSessionSaving: form.enableSessionSaving
     };
 
-    setForm((prev) => ({
-      ...prev,
-      savedConnections: [...prev.savedConnections, newConn]
-    }));
+    const next: SettingsFileV2 = {
+      ...profiles,
+      profiles: { ...profiles.profiles, [id]: newProfile }
+    };
+    setProfiles(next);
+    window.curraint.saveProfiles(next).catch(() => {});
   };
 
-  const deleteConnection = (id: string): void => {
-    setForm((prev) => ({
-      ...prev,
-      savedConnections: prev.savedConnections.filter((c) => c.id !== id)
-    }));
+  const deleteProfile = (id: string): void => {
+    const { [id]: _, ...remaining } = profiles.profiles;
+    const activeProfileId = profiles.activeProfileId === id
+      ? DEFAULT_PROFILE_ID
+      : profiles.activeProfileId;
+    const next: SettingsFileV2 = {
+      ...profiles,
+      activeProfileId,
+      profiles: remaining
+    };
+    setProfiles(next);
+    window.curraint.saveProfiles(next).catch(() => {});
   };
 
   useEffect(() => {
@@ -95,6 +115,14 @@ export function SettingsApp(): React.JSX.Element {
       .catch((error: unknown) => {
         setStatus(toErrorMessage(error, 'Failed to load settings'));
       });
+
+    window.curraint
+      .getProfiles()
+      .then((v2) => {
+        if (!v2) return;
+        setProfiles(v2);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -120,7 +148,6 @@ export function SettingsApp(): React.JSX.Element {
         enableSessionSaving: form.enableSessionSaving,
         contextMaxMessages: form.contextMaxMessages,
         contextMaxCharacters: form.contextMaxCharacters,
-        savedConnections: form.savedConnections,
         quickInputShortcut: form.quickInputShortcut,
         theme: form.theme
       });
@@ -149,7 +176,6 @@ export function SettingsApp(): React.JSX.Element {
         enableSessionSaving: form.enableSessionSaving,
         contextMaxMessages: form.contextMaxMessages,
         contextMaxCharacters: form.contextMaxCharacters,
-        savedConnections: form.savedConnections,
         quickInputShortcut: form.quickInputShortcut,
         theme: form.theme
       });
@@ -175,11 +201,12 @@ export function SettingsApp(): React.JSX.Element {
             <SettingsFormFields
               form={form}
               shortcutRegistered={shortcutRegistered}
+              profiles={profiles}
               onProviderChange={updateProvider}
               onFieldChange={updateField}
-              onLoadConnection={loadConnection}
-              onSaveConnection={saveConnection}
-              onDeleteConnection={deleteConnection}
+              onLoadProfile={loadProfile}
+              onSaveProfile={saveProfile}
+              onDeleteProfile={deleteProfile}
               onOpenLogFolder={() => { void window.curraint.openLogFolder(); }}
             />
           </div>
