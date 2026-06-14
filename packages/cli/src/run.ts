@@ -4,9 +4,8 @@ import {
   createChatSessionCore,
   settingsFilePath,
   loadProfilesFromFile,
-  saveProfilesToFile,
 } from '@curraint/core';
-import type { ChatSessionCore, EndpointSettings, SettingsFileV2 } from '@curraint/core';
+import type { ChatSessionCore, EndpointSettings } from '@curraint/core';
 import { c, divider } from './theme';
 import { buildTransport } from './transport';
 import { readLineWithCompletion } from './readline-completion';
@@ -25,6 +24,8 @@ export async function run(): Promise<number> {
   const bootstrap = await bootstrapCliSettings(rl);
   if (!bootstrap.settings) {
     rl.close();
+    return 1;
+  }
   let settings = bootstrap.settings;
 
   let profiles = loadProfilesFromFile();

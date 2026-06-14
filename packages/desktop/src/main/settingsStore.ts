@@ -2,10 +2,9 @@ import {
   loadRawSettingsFromFile,
   saveRawSettingsToFile,
   loadSettingsFromFile,
-  loadSecret,
   saveSecret,
 } from '@curraint/core';
-import { normalizeAppSettings, DEFAULT_APP_SETTINGS, migrateSavedConnectionsToProfiles } from '../appSettings';
+import { normalizeAppSettings, migrateSavedConnectionsToProfiles } from '../appSettings';
 import type { AppSettings } from '../types';
 
 function profileApiKeySecretId(profileId: string): string {

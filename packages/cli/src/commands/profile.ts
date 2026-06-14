@@ -1,11 +1,10 @@
 import { stdout as output } from 'node:process';
 import {
   DEFAULT_PROFILE_ID,
-  loadSettingsFromFile,
   resolveProfile,
   saveProfilesToFile,
 } from '@curraint/core';
-import type { Profile, SettingsFileV2 } from '@curraint/core';
+import type { Profile } from '@curraint/core';
 import { loadSecret } from '@curraint/core';
 import type { CommandContext, CommandResult } from './types';
 

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
 import { loadSecret, saveSecret } from '../secrets/manager';
-import { DEFAULT_SETTINGS, DEFAULT_PROFILE, DEFAULT_PROFILE_ID } from './defaults';
+import { DEFAULT_PROFILE, DEFAULT_PROFILE_ID } from './defaults';
 import { normalizeSettings, normalizeProfile, resolveProfile } from './normalizer';
 import { settingsFilePath } from './paths';
 import type { EndpointSettings, Profile, SettingsFileV2 } from './types';
