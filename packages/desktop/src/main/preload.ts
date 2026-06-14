@@ -85,10 +85,10 @@ const api: CurraintApi = {
   openSessionsWindow: () => ipcRenderer.invoke(IPC_CHANNELS.sessionsOpen),
   loadSession: (id) => ipcRenderer.invoke(IPC_CHANNELS.sessionsLoad, id),
   openLicensesWindow: () => ipcRenderer.invoke(IPC_CHANNELS.openLicensesWindow),
+  getProfiles: () => ipcRenderer.invoke(IPC_CHANNELS.profilesGet),
+  saveProfiles: (v2) => ipcRenderer.invoke(IPC_CHANNELS.profilesSave, v2),
   onSessionLoad: (callback) => {
-    const handler = (_event: Electron.IpcRendererEvent, session: SavedSession): void => {
-      callback(session);
-    };
+    const handler = (_event: Electron.IpcRendererEvent, session: SavedSession) => callback(session);
     ipcRenderer.on(IPC_CHANNELS.sessionsLoadPush, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.sessionsLoadPush, handler);
   }

@@ -1,4 +1,4 @@
-import type { ChatMessage, TokenUsage } from '@curraint/core';
+import type { ChatMessage, TokenUsage, SettingsFileV2 } from '@curraint/core';
 import type { AppSettings } from './types';
 import type { SavedSession, SessionSummary } from '@curraint/core';
 
@@ -26,7 +26,9 @@ export const IPC_CHANNELS = {
   sessionsLoad: 'sessions:load',
   sessionsLoadPush: 'sessions:load:push',
   sessionsOpen: 'sessions:open',
-  openLicensesWindow: 'licenses:open'
+  openLicensesWindow: 'licenses:open',
+  profilesGet: 'profiles:get',
+  profilesSave: 'profiles:save',
 } as const;
 
 export type ChatStreamPayload = {
@@ -66,4 +68,6 @@ export type CurraintApi = {
   loadSession: (id: string) => Promise<void>;
   onSessionLoad: (callback: (session: SavedSession) => void) => () => void;
   openLicensesWindow: () => Promise<void>;
+  getProfiles: () => Promise<SettingsFileV2>;
+  saveProfiles: (v2: SettingsFileV2) => Promise<void>;
 };

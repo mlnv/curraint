@@ -109,19 +109,24 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
 
   async function resolveSettings(): Promise<EndpointSettings> {
     const s = plugin.settings;
-    if (s.apiKeyEncrypted !== cachedEncrypted) {
-      cachedApiKey = s.apiKeyEncrypted ? await plugin.secrets.decrypt(s.apiKeyEncrypted) : '';
-      cachedEncrypted = s.apiKeyEncrypted;
+    const profile = s.profiles[s.activeProfileId];
+    if (!profile) {
+      throw new Error(`Active profile "${s.activeProfileId}" not found in plugin settings.`);
+    }
+    const encryptedKey = profile.apiKeyEncrypted ?? '';
+    if (encryptedKey !== cachedEncrypted) {
+      cachedApiKey = encryptedKey ? await plugin.secrets.decrypt(encryptedKey) : '';
+      cachedEncrypted = encryptedKey;
     }
     return {
-      provider: s.provider,
+      provider: profile.provider,
       apiKey: cachedApiKey,
-      baseUrl: s.baseUrl,
-      model: s.model,
-      systemPrompt: s.systemPrompt,
-      contextMaxMessages: s.contextMaxMessages,
-      contextMaxCharacters: s.contextMaxCharacters,
-      enableSessionSaving: s.enableSessionSaving,
+      baseUrl: profile.baseUrl ?? '',
+      model: profile.model ?? '',
+      systemPrompt: profile.systemPrompt ?? 'You are a helpful assistant.',
+      contextMaxMessages: profile.contextMaxMessages ?? 40,
+      contextMaxCharacters: profile.contextMaxCharacters ?? 24000,
+      enableSessionSaving: profile.enableSessionSaving ?? false,
     };
   }
 

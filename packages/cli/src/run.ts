@@ -3,6 +3,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import {
   createChatSessionCore,
   settingsFilePath,
+  loadProfilesFromFile,
 } from '@curraint/core';
 import type { ChatSessionCore, EndpointSettings } from '@curraint/core';
 import { c, divider } from './theme';
@@ -23,9 +24,11 @@ export async function run(): Promise<number> {
   const bootstrap = await bootstrapCliSettings(rl);
   if (!bootstrap.settings) {
     rl.close();
-    return bootstrap.exitCode;
+    return 1;
   }
   let settings = bootstrap.settings;
+
+  let profiles = loadProfilesFromFile();
 
   const sessionUI = new SessionUI();
   let session: ChatSessionCore = createChatSessionCore(buildTransport(settings));
@@ -54,6 +57,9 @@ export async function run(): Promise<number> {
       currentSessionCreatedAt = id ? createdAt : 0;
     },
     getSettingsFilePath: () => settingsFilePath(),
+    getProfiles: () => profiles,
+    saveProfiles: (v2) => { profiles = v2; },
+    getActiveProfileId: () => profiles.activeProfileId,
   };
 
   output.write(
@@ -100,6 +106,9 @@ export async function run(): Promise<number> {
           conversation: session.getState().conversation,
           currentSessionId,
           currentSessionCreatedAt,
+          provider: settings.provider,
+          model: settings.model,
+          profileId: profiles.activeProfileId,
         });
         currentSessionId = persistenceState.currentSessionId;
         currentSessionCreatedAt = persistenceState.currentSessionCreatedAt;

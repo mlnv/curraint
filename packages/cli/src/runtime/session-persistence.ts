@@ -1,5 +1,5 @@
 import { persistConversation } from '@curraint/core';
-import type { ChatMessage } from '@curraint/core';
+import type { ChatMessage, ProviderId } from '@curraint/core';
 
 export type SessionPersistenceState = {
   currentSessionId: string | null;
@@ -9,6 +9,9 @@ export type SessionPersistenceState = {
 type PersistSessionOptions = SessionPersistenceState & {
   enableSessionSaving: boolean;
   conversation: ChatMessage[];
+  provider: ProviderId;
+  model: string;
+  profileId?: string;
   now?: () => number;
 };
 
@@ -28,6 +31,9 @@ export function persistSessionIfEnabled(
     conversation: options.conversation,
     currentSessionId: options.currentSessionId,
     currentSessionCreatedAt: options.currentSessionCreatedAt,
+    provider: options.provider,
+    model: options.model,
+    profileId: options.profileId,
     now: options.now,
   });
 }

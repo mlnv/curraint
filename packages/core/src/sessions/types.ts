@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../types';
+import type { ChatMessage, ProviderId } from '../types';
 
 export type SavedSession = {
   id: string;
@@ -6,6 +6,9 @@ export type SavedSession = {
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];
+  provider?: ProviderId;
+  model?: string;
+  profileId?: string;
 };
 
 export type SessionSummary = {
@@ -14,4 +17,6 @@ export type SessionSummary = {
   createdAt: number;
   updatedAt: number;
   messageCount: number;
+  provider?: ProviderId;
+  model?: string;
 };

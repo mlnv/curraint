@@ -7,8 +7,8 @@ import {
 } from '@curraint/core';
 import { composeConversation } from '@curraint/core';
 import { listSessions, getSession, saveSession, deleteSession } from '@curraint/core';
+import { loadProfilesFromFile, saveProfilesToFile } from '@curraint/core';
 import { buildPiTransport } from '@curraint/core';
-import type { ChatMessage, SavedSession } from '@curraint/core';
 import { normalizeAppSettings } from '../appSettings';
 import type { AppSettings } from '../types';
 
@@ -166,6 +166,20 @@ export function registerIpcHandlers(settingsAccess: SettingsAccess): void {
       return testConnection(settings);
     }
   );
+
+  ipcMain.handle(IPC_CHANNELS.profilesGet, () => loadProfilesFromFile());
+
+  ipcMain.handle(IPC_CHANNELS.profilesSave, (_event, v2) => {
+    if (
+      typeof v2 !== 'object' || v2 === null ||
+      v2['version'] !== 2 ||
+      typeof v2['activeProfileId'] !== 'string' ||
+      typeof v2['profiles'] !== 'object' || v2['profiles'] === null
+    ) {
+      throw new Error('Invalid profiles payload: expected SettingsFileV2.');
+    }
+    saveProfilesToFile(v2);
+  });
 
   ipcMain.handle(IPC_CHANNELS.sessionsList, () => listSessions());
 
