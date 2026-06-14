@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>curraint — Stay in the current.</title>
+  <meta name="description" content="An AI chat client that follows you across desktop, terminal, and Obsidian. Stay in flow — no switching tools, no breaking your concentration.">
+  <meta property="og:title" content="curraint — Stay in the current.">
+  <meta property="og:description" content="An AI chat client that follows you across desktop, terminal, and Obsidian. Stay in flow.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://curraint.dev/assets/social.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Geist:wght@300..700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="particles" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="curraint home">
+        <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="logo-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--accent)"/>
+              <stop offset="1" stop-color="var(--accent-3)"/>
+            </linearGradient>
+          </defs>
+          <rect x="8" y="10" width="20" height="44" rx="4" fill="url(#logo-grad)"/>
+          <rect x="36" y="10" width="20" height="18" rx="4" fill="url(#logo-grad)"/>
+          <rect x="36" y="36" width="20" height="18" rx="4" fill="url(#logo-grad)"/>
+        </svg>
+        <span class="nav-brand">curraint</span>
+      </a>
+      <nav aria-label="Primary" class="nav-links">
+        <a href="#interfaces" class="nav-link">Interfaces</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#start" class="nav-link">Get started</a>
+        <a href="https://github.com/curraint/curraint" class="nav-link" target="_blank" rel="noopener">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero" id="top">
+      <div class="section-inner">
+        <div class="hero-label reveal">
+          <span class="mono-fig">curraint</span>
+          <span class="label-text">· AI chat that follows you</span>
+        </div>
+        <h1 class="hero-heading reveal">
+          Stay in<br>
+          <span class="text-display-italic text-dim">the</span>
+          <span class="text-accent"> current</span><span class="text-fg">.</span>
+        </h1>
+        <p class="hero-lead reveal">
+          Every time you switch tools to talk to AI, you break your flow.
+          curraint follows you across <span class="text-fg">desktop, terminal, and Obsidian</span>
+          so you never have to leave where you're working. Same chat, same context,
+          same encrypted keys. <span class="text-fg">Wherever the current takes you.</span>
+        </p>
+        <div class="hero-actions reveal">
+          <div class="install-box">
+            <div class="install-tabs" role="tablist" aria-label="Get started">
+              <button class="install-tab active" role="tab" aria-selected="true" data-tab="pnpm">pnpm</button>
+              <button class="install-tab" role="tab" aria-selected="false" data-tab="npm">npm</button>
+              <button class="install-tab" role="tab" aria-selected="false" data-tab="git">git clone</button>
+            </div>
+            <pre class="install-panel active" data-panel="pnpm"><code>pnpm install && pnpm build && pnpm desktop</code></pre>
+            <pre class="install-panel" data-panel="npm" hidden><code>npm install && npm run build && npm run desktop</code></pre>
+            <pre class="install-panel" data-panel="git" hidden><code>git clone https://github.com/curraint/curraint.git
+cd curraint && pnpm install && pnpm build</code></pre>
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+            <p class="install-note">Packaged downloads coming soon. For now, clone and build.</p>
+          </div>
+        <div class="hero-badges reveal">
+          <span class="badge">Windows</span>
+          <span class="badge">macOS</span>
+          <span class="badge">Linux</span>
+          <span class="badge">Obsidian</span>
+          <span class="badge">AGPL v3</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interfaces — the headline feature -->
+    <section class="section alt" id="interfaces">
+      <div class="section-inner">
+        <div class="section-label reveal">
+          <span class="mono-fig">Surfaces</span>
+          <span class="label-text">· wherever you're working</span>
+        </div>
+        <h2 class="section-heading reveal">
+          The current<br>
+          <span class="text-display-italic text-dim">follows you.</span>
+        </h2>
+        <div class="interface-grid reveal">
+          <div class="interface-card">
+            <div class="interface-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 21h8M12 17v4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <h3 class="interface-card-title">Desktop</h3>
+            <p class="interface-card-desc">When you're at your desk, the current is here. Click the tray icon and chat without breaking stride.</p>
+            <ul class="interface-card-list">
+              <li>Chat from the system tray</li>
+              <li>Global shortcut from any app</li>
+              <li>Light and dark themes</li>
+              <li>Windows, macOS, Linux</li>
+              <li>No account, no cloud</li>
+            </ul>
+            <code class="interface-card-cmd">pnpm desktop</code>
+          </div>
+          <div class="interface-card">
+            <div class="interface-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24"><polyline points="4 17 10 11 4 5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="19" x2="20" y2="19" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <h3 class="interface-card-title">Terminal</h3>
+            <p class="interface-card-desc">If you live in the command line, the current flows here. Chat, pipe, script — all without leaving your shell.</p>
+            <ul class="interface-card-list">
+              <li>Chat directly in your terminal</li>
+              <li>Slash commands for quick actions</li>
+              <li>Fix messages with <code>/edit</code></li>
+              <li>Pipe output into scripts</li>
+              <li>Config via environment variables</li>
+            </ul>
+            <code class="interface-card-cmd">pnpm cli</code>
+          </div>
+          <div class="interface-card">
+            <div class="interface-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <h3 class="interface-card-title">Obsidian</h3>
+            <p class="interface-card-desc">When you're deep in your notes, the current meets you there. Chat from a sidebar, pull in any note as context.</p>
+            <ul class="interface-card-list">
+              <li>Sidebar, never leaves Obsidian</li>
+              <li>Add the open note as context</li>
+              <li>Search and pick any vault notes</li>
+              <li>Keep multiple chats going</li>
+              <li>Markdown or plain text</li>
+            </ul>
+            <code class="interface-card-cmd">pnpm --filter @curraint/obsidian-plugin build</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+      <div class="section-inner">
+        <div class="section-label reveal">
+          <span class="mono-fig">Features</span>
+          <span class="label-text">· everything that keeps you in flow</span>
+        </div>
+        <h2 class="section-heading reveal">
+          Nothing breaks<br>
+          <span class="text-display-italic text-dim">the current.</span>
+        </h2>
+        <div class="feature-grid reveal">
+          <div class="feature-card">
+            <span class="feature-num">01</span>
+            <h4>Streaming, with a stop button</h4>
+            <p>Responses show up as they're generated. If the model starts rambling or you've seen enough, hit stop and keep what you've got.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-num">02</span>
+            <h4>Edit any message, regenerate</h4>
+            <p>Realized you asked the wrong thing five messages ago? Edit that message and the thread picks up from there. No starting over.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-num">03</span>
+            <h4>Your choice of provider</h4>
+            <p>OpenAI, DeepSeek, GitHub Copilot, or run LM Studio locally. Anything with an OpenAI-compatible endpoint works. Switch whenever you want.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-num">04</span>
+            <h4>Context safety built in</h4>
+            <p>Long conversations don't suddenly error out. When the context window fills up, older messages get summarized instead of dropped.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-num">05</span>
+            <h4>Encrypted secrets on disk</h4>
+            <p>Your API keys are encrypted with AES-256-GCM. They never touch disk in plain text. Not in settings, not in logs, nowhere.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-num">06</span>
+            <h4>Save sessions when it matters</h4>
+            <p>Conversations aren't saved unless you turn it on. When you do, you can browse, search, and jump back into old sessions from any interface.</p>
+          </div>
+        </div>
+      </div>
+    <section class="section alt" id="start">
+      <div class="section-inner">
+        <div class="section-label reveal">
+          <span class="mono-fig">Get started</span>
+          <span class="label-text">· find your current</span>
+        </div>
+        <h2 class="section-heading reveal">
+          Jump in.<br>
+          <span class="text-display-italic text-dim">The water's fine.</span>
+        </h2>
+        <div class="steps reveal">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>You'll need Node.js and pnpm</h4>
+              <p>Make sure you have <span class="text-fg">Node.js 22+</span> and <span class="text-fg">pnpm 10+</span> installed. Then grab the code:</p>
+              <pre><code>git clone https://github.com/curraint/curraint.git
+cd curraint
+pnpm install</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>Build</h4>
+              <p>Everything builds in one shot:</p>
+              <pre><code>pnpm build</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>Launch an interface</h4>
+              <div class="step-cols">
+                <div>
+                  <h5 class="step-sub">Desktop</h5>
+                  <pre><code>pnpm desktop</code></pre>
+                </div>
+                <div>
+                  <h5 class="step-sub">CLI</h5>
+                  <pre><code>pnpm cli</code></pre>
+                </div>
+                <div>
+                  <h5 class="step-sub">Obsidian</h5>
+                  <pre><code>pnpm --filter @curraint/obsidian-plugin build</code></pre>
+                  <p class="step-note">Then copy <code>dist/</code> into your vault's <code>.obsidian/plugins/curraint/</code></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>Connect a provider</h4>
+              <p>Set an environment variable, or use the settings UI in the desktop app. Works with OpenAI, DeepSeek, LM Studio, GitHub Copilot, and any OpenAI-compatible API.</p>
+              <pre><code># Add to your shell profile or .env
+CURRAINT_PROVIDER=openai
+CURRAINT_API_KEY=sk-...
+CURRAINT_MODEL=gpt-4o-mini</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    <section class="section" id="architecture">
+      <div class="section-inner">
+        <div class="section-label reveal">
+          <span class="mono-fig">Under the hood</span>
+          <span class="label-text">· one current, three surfaces</span>
+        </div>
+        <h2 class="section-heading reveal">
+          One current.<br>
+          <span class="text-display-italic text-dim">Every surface.</span>
+        </h2>
+        <div class="arch reveal">
+          <div class="arch-row arch-surfaces">
+            <span class="arch-chip">Desktop</span>
+            <span class="arch-chip">CLI</span>
+            <span class="arch-chip">Obsidian</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-row">
+            <span class="arch-chip arch-chip-core">@curraint/core</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-row arch-backends">
+            <span class="arch-chip">Providers</span>
+            <span class="arch-chip">Sessions</span>
+            <span class="arch-chip">Context</span>
+            <span class="arch-chip">Secrets</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span>curraint · AGPL-3.0</span>
+        <span class="footer-sep">·</span>
+        <span>by <a href="https://github.com/curraint" class="footer-link">curraint</a></span>
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/curraint/curraint" class="footer-link" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" fill="currentColor"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
