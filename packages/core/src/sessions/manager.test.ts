@@ -191,7 +191,9 @@ describe('persistConversation', () => {
       messages: [
         { role: 'user', content: 'Hello there' },
         { role: 'assistant', content: 'Hi' }
-      ]
+      ],
+      provider: 'openai',
+      model: 'gpt-4o-mini',
     });
   });
 
@@ -220,7 +222,9 @@ describe('persistConversation', () => {
       updatedAt: 7000,
       messages: [
         { role: 'assistant', content: 'Proactive hello' }
-      ]
+      ],
+      provider: 'openai',
+      model: 'gpt-4o-mini',
     });
   });
 

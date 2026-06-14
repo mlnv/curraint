@@ -36,4 +36,5 @@ export type ChatSessionCore = {
   stopResponse: () => Promise<void>;
   clearConversation: () => Promise<void>;
   loadConversation: (messages: ChatMessage[]) => void;
+  replaceTransport: (transport: ChatSessionTransport) => void;
 };

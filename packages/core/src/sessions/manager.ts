@@ -1,11 +1,15 @@
 import { deleteSessionFile, listSessionFiles, readSession, writeSession } from './storage';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, ProviderId } from '../types';
 import type { SavedSession, SessionSummary } from './types';
+import { DEFAULT_SETTINGS } from '../settings/defaults';
 
 export type PersistConversationOptions = {
   conversation: ChatMessage[];
   currentSessionId: string | null;
   currentSessionCreatedAt: number;
+  provider?: ProviderId;
+  model?: string;
+  profileId?: string;
   now?: () => number;
 };
 
@@ -38,7 +42,9 @@ export function listSessions(): SessionSummary[] {
       title: session.title,
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
-      messageCount: session.messages.length
+      messageCount: session.messages.length,
+      provider: session.provider ?? DEFAULT_SETTINGS.provider,
+      model: session.model ?? DEFAULT_SETTINGS.model,
     });
   }
 
@@ -79,6 +85,9 @@ export function persistConversation(
     createdAt: currentSessionCreatedAt,
     updatedAt: timestamp,
     messages,
+    provider: options.provider ?? DEFAULT_SETTINGS.provider,
+    model: options.model ?? DEFAULT_SETTINGS.model,
+    ...(options.profileId ? { profileId: options.profileId } : {}),
   });
 
   return {
