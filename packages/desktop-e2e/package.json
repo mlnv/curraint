@@ -12,6 +12,6 @@
   "devDependencies": {
     "@playwright/test": "^1.51.0",
     "electron": "^40.6.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.9.3"
   }
 }
