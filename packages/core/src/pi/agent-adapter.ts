@@ -298,6 +298,11 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
         status: ''
       });
       notifyState();
+    },
+
+    replaceTransport: (_newTransport) => {
+      // The pi agent session manages its own transport lifecycle;
+      // switching providers/models requires a new session session.
     }
   };
 }
