@@ -76,4 +76,19 @@ describe('settingsStore', () => {
     expect(written['apiKey']).toBeUndefined();
     expect(saveSecretMock).toHaveBeenCalledWith('profile:default:apiKey', 'new-key');
   });
+
+  it('does not write legacy plaintext apiKey back to raw settings', async () => {
+    const existing = { apiKey: 'legacy-plaintext-key', theme: 'monokai' };
+    loadRawMock.mockReturnValue(existing);
+    saveRawMock.mockImplementation(() => {});
+
+    const { saveSettings } = await import('./settingsStore');
+    saveSettings({ ...DEFAULT_APP_SETTINGS, apiKey: 'new-key' });
+
+    expect(saveRawMock).toHaveBeenCalledTimes(1);
+    const written = saveRawMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(written['apiKey']).toBeUndefined();
+    expect(written['theme']).toBe('black');
+    expect(saveSecretMock).toHaveBeenCalledWith('profile:default:apiKey', 'new-key');
+  });
 });

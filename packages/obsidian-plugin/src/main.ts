@@ -46,9 +46,9 @@ function migrateLegacySettings(raw: Record<string, unknown>): PluginSettings | n
     baseUrl: (raw['baseUrl'] as string) || undefined,
     model: (raw['model'] as string) || undefined,
     systemPrompt: (raw['systemPrompt'] as string) || undefined,
-    contextMaxMessages: typeof raw['contextMaxMessages'] === 'number' ? raw['contextMaxMessages'] as number : undefined,
-    contextMaxCharacters: typeof raw['contextMaxCharacters'] === 'number' ? raw['contextMaxCharacters'] as number : undefined,
-    enableSessionSaving: typeof raw['enableSessionSaving'] === 'boolean' ? raw['enableSessionSaving'] as boolean : undefined,
+    contextMaxMessages: typeof raw['contextMaxMessages'] === 'number' ? raw['contextMaxMessages'] : undefined,
+    contextMaxCharacters: typeof raw['contextMaxCharacters'] === 'number' ? raw['contextMaxCharacters'] : undefined,
+    enableSessionSaving: typeof raw['enableSessionSaving'] === 'boolean' ? raw['enableSessionSaving'] : undefined,
   };
 
   return {
@@ -74,7 +74,7 @@ export default class CurraintPlugin extends Plugin {
       }
 
       const activeProfile = this.settings.profiles[this.settings.activeProfileId];
-      if (activeProfile && activeProfile.provider === 'lmstudio') {
+      if (activeProfile?.provider === 'lmstudio') {
         activeProfile.provider = 'openai';
         activeProfile.baseUrl = PROVIDER_CONFIGS.openai.defaultBaseUrl;
         shouldSaveSettings = true;
@@ -128,7 +128,7 @@ export default class CurraintPlugin extends Plugin {
       await this.saveSettings();
       return;
     }
-    this.settings = Object.assign({ ...DEFAULT_PLUGIN_SETTINGS }, raw) as PluginSettings;
+    this.settings = { ...DEFAULT_PLUGIN_SETTINGS, ...raw } as PluginSettings;
   }
 
   async saveSettings(): Promise<void> {

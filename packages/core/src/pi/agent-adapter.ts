@@ -301,8 +301,7 @@ export function createPiChatSessionCore(settings: PiSessionSettings): ChatSessio
     },
 
     replaceTransport: (_newTransport) => {
-      // The pi agent session manages its own transport lifecycle;
-      // switching providers/models requires a new session session.
+      throw new Error('replaceTransport is not supported for pi-agent sessions. Create a new session instead.');
     }
   };
 }

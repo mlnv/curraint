@@ -7,8 +7,8 @@ export type PersistConversationOptions = {
   conversation: ChatMessage[];
   currentSessionId: string | null;
   currentSessionCreatedAt: number;
-  provider?: ProviderId;
-  model?: string;
+  provider: ProviderId;
+  model: string;
   profileId?: string;
   now?: () => number;
 };
@@ -85,8 +85,8 @@ export function persistConversation(
     createdAt: currentSessionCreatedAt,
     updatedAt: timestamp,
     messages,
-    provider: options.provider ?? DEFAULT_SETTINGS.provider,
-    model: options.model ?? DEFAULT_SETTINGS.model,
+    provider: options.provider,
+    model: options.model,
     ...(options.profileId ? { profileId: options.profileId } : {}),
   });
 

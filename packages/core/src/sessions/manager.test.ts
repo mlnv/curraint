@@ -176,6 +176,8 @@ describe('persistConversation', () => {
       ],
       currentSessionId: null,
       currentSessionCreatedAt: 0,
+      provider: 'openai',
+      model: 'gpt-4o-mini',
       now: () => 5000
     });
 
@@ -200,7 +202,6 @@ describe('persistConversation', () => {
   it('keeps assistant-only conversations and derives an empty title', () => {
     vi.spyOn(Date, 'now').mockReturnValue(2345);
     vi.spyOn(Math, 'random').mockReturnValue(0);
-
     const result = persistConversation({
       conversation: [
         { role: 'system', content: 'You are helpful.' },
@@ -208,6 +209,8 @@ describe('persistConversation', () => {
       ],
       currentSessionId: null,
       currentSessionCreatedAt: 0,
+      provider: 'openai',
+      model: 'gpt-4o-mini',
       now: () => 7000
     });
 
@@ -233,6 +236,8 @@ describe('persistConversation', () => {
       conversation: [{ role: 'system', content: 'You are helpful.' }],
       currentSessionId: 'existing-id',
       currentSessionCreatedAt: 3000,
+      provider: 'openai',
+      model: 'gpt-4o-mini',
       now: () => 9000
     });
 
@@ -241,6 +246,42 @@ describe('persistConversation', () => {
       currentSessionCreatedAt: 3000
     });
     expect(writeSession).not.toHaveBeenCalled();
+  });
+
+  it('persists custom provider, model, and profileId correctly', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(9999);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    const result = persistConversation({
+      conversation: [
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi' }
+      ],
+      currentSessionId: null,
+      currentSessionCreatedAt: 0,
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      profileId: 'profile-abc',
+      now: () => 8000
+    });
+
+    expect(result).toEqual({
+      currentSessionId: '9999-0000',
+      currentSessionCreatedAt: 8000
+    });
+    expect(writeSession).toHaveBeenCalledWith({
+      id: '9999-0000',
+      title: 'Hello',
+      createdAt: 8000,
+      updatedAt: 8000,
+      messages: [
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi' }
+      ],
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      profileId: 'profile-abc',
+    });
   });
 });
 

@@ -23,7 +23,7 @@ export function saveRawSettingsToFile(data: Record<string, unknown>): void {
   writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
-function profileApiKeySecretId(profileId: string): string {
+export function profileApiKeySecretId(profileId: string): string {
   return `profile:${profileId}:apiKey`;
 }
 
@@ -69,12 +69,14 @@ function loadOrMigrateSettingsFile(): SettingsFileV2 {
   const v2 = migrateV1ToV2(raw);
   // Persist the v2 structure, preserving any extra fields (e.g. desktop theme)
   const { version: _v, activeProfileId, profiles } = v2;
+  const reservedKeys = new Set([
+    'version', 'activeProfileId', 'profiles',
+    'provider', 'apiKey', 'baseUrl', 'model',
+    'systemPrompt', 'contextMaxMessages', 'contextMaxCharacters', 'enableSessionSaving',
+  ]);
   const extraFields: Record<string, unknown> = {};
   for (const key of Object.keys(raw)) {
-    if (key !== 'version' && key !== 'activeProfileId' && key !== 'profiles'
-      && !('provider' in raw || 'apiKey' in raw || 'baseUrl' in raw || 'model' in raw
-        || 'systemPrompt' in raw || 'contextMaxMessages' in raw
-        || 'contextMaxCharacters' in raw || 'enableSessionSaving' in raw)) {
+    if (!reservedKeys.has(key)) {
       extraFields[key] = raw[key];
     }
   }

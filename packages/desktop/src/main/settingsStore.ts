@@ -3,13 +3,11 @@ import {
   saveRawSettingsToFile,
   loadSettingsFromFile,
   saveSecret,
+  profileApiKeySecretId,
 } from '@curraint/core';
 import { normalizeAppSettings, migrateSavedConnectionsToProfiles } from '../appSettings';
 import type { AppSettings } from '../types';
 
-function profileApiKeySecretId(profileId: string): string {
-  return `profile:${profileId}:apiKey`;
-}
 
 export function loadSettings(): AppSettings {
   migrateSavedConnectionsToProfiles();
@@ -29,7 +27,10 @@ export function loadSettings(): AppSettings {
 
 export function saveSettings(next: AppSettings): AppSettings {
   const existing = loadRawSettingsFromFile();
-  const activeId = (existing['activeProfileId'] as string) ?? 'default';
+  const rawActiveId = existing['activeProfileId'];
+  const activeId = typeof rawActiveId === 'string' && rawActiveId.length > 0
+    ? rawActiveId
+    : 'default';
 
   saveSecret(profileApiKeySecretId(activeId), next.apiKey);
 
@@ -47,9 +48,12 @@ export function saveSettings(next: AppSettings): AppSettings {
     enableSessionSaving: next.enableSessionSaving,
   };
 
+  const credentialKeys = new Set(['apiKey', 'provider', 'baseUrl', 'model', 'systemPrompt',
+    'contextMaxMessages', 'contextMaxCharacters', 'enableSessionSaving']);
   const extraFields: Record<string, unknown> = {};
   for (const key of Object.keys(existing)) {
     if (key === 'version' || key === 'activeProfileId' || key === 'profiles') continue;
+    if (credentialKeys.has(key)) continue;
     extraFields[key] = existing[key];
   }
   extraFields['theme'] = next.theme;

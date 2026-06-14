@@ -10,4 +10,5 @@ export {
   saveSettingsToFile,
   loadProfilesFromFile,
   saveProfilesToFile,
+  profileApiKeySecretId,
 } from './file-io';

@@ -9,17 +9,20 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
   let _isCancelling = false;
   let _activeController: AbortController | null = null;
   let _transport = transport;
+  let _activeStreamTransport: ChatSessionTransport | null = null;
 
   const setState = (next: Parameters<typeof applyStateUpdate>[1]) => {
     applyStateUpdate(state, next);
     emitStateChange(subscribers, state);
   };
 
-  const resend = (conv: ChatMessage[]) =>
-    runStream(state, subscribers, _transport, conv, () => _isCancelling, (c) => {
+  const resend = (conv: ChatMessage[]) => {
+    _activeStreamTransport = _transport;
+    return runStream(state, subscribers, _transport, conv, () => _isCancelling, (c) => {
       _activeController = c;
-      if (!c) _isCancelling = false;
+      if (!c) { _isCancelling = false; _activeStreamTransport = null; }
     });
+  };
 
   return {
     getState: () => snapshotState(state),
@@ -58,7 +61,7 @@ export function createChatSessionCore(transport: ChatSessionTransport): ChatSess
       setState({ isStopping: true, status: 'Stopping response...' });
       _activeController?.abort();
       try {
-        await _transport.cancelChatStream?.();
+        await _activeStreamTransport?.cancelChatStream?.();
       } catch {
         setState({ status: 'Failed to stop response' });
       }

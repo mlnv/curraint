@@ -248,6 +248,7 @@ Additional details:
 - The `CURRAINT_API_KEY` environment variable always takes precedence over the stored secret.
 - The desktop, CLI, and Obsidian desktop code paths now use PBKDF2-SHA256 with 600,000 iterations.
 - The Obsidian plugin uses separate encrypted storage on mobile via Web Crypto AES-GCM.
+
 ### settings.json
 
 Non-sensitive settings (provider, model, profiles, theme, shortcuts) are stored in `settings.json` in plain JSON. A `profiles` map holds named provider configurations so users can switch setups without re-entering fields. The active profile is resolved at runtime and its API key is loaded from the encrypted secrets store.

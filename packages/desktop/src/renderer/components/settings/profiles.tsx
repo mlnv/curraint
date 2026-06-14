@@ -47,7 +47,7 @@ export function Profiles({
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{profile.name}</span>
                 <span className="ml-1.5 truncate text-[11px] text-muted-foreground">
-                  {profile.model} &middot; {profile.baseUrl}
+                  {[profile.model, profile.baseUrl].filter(Boolean).join(' · ') || '(provider defaults)'}
                 </span>
                 {profile.id === profiles.activeProfileId && (
                   <span className="ml-1.5 text-[10px] text-primary">active</span>

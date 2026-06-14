@@ -1,5 +1,6 @@
 import { getProviderConfig, PROVIDER_OPTIONS } from '@curraint/core';
-import type { AppSettings, Profile, SettingsFileV2 } from '@curraint/core';
+import type { Profile, SettingsFileV2 } from '@curraint/core';
+import type { AppSettings } from '../../types';
 import { THEME_OPTIONS } from '../../lib/theme';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';

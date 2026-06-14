@@ -108,6 +108,7 @@ export async function run(): Promise<number> {
           currentSessionCreatedAt,
           provider: settings.provider,
           model: settings.model,
+          profileId: profiles.activeProfileId,
         });
         currentSessionId = persistenceState.currentSessionId;
         currentSessionCreatedAt = persistenceState.currentSessionCreatedAt;

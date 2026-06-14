@@ -66,6 +66,7 @@ export function SettingsApp(): React.JSX.Element {
       contextMaxCharacters: profile.contextMaxCharacters ?? prev.contextMaxCharacters,
       enableSessionSaving: profile.enableSessionSaving ?? prev.enableSessionSaving
     }));
+    setProfiles((prev) => ({ ...prev, activeProfileId: profile.id }));
   };
 
   const saveProfile = (name: string): void => {
@@ -81,27 +82,33 @@ export function SettingsApp(): React.JSX.Element {
       contextMaxCharacters: form.contextMaxCharacters,
       enableSessionSaving: form.enableSessionSaving
     };
-
+    const prevProfiles = profiles;
     const next: SettingsFileV2 = {
       ...profiles,
       profiles: { ...profiles.profiles, [id]: newProfile }
     };
     setProfiles(next);
-    window.curraint.saveProfiles(next).catch(() => {});
+    window.curraint.saveProfiles(next).catch((error: unknown) => {
+      setProfiles(prevProfiles);
+      setStatus(`Failed to save profile: ${error instanceof Error ? error.message : String(error)}`);
+    });
   };
-
   const deleteProfile = (id: string): void => {
     const { [id]: _, ...remaining } = profiles.profiles;
     const activeProfileId = profiles.activeProfileId === id
       ? DEFAULT_PROFILE_ID
       : profiles.activeProfileId;
+    const prevProfiles = profiles;
     const next: SettingsFileV2 = {
       ...profiles,
       activeProfileId,
       profiles: remaining
     };
     setProfiles(next);
-    window.curraint.saveProfiles(next).catch(() => {});
+    window.curraint.saveProfiles(next).catch((error: unknown) => {
+      setProfiles(prevProfiles);
+      setStatus(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
+    });
   };
 
   useEffect(() => {

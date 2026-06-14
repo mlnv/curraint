@@ -110,20 +110,23 @@ export function buildTransport(plugin: TransportPlugin): ChatSessionTransport {
   async function resolveSettings(): Promise<EndpointSettings> {
     const s = plugin.settings;
     const profile = s.profiles[s.activeProfileId];
-    const encryptedKey = profile?.apiKeyEncrypted ?? '';
+    if (!profile) {
+      throw new Error(`Active profile "${s.activeProfileId}" not found in plugin settings.`);
+    }
+    const encryptedKey = profile.apiKeyEncrypted ?? '';
     if (encryptedKey !== cachedEncrypted) {
       cachedApiKey = encryptedKey ? await plugin.secrets.decrypt(encryptedKey) : '';
       cachedEncrypted = encryptedKey;
     }
     return {
-      provider: profile?.provider ?? 'openai',
+      provider: profile.provider,
       apiKey: cachedApiKey,
-      baseUrl: profile?.baseUrl ?? '',
-      model: profile?.model ?? '',
-      systemPrompt: profile?.systemPrompt ?? 'You are a helpful assistant.',
-      contextMaxMessages: profile?.contextMaxMessages ?? 40,
-      contextMaxCharacters: profile?.contextMaxCharacters ?? 24000,
-      enableSessionSaving: profile?.enableSessionSaving ?? false,
+      baseUrl: profile.baseUrl ?? '',
+      model: profile.model ?? '',
+      systemPrompt: profile.systemPrompt ?? 'You are a helpful assistant.',
+      contextMaxMessages: profile.contextMaxMessages ?? 40,
+      contextMaxCharacters: profile.contextMaxCharacters ?? 24000,
+      enableSessionSaving: profile.enableSessionSaving ?? false,
     };
   }
 

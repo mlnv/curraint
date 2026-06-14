@@ -37,7 +37,7 @@ export class CurraintSettingTab extends PluginSettingTab {
       : PROVIDER_OPTIONS;
 
     this.renderProfileSelector(containerEl);
-    this.renderProviderSection(containerEl, providerOptions, decryptedApiKey, profile);
+    this.renderProviderSection(containerEl, providerOptions, decryptedApiKey);
     this.renderContextLimitsSection(containerEl);
     this.renderSessionsSection(containerEl);
   }
@@ -78,7 +78,8 @@ export class CurraintSettingTab extends PluginSettingTab {
           enableSessionSaving: false,
         };
         this.plugin.settings.activeProfileId = 'default';
-        return this.plugin.settings.profiles.default!;
+        void this.plugin.saveSettings();
+        return this.plugin.settings.profiles.default;
       })()
     );
   }

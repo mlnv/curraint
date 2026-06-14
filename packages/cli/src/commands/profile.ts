@@ -3,14 +3,13 @@ import {
   DEFAULT_PROFILE_ID,
   resolveProfile,
   saveProfilesToFile,
+  loadSecret,
+  saveSecret,
+  profileApiKeySecretId,
 } from '@curraint/core';
 import type { Profile } from '@curraint/core';
-import { loadSecret } from '@curraint/core';
 import type { CommandContext, CommandResult } from './types';
 
-function profileApiKeySecretId(profileId: string): string {
-  return `profile:${profileId}:apiKey`;
-}
 
 function generateProfileId(): string {
   const rand = Math.floor(Math.random() * 0xffff)
@@ -76,10 +75,10 @@ async function createProfile(ctx: CommandContext, name: string): Promise<void> {
     contextMaxCharacters: settings.contextMaxCharacters,
     enableSessionSaving: settings.enableSessionSaving,
   };
-
   profiles.profiles[id] = newProfile;
   ctx.saveProfiles(profiles);
   saveProfilesToFile(profiles);
+  saveSecret(profileApiKeySecretId(id), settings.apiKey);
   output.write(`Created profile "${name}" (id: ${id}).\n`);
 }
 
@@ -113,6 +112,11 @@ export async function runProfile(ctx: CommandContext, args: string): Promise<Com
   const trimmed = args.trim();
 
   if (!trimmed) {
+    listProfiles(ctx);
+    return 'continue';
+  }
+
+  if (trimmed === 'list' || trimmed.startsWith('list ')) {
     listProfiles(ctx);
     return 'continue';
   }

@@ -7,6 +7,7 @@ import {
   saveProfilesToFile,
   loadSecret,
   saveSecret,
+  profileApiKeySecretId,
 } from '@curraint/core';
 import type { Profile } from '@curraint/core';
 import type { AppSettings, ThemeId } from './types';
@@ -17,9 +18,6 @@ function isThemeId(value: unknown): value is ThemeId {
   return THEME_IDS.includes(value as ThemeId);
 }
 
-function profileApiKeySecretId(profileId: string): string {
-  return `profile:${profileId}:apiKey`;
-}
 
 /**
  * Migrates legacy savedConnections into profiles.
