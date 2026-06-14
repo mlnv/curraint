@@ -157,6 +157,7 @@ CLI behavior:
 | `/retry` | Regenerate the last assistant response |
 | `/provider` | Change the active provider interactively |
 | `/model` | Change the active model interactively |
+| `/profile` | Manage provider profiles (list, switch, create, delete) |
 | `/version` | Print the CLI version |
 | `/clear` | Clear the screen and reset the current session |
 | `/exit` | Exit the CLI |
@@ -205,8 +206,7 @@ Use these settings in desktop, CLI, or Obsidian:
 The desktop app is designed for fast, low-friction chat from the system tray.
 
 - Always-on tray app with unread count in the tooltip
-- Settings window with provider selection, connection testing, and saved connections
-- Markdown rendering with tables, headings, lists, code blocks, and copy buttons
+- Settings window with provider selection, connection testing, and saved profiles
 - Show or hide `<think>` and `<reasoning>` blocks from models that emit reasoning traces
 - Configurable context limits for max messages and max characters
 - Light and dark theme
@@ -242,16 +242,15 @@ Additional details:
 
 - On Unix systems, the file is created with `0600` permissions.
 - Desktop and CLI share the same `secrets.json`.
+- Each key is stored as `profile:<profileId>:apiKey` to support multiple
+  named configurations. Legacy `apiKey` entries are migrated automatically
+  on first run with the new settings format.
 - The `CURRAINT_API_KEY` environment variable always takes precedence over the stored secret.
 - The desktop, CLI, and Obsidian desktop code paths now use PBKDF2-SHA256 with 600,000 iterations.
 - The Obsidian plugin uses separate encrypted storage on mobile via Web Crypto AES-GCM.
-
 ### settings.json
 
-Non-sensitive settings such as provider, base URL, model, system prompt, theme, and shortcuts remain in plain JSON in `settings.json`.
-
-## Development
-
+Non-sensitive settings (provider, model, profiles, theme, shortcuts) are stored in `settings.json` in plain JSON. A `profiles` map holds named provider configurations so users can switch setups without re-entering fields. The active profile is resolved at runtime and its API key is loaded from the encrypted secrets store.
 ### Monorepo layout
 
 This repository is a pnpm monorepo with packages under `packages/`.
